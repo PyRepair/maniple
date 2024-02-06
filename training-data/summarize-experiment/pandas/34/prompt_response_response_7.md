@@ -1,8 +1,12 @@
-Taking into account the given information, it appears that the issue with the function `_get_time_bins` arises from the incorrect assignment of the 'labels' variable to 'binner' early on in the function. This could result in unexpected behavior and potentially lead to the AmbiguousTimeError.
+Based on the error message and test case provided, it is evident that the issue is related to handling the Daylight Saving Time (DST) transition during the resampling process. The specific datetime `2018-11-04 00:00:00` is causing an AmbiguousTimeError due to incorrect handling of the repeated times during the DST transition.
 
-To fix this issue, we need to ensure that 'binner' and 'labels' are distinct and correctly calculated based on the input DatetimeIndex. Additionally, we should address any manipulation of the lengths of 'binner', 'bins', and 'labels' to ensure consistency and correctness.
+The `_get_time_bins` function and its associated logic handle date range generation and time binning based on the frequency provided. The mishandling of DST transitions in this code is likely causing the ambiguity in time.
 
-Here is the corrected version of the `_get_time_bins` function:
+To fix this issue, the handling of DST transitions during the resampling process needs to be reviewed and updated. Specifically, the problematic part seems to be the `insert` operation on the `binner` and `labels`. The `insert` method is creating new DatetimeIndex objects, but the updated values are not being stored in the variables `binner` and `labels`.
+
+To resolve this issue, the `binner` and `labels` variables need to be updated with the new DatetimeIndex objects returned by the `insert` method. This can be done by assigning the returned values of the `insert` method directly back to the `binner` and `labels` variables.
+
+Here's the corrected code for the `_get_time_bins` function that addresses the issue:
 
 ```python
 def _get_time_bins(self, ax):
@@ -22,18 +26,9 @@ def _get_time_bins(self, ax):
     # GH #12037
     # use first/last directly instead of call replace() on them
     # because replace() will swallow the nanosecond part
-    # thus last bin may be slightly before the end if the end contains
+    # thus last bin maybe slightly before the end if the end contains
     # nanosecond part and lead to `Values falls after last bin` error
-    binner = date_range(
-        freq=self.freq,
-        start=first,
-        end=last,
-        tz=ax.tz,
-        name=ax.name,
-        ambiguous="infer",
-        nonexistent="shift_forward",
-    )
-    labels = date_range(
+    binner = labels = date_range(
         freq=self.freq,
         start=first,
         end=last,
@@ -52,15 +47,19 @@ def _get_time_bins(self, ax):
     )
 
     if self.closed == "right":
-        labels_right = labels[1:]
+        labels = binner
         if self.label == "right":
-            labels = labels_right
+            labels = labels[1:]
     elif self.label == "right":
         labels = labels[1:]
 
     if ax.hasnans:
         binner = binner.insert(0, NaT)
         labels = labels.insert(0, NaT)
+
+    # Update binner and labels with the new DatetimeIndex objects
+    binner = binner.insert(0, NaT)
+    labels = labels.insert(0, NaT)
 
     # if we end up with more labels than bins
     # adjust the labels
@@ -71,6 +70,4 @@ def _get_time_bins(self, ax):
     return binner, bins, labels
 ```
 
-In the corrected version, the 'labels' variable is generated separately from 'binner' based on the same parameters. Additionally, the manipulation of 'labels' based on the 'self.closed' and 'self.label' conditions has been made more explicit and clear. The use of separate variables to handle the manipulation based on different conditions can help in avoiding unexpected behavior.
-
-This corrected version should address the issue and prevent the AmbiguousTimeError from occurring.
+With this corrected code, the `binner` and `labels` variables will now contain the updated values with `NaT` inserted at the beginning, resolving the issue. This fix addresses the mishandling of DST transitions during the resampling process and ensures that the returned `binner` and `labels` variables have the correct values.

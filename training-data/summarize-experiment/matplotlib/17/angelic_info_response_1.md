@@ -1,19 +1,11 @@
-Based on the source code of the function and the expected return values in the tests, here is a comprehensive analysis of the function's logic:
+The `nonsingular` function takes in parameters `vmin` and `vmax`, which are the initial endpoints of a range, and modifies them as needed to avoid singularities. The function also has optional parameters `expander` and `tiny`, both defaulting to specific values, and `increasing`, a boolean attribute that defaults to True.
 
-1. The function `nonsingular` takes five input parameters: `vmin`, `vmax`, `expander`, `tiny`, and `increasing`.
+The function first checks if either `vmin` or `vmax` is infinite. If so, it returns `(-expander, expander)`. Then it checks if `vmax` is less than `vmin`. If it is, it swaps the two and sets a `swapped` flag to True.
 
-2. It first checks if either `vmin` or `vmax` is not finite. If this condition is met, the function returns `-expander` and `expander`.
+Next, the function calculates the maximum absolute value of `vmin` and `vmax` and stores it in `maxabsvalue`. If this value is less than a threshold calculated based on `tiny`, it sets `vmin` to `-expander` and `vmax` to `expander`.
 
-3. It then checks if `vmax` is less than `vmin` and swaps them if necessary, while setting a boolean variable `swapped` to `True` if this swap occurs.
+If the difference between `vmax` and `vmin` is within a threshold based on `tiny`, it checks if both `vmax` and `vmin` are 0. If they are, it sets `vmin` to `-expander` and `vmax` to `expander`. Otherwise, it expands `vmin` and `vmax` based on their absolute values and `expander`.
 
-4. Next, it calculates the maximum absolute value of `vmin` and `vmax` and stores it in the variable `maxabsvalue`.
+Finally, if the `swapped` flag is True and `increasing` is False, it swaps `vmin` and `vmax` back.
 
-5. It then evaluates two conditions:
-    a) If `maxabsvalue` is less than a specific threshold, the function sets `vmin` to `-expander` and `vmax` to `expander`.
-    b) If the difference between `vmax` and `vmin` is smaller than another threshold, the function expands the range based on the value of `expander`.
-
-6. Finally, if `swapped` is `True` and `increasing` is `False`, it swaps `vmin` and `vmax`.
-
-Based on the analyses of individual cases, it is evident that the function `nonsingular` modifies the input range to avoid singularities based on the defined conditions and constraints using the input parameters provided. The function performs checks and modifications to ensure that the endpoints are valid and fit the specified criteria.
-
-The function primarily manipulates the input endpoints, applies conditional modifications based on the provided thresholds, and selectively swaps the endpoints under certain conditions. The return values are determined based on the checks and modifications performed on the input parameters.
+The expected outputs for the test cases indicate that the function is correctly modifying the `vmin` and `vmax` according to the specified conditions.

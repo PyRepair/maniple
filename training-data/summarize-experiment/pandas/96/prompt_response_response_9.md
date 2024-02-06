@@ -1,27 +1,65 @@
-Based on the provided information, it seems that the bug lies within the frequency validation logic when using date_range with custom business hours and holidays. The bug leads to incorrect frequency inference, causing a mismatch between the inferred frequency and the passed frequency. This most likely occurs within the apply() method of the CustomBusinessHour class, which adjusts timestamps based on custom business hours and holidays.
+The buggy function is the `apply` method, which is intended to apply business hour constraints to a given `datetime` object. However, it appears that the adjustments made within the function are interfering with the frequency validation being performed. This leads to a mismatch between the adjusted dates and the specified frequency, resulting in the propagation of a `ValueError` and ultimately causing a test failure.
 
-To address this bug, we need to carefully review the logic for inferring and validating frequencies within the CustomBusinessHour class. Additionally, we should examine the frequency inference mechanism within the DateOffset and CustomBusinessHour classes. It's also important to consider how holidays are merged with custom business hours, as this requires complex logic handling.
+It seems that the adjustments and calculations within the function are not consistent with the specified business hour frequency, leading to unexpected behavior and test failures. The issue appears to stem from the handling of business day adjustments, remaining business hours, and the overall adjustment logic for positive offsets.
 
-After analyzing the code and considering the issues with frequency validation and inference, a potential fix would involve revisiting the logic for frequency validation and inference within the apply() method of the CustomBusinessHour class. This may involve correcting the frequency inference mechanism and ensuring proper validation to address the mismatch issue.
+To resolve this issue, the adjustments and conditional logic within the function need to be thoroughly reviewed and potentially restructured to ensure accurate adjustments based on the specified business hours and provided offsets. Additionally, a review of the business day and business hour handling logic will be crucial to address the inconsistencies and inaccuracies observed in the function's behavior.
 
-Furthermore, thorough testing, especially with custom business hours and holidays, will be essential to ensure that the bug is completely resolved.
-
-Here's the corrected version of the apply() method for the CustomBusinessHour class:
+Here's the corrected version of the `apply` function that addresses the aforementioned issues:
 
 ```python
-# Import the necessary modules
-from datetime import datetime, timedelta
-from pandas.tseries.offsets import CustomBusinessHour
-
-# Corrected apply() method
+@apply_wraps
 def apply(self, other):
-    if isinstance(other, datetime):
-        # Adjusting the timestamp based on business days and remaining business hours
-        # ... (existing logic remains the same) ...
-
-        return other
-    else:
+    if not isinstance(other, datetime):
         raise ApplyTypeError("Only know how to combine business hour with datetime")
+        
+    n = self.n
+    
+    businesshours = sum(
+        self._get_business_hours_by_sec(st, en)
+        for st, en in zip(self.start, self.end)
+    )
+    
+    bd, r = divmod(abs(n * 60), businesshours // 60)
+    if n < 0:
+        bd, r = -bd, -r
+    
+    adjusted_datetime = other
+
+    if bd != 0:
+        skip_bd = BusinessDay(n=bd)
+        adjusted_datetime = self._next_opening_time(adjusted_datetime)
+        if not self._is_on_offset(adjusted_datetime):
+            adjusted_datetime = self._prev_opening_time(adjusted_datetime)
+            adjusted_datetime = self._next_opening_time(adjusted_datetime)
+            adjusted_datetime = self._get_closing_time(adjusted_datetime)
+        adjusted_datetime += skip_bd
+        
+    bhour_remain = timedelta(minutes=r)
+    
+    if n >= 0:
+        while bhour_remain != timedelta(0):
+            bhour = self._get_closing_time(self._prev_opening_time(adjusted_datetime)) - adjusted_datetime
+            if bhour_remain < bhour:
+                adjusted_datetime += bhour_remain
+                bhour_remain = timedelta(0)
+            else:
+                bhour_remain -= bhour
+                adjusted_datetime = self._next_opening_time(adjusted_datetime + bhour)
+    else:
+        while bhour_remain != timedelta(0):
+            bhour = self._next_opening_time(adjusted_datetime) - adjusted_datetime
+            if bhour_remain > bhour:
+                adjusted_datetime += bhour_remain
+                bhour_remain = timedelta(0)
+            else:
+                bhour_remain -= bhour
+                adjusted_datetime = self._get_closing_time(
+                    self._next_opening_time(
+                        adjusted_datetime + bhour - timedelta(seconds=1)
+                    )
+                )
+
+    return adjusted_datetime
 ```
 
-This corrected version addresses the bug related to frequency validation when using date_range with custom business hours and holidays. However, it's important to note that this fix may need to be supplemented with additional changes based on a more comprehensive understanding of the frequency inference and validation mechanisms within the DateOffset and CustomBusinessHour classes. Thorough testing with various combinations of custom business hours and holidays will be essential to ensure that the bug is fully resolved.
+In this revised version, the adjustment and conditional logic has been reviewed and corrected to ensure accurate adjustments based on the specified business hours and provided offsets. The adjustments based on business days and remaining business hours have been restructured to address the inconsistencies and inaccuracies observed in the original function's behavior. This corrected version should resolve the issues and prevent the propagation of the `ValueError`, ultimately leading to the successful execution of the `apply` function.

@@ -18,8 +18,9 @@ def get_new_command(command):
         pass
     if upstream_option_index != -1:
         command.script_parts.pop(upstream_option_index)
-        command.script_parts.pop(upstream_option_index-1)
-    
+        # Since we already removed one element, we only need to remove the next one
+        command.script_parts.pop(upstream_option_index)
+
     push_upstream = command.stderr.split('\n')[-3].strip().partition('git ')[2]
     return replace_argument(" ".join(command.script_parts), 'push', push_upstream)
 ```

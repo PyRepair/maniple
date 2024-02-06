@@ -1,17 +1,17 @@
-The bug occurs in the `_engine` function where a weak reference of `self` is created but it's not being utilized in the subsequent code properly. The error message indicates that the `PeriodEngine` is getting a `None` instead of the expected `PeriodIndex`.
+The bug seems to be occurring within the `PeriodEngine` class when the `is_monotonic_increasing` attribute is accessed. This is likely because the weakly referenced `PeriodIndex` object is getting dropped before it is intended to, resulting in a `NoneType` object being accessed by the `PeriodEngine`.
 
-To fix this bug, we need to ensure that the weak reference is used correctly to avoid reference cycles and properly pass the weakly referenced `self` to the `_engine_type` while creating the `PeriodEngine`.
+To fix this issue, we need to ensure that the weak reference to the `PeriodIndex` object is maintained for the lifetime of the `PeriodEngine` object.
 
-Here's the corrected code for the `_engine` function:
+We can fix the bug by modifying the `_engine` function to maintain a weak reference to the `PeriodIndex` object throughout the lifetime of the `_engine` object. Here's the corrected function:
 
 ```python
 @cache_readonly
 def _engine(self):
-    # To avoid a reference cycle, create a weakref of self
-    period_ref = weakref.ref(self)
-    return self._engine_type(period_ref(), len(self))
+    # Maintain a weak reference to self for the lifetime of the _engine object
+    self._weakref = weakref.ref(self)
+    return self._engine_type(self._weakref, len(self))
 ```
 
-By using the weakly referenced `self`, we avoid the reference cycle and ensure that the `PeriodEngine` receives the `PeriodIndex` as expected, fixing the bug.
+By maintaining a weak reference to `self` throughout the lifetime of the `_engine` object, we ensure that the `PeriodEngine` always has a valid reference to the `PeriodIndex` object, preventing the `NoneType` error.
 
-The fix ensures that weakrefs are utilized properly to avoid the issue of lost weakrefs in MultiIndex levels. This addresses the bug and ensures that the `PeriodEngine` receives the intended `PeriodIndex` instead of `None`.
+Please replace the original `_engine` function with the corrected version provided above to resolve the bug.

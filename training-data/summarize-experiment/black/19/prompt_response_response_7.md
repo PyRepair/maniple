@@ -1,68 +1,79 @@
-The error message is related to a test case in the `test_black.py` file, specifically the `test_comment_in_decorator` test case. The error message indicates a failed assertion between the expected and actual output of the `fs` function, which is likely using the `_maybe_empty_lines` function internally. This suggests that the bug may be within the `_maybe_empty_lines` function, leading to incorrect output from the `fs` function.
+Based on the test case and error message, it seems that the function `_maybe_empty_lines` is not correctly handling the generation of empty lines before and after the current line. The erroneous behavior likely leads to an incorrect output, causing the test to fail.
 
-Upon careful examination, it appears that the bug may be related to the handling of empty lines before and after the currently processed line. The function `_maybe_empty_lines` is responsible for determining the number of potential extra empty lines needed before and after the currently processed line. There are several conditional statements within the function that determine the number of empty lines based on various factors such as line type, depth, etc.
+The potential error location within the function could be the logic for determining the number of empty lines to be added before and after the current line, especially in the if-else conditions related to the type of `current_line` and its relationship with the previous line.
 
-After analyzing the test case and the function, it seems that the bug may be originating from the logic within the function that calculates the number of empty lines. This could lead to an incorrect number of empty lines being returned, causing the assertion failure in the test case.
+The reason behind the occurrence of the bug might be a misinterpretation of the conditions or incorrect handling of the relationships between different types of lines and their depths.
 
-To address the bug, the logic within the function `_maybe_empty_lines` that calculates the number of empty lines based on different conditions should be thoroughly reviewed and possibly revised. This may involve adjusting the conditional statements or the calculation of the `before` and `newlines` variables.
+To fix the bug, the logic for determining the number of empty lines to be added before and after the current line needs to be carefully reviewed, refactored, and tested thoroughly to ensure it covers all possible scenarios.
 
-Here's the corrected code for the `_maybe_empty_lines` function based on the analysis provided:
+Here's the corrected code for the problematic function:
 
 ```python
-def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
-    max_allowed = 1
-    if current_line.depth == 0:
-        max_allowed = 2
-    before = 0
-    
-    if current_line.leaves:
-        # Consume the first leaf's extra newlines.
-        first_leaf = current_line.leaves[0]
-        before = min(first_leaf.prefix.count("\n"), max_allowed)
-        first_leaf.prefix = ""
-    
-    depth = current_line.depth
-    
-    while self.previous_defs and self.previous_defs[-1] >= depth:
-        self.previous_defs.pop()
-        before = 1 if depth else 2
-    
-    is_decorator = current_line.is_decorator
-    if is_decorator or current_line.is_def or current_line.is_class:
-        if not is_decorator:
-            self.previous_defs.append(depth)
+from dataclasses import dataclass
+from typing import List, Tuple
+
+@dataclass
+class Line:
+    depth: int
+    leaves: List[str]
+    is_decorator: bool
+    is_def: bool
+    is_class: bool
+    is_flow_control: bool
+    is_import: bool
+    is_yield: bool
+
+class EmptyLineTracker:
+    def __init__(self):
+        self.previous_defs = []
+        self.previous_line = None
+
+    def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
+        max_allowed = 1
+        if current_line.depth == 0:
+            max_allowed = 2
+
+        before = 0
+        if current_line.leaves:
+            # Consume the first leaf's extra newlines.
+            first_leaf = current_line.leaves[0]
+            before = min(first_leaf.prefix.count("\n"), max_allowed)
+            first_leaf.prefix = ""
+        depth = current_line.depth
+
+        while self.previous_defs and self.previous_defs[-1] >= depth:
+            self.previous_defs.pop()
+            before = 1 if depth else 2
         
-        if self.previous_line is None or (
-            self.previous_line and self.previous_line.is_decorator
+        if current_line.is_decorator or current_line.is_def or current_line.is_class:
+            if not current_line.is_decorator:
+                self.previous_defs.append(depth)
+            if self.previous_line is None or (self.previous_line and self.previous_line.is_decorator):
+                return 0, 0
+            newlines = 2
+            if current_line.depth:
+                newlines -= 1
+            return newlines, 0
+
+        if current_line.is_flow_control:
+            return before, 1
+
+        if (
+            self.previous_line
+            and self.previous_line.is_import
+            and not current_line.is_import
+            and depth == self.previous_line.depth
         ):
-            # Don't insert empty lines before the first line in the file or between decorators.
-            return 0, 0
-        
-        newlines = 2
-        if current_line.depth:
-            newlines -= 1
-        
-        return newlines, 0
-    
-    if current_line.is_flow_control:
-        return before, 1
-    
-    if (
-        self.previous_line
-        and self.previous_line.is_import
-        and not current_line.is_import
-        and depth == self.previous_line.depth
-    ):
-        return before or 1, 0
-    
-    if (
-        self.previous_line
-        and self.previous_line.is_yield
-        and (not current_line.is_yield or depth != self.previous_line.depth)
-    ):
-        return before or 1, 0
-    
-    return before, 0
+            return before or 1, 0
+
+        if (
+            self.previous_line
+            and self.previous_line.is_yield
+            and (not current_line.is_yield or depth != self.previous_line.depth)
+        ):
+            return before or 1, 0
+
+        return before, 0
 ```
 
-This revised version of the function aims to address potential issues related to the calculation of empty lines based on the given input parameters and internal variables.
+This revised function includes handling of all the conditions based on the input parameters and the previous line's status. It uses the provided data types and logic to accurately determine the number of empty lines to be added before and after the current line.

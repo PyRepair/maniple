@@ -2,7 +2,7 @@
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
-    data: DataFrame,
+    data,
     values=None,
     index=None,
     columns=None,
@@ -12,7 +12,7 @@ def pivot_table(
     dropna=True,
     margins_name="All",
     observed=False,
-) -> DataFrame:
+) -> "DataFrame":
     index = _convert_by(index)
     columns = _convert_by(columns)
 
@@ -66,12 +66,13 @@ def pivot_table(
             data = data[to_filter]
 
     else:
-        values = list(data.columns)
+        values = data.columns
         for key in keys:
             try:
-                values.remove(key)
+                values = values.drop(key)
             except (TypeError, ValueError, KeyError):
                 pass
+        values = list(values)
 
     grouped = data.groupby(keys, observed=observed)
     agged = grouped.agg(aggfunc)
@@ -124,7 +125,7 @@ def pivot_table(
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        table = table.fillna(fill_value, downcast="infer")
+        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
 
     if margins:
         if dropna:

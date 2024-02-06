@@ -64,7 +64,6 @@ def _get_time_bins(self, ax):
         labels = labels[: len(bins)]
 
     return binner, bins, labels
-
 ```
 
 
@@ -96,30 +95,67 @@ class TimeGrouper(Grouper):
 
 
 
-## Test Case Summary
-The error is due to an `AmbiguousTimeError`. The specific DTS time 'Cannot infer dst time from 2018-11-04 00:00:00 as there are no repeated times' indicates that the issue is with the '2018-11-04 00:00:00' timestamp. This error occurs in the `test_downsample_dst_at_midnight` function. 
+## Test Functions and Error Messages Summary
+The followings are test functions under directory `pandas/tests/resample/test_datetime_index.py` in the project.
+```python
+def test_downsample_dst_at_midnight():
+    # GH 25758
+    start = datetime(2018, 11, 3, 12)
+    end = datetime(2018, 11, 5, 12)
+    index = pd.date_range(start, end, freq="1H")
+    index = index.tz_localize("UTC").tz_convert("America/Havana")
+    data = list(range(len(index)))
+    dataframe = pd.DataFrame(data, index=index)
+    result = dataframe.groupby(pd.Grouper(freq="1D")).mean()
+    expected = DataFrame(
+        [7.5, 28.0, 44.5],
+        index=date_range("2018-11-03", periods=3).tz_localize(
+            "America/Havana", ambiguous=True
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+```
 
-In the `test_downsample_dst_at_midnight` function, a DataFrame is created from a datetime index where the timestamps start from '2018-11-03 12:00:00' and go up to '2018-11-05 12:00:00', incremented by 1 hour. The DataFrame is then grouped by a frequency of '1D' using the `groupby` method and then computing the mean for each group using the `mean` method.
+Here is a summary of the test cases and error messages:
+From the given error message, it is evident that the test function is attempting to downsample a time series using the `pd.Grouper` class with the frequency of 1 day. The exact line that is causing the error is `result = dataframe.groupby(pd.Grouper(freq="1D")).mean()`. Upon encountering this line, the error is being raised due to an `AmbiguousTimeError` which states "Cannot infer dst time from 2018-11-04 00:00:00 as there are no repeated times".
 
-Looking at the error stack trace, the failure originates from the `_get_time_bins` method within the `pandas/core/resample.py` module. Specifically, at line 1425, an attempt is made to create a `date_range`. This `date_range` function calls into `DatetimeArray._generate_range` and subsequently calls `conversion.tz_localize_to_utc`. Ultimately, the failure occurs in the `tz_localize_to_utc` function, leading to the raised `AmbiguousTimeError`.
+The code inside the `_get_time_bins` function and related functionalities is likely where the issue lies, as it deals with time binning, generation of time labels, and binner creation based on the frequency provided. There could be some edge cases or errors handling DST (Daylight Saving Time) that are not being adequately handled in this code.
 
-The issue originates from the discrepancy in the way timestamps are localized and converted to UTC, resulting in ambiguity that raises the exception. Further analysis of `tz_localize_to_utc` and its interactions with the input timestamps and timezone conversions will be necessary to diagnose and resolve the issue.
+The test function is creating a `DataFrame` with a date range from `2018-11-03` to `2018-11-05`, with an hourly frequency. This range is then localized to "UTC" and then converted to the timezone "America/Havana". The mean is calculated by grouping the data based on a frequency of 1 day. This is a typical time series resampling operation where data from a higher frequency (hourly) is being downsampled to a lower frequency (daily mean).
+
+The error Stemming from the `pandas/_libs/tslibs/tzconversion.pyx:177` file shows the exact issue with ambiguity in time during the DST transition. This means that during the DST transition, there are times that occur twice due to the time shift, and the resampling logic is failing to handle such ambiguous times leading to the `AmbiguousTimeError`.
+
+Based on the error message and the test function, the issue seems to be with handling the DST transition during resampling for down-sampling at midnight. The specific datetime `2018-11-04 00:00:00` is causing the DST ambiguity error due to an incorrect handling of the repeated times during the DST transition, as mentioned in the `AmbiguousTimeError` message.
+
+The error should be inspected within the `_get_time_bins` function or the related functionalities that handle date range generation and time binning based on the frequency provided. It's likely that the DST transition isn't being handled properly, leading to the ambiguity in time. The handling of DST transitions during the resampling process needs to be reviewed and fixed.
+
+In summary, the error seems to be occurring due to the mishandling of DST transitions during the resampling process. The `_get_time_bins` function and its associated logic need to be reviewed and updated to properly handle the ambiguity in time during DST transitions and avoid the `AmbiguousTimeError`.
 
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-The buggy function `_get_time_bins` is designed to generate time bins from a given DatetimeIndex based on a specified frequency. It raises a TypeError if the input is not a DatetimeIndex. If the input DatetimeIndex is empty, the function will return a DatetimeIndex with empty data and the specified frequency as well as two empty lists.
+Looking at the input and output variable values, it seems like the `binner` and `labels` are not being adjusted correctly. The `binner` and `labels` are initialized using the `date_range` function with the `start` and `end` arguments set as `first` and `last` respectively. Additionally, `binner` is being adjusted using the `_adjust_bin_edges` method with the `ax_values`. It looks like the values of `binner` and `labels` are calculated correctly based on the timestamps, frequency, and time zone information provided.
 
-Upon close examination of the variable logs captured during execution, one particular discrepancy becomes evident. The variable 'binner' is assigned the value of 'labels' after they have been initialized with the same DatetimeIndex. This seems to be a mistake as, at this stage, 'binner' has been calculated using the 'date_range' function based on the minimum and maximum timestamps from the input DatetimeIndex.
+However, the issue seems to be with the `insert` operation on the `binner` and `labels`. The `insert` method is being used to add `NaT` at the beginning of both `binner` and `labels` if `ax.hasnans` is `True`. This operation doesn't seem to be working as expected.
 
-The variable 'binner' is then updated using the '_adjust_bin_edges' method, which makes use of the calculated 'binner' and the 'ax_values'. This seems to correctly account for the bin edges based on the calculated 'binner' and the input DatetimeIndex values.
+One thing to note is that the `insert` method on a DatetimeIndex returns a new DatetimeIndex, rather than modifying the existing one in place. This means that the `insert` method is creating new DatetimeIndex objects, but the updated values are not being stored in the variables `binner` and `labels`.
 
-The 'lib.generate_bins_dt64' method is then used to generate the bins using 'ax_values', 'bin_edges', 'self.closed', and 'ax.hasnans'. The lengths of 'binner', 'bins', and 'labels' are manipulated based on certain conditions before being returned.
+To fix this issue, we need to update the `binner` and `labels` variables with the new DatetimeIndex objects returned by the `insert` method. This can be done by assigning the returned values of the `insert` method back to the `binner` and `labels` variables.
 
-Careful examination of the code and the variable logs indicates that the issue might be related to the incorrect assignment of the 'labels' variable to 'binner'. This could be a logical error that needs to be rectified.
+Here's the updated code to fix the issue:
 
-Further testing and examination to isolate the specific cause of the discrepancy will be necessary to fix this bug.
+```python
+if ax.hasnans:
+    binner = binner.insert(0, NaT)
+    labels = labels.insert(0, NaT)
+
+    # Update binner and labels with the new DatetimeIndex objects
+    binner = binner.insert(0, NaT)
+    labels = labels.insert(0, NaT)
+```
+
+By making this change, the `binner` and `labels` variables should now contain the updated values with `NaT` inserted at the beginning. This should resolve the issue and ensure that the returned `binner` and `labels` variables have the correct values.
 
 
 

@@ -1,11 +1,10 @@
-The error message from the test function `test_marker_fillstyle()` indicates that the `is_filled()` method is returning `True` when it should be returning `False` after creating a `MarkerStyle` with the fillstyle set to 'none'.
+The `test_marker_fillstyle` function fails with the AssertionError `assert not marker_style.is_filled()`. This implies that the `is_filled` method is returning `True` instead of the expected `False`, indicating that the marker is not being displayed as hollow as intended.
 
-Upon examining the `_recache` function, the issue is that the `_filled` attribute is being set to `True` unconditionally at the end of the function. This is incorrect because when the fillstyle is set to 'none', the marker should not be filled.
+Looking at the function `_recache` and the attributes before return, we see that `_filled` is set to `False` instead of `True`. This might be causing the `is_filled` method to return the incorrect value.
 
-To fix this issue, we need to update the `_recache` function to take into account the fillstyle parameter and set the `_filled` attribute accordingly. If the fillstyle is 'none', then the marker should not be filled and `_filled` should be set to `False`.
+To fix this bug, we should ensure that the `_filled` attribute is set to `True` when the `fillstyle` of the `MarkerStyle` is not 'none'.
 
-Below is the corrected code for the `_recache` function:
-
+Here's the corrected version of the function:
 ```python
 def _recache(self):
     if self._marker_function is None:
@@ -17,13 +16,8 @@ def _recache(self):
     self._snap_threshold = None
     self._joinstyle = 'round'
     self._capstyle = 'butt'
-    if self._fillstyle == 'none':
-        self._filled = False
-    else:
-        self._filled = True
+    self._filled = self._fillstyle != 'none'  # Set _filled based on fillstyle
     self._marker_function()
 ```
 
-By adding a conditional check for the fillstyle and setting `_filled` accordingly, we ensure that the marker is not filled when the fillstyle is set to 'none'.
-
-This updated code should resolve the issue with markers not being hollow when using `ax.scatter()` and setting the `MarkerStyle`'s fillstyle to 'none'. This will also address the error in the `test_marker_fillstyle()` test function.
+By setting `_filled` based on the `fillstyle`, the issue causing the markers to be filled instead of hollow should be resolved.

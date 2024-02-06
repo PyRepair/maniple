@@ -1,3 +1,11 @@
+Given the test function and the error message, it appears that the issue lies with handling the DST transition during resampling for down-sampling at midnight. The specific datetime `2018-11-04 00:00:00` is causing the DST ambiguity error due to incorrect handling of the repeated times during the DST transition.
+
+Upon inspection of the `_get_time_bins` function, it seems that the issue may be related to the `insert` operation on the `binner` and `labels` variables. The `insert` method is being used to add `NaT` at the beginning of both `binner` and `labels` if `ax.hasnans` is `True`. However, the `insert` method on a DatetimeIndex returns a new DatetimeIndex, rather than modifying the existing one in place. This means that the `insert` method is creating new DatetimeIndex objects, but the updated values are not being stored in the variables `binner` and `labels`.
+
+To resolve this issue, the `binner` and `labels` variables need to be updated with the new DatetimeIndex objects returned by the `insert` method. This can be done by assigning the returned values of the `insert` method back to the `binner` and `labels` variables.
+
+Here's the corrected code for the `_get_time_bins` function:
+
 ```python
 def _get_time_bins(self, ax):
     if not isinstance(ax, DatetimeIndex):
@@ -13,12 +21,8 @@ def _get_time_bins(self, ax):
     first, last = _get_timestamp_range_edges(
         ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
     )
-    # GH #12037
-    # use first/last directly instead of call replace() on them
-    # because replace() will swallow the nanosecond part
-    # thus last bin maybe slightly before the end if the end contains
-    # nanosecond part and lead to `Values falls after last bin` error
-    binner = date_range(
+    
+    binner = labels = date_range(
         freq=self.freq,
         start=first,
         end=last,
@@ -47,6 +51,10 @@ def _get_time_bins(self, ax):
         binner = binner.insert(0, NaT)
         labels = labels.insert(0, NaT)
 
+        # Update binner and labels with the new DatetimeIndex objects
+        binner = binner.insert(0, NaT)
+        labels = labels.insert(0, NaT)
+
     # if we end up with more labels than bins
     # adjust the labels
     # GH4076
@@ -55,3 +63,7 @@ def _get_time_bins(self, ax):
 
     return binner, bins, labels
 ```
+
+By making this change, the `binner` and `labels` variables will now contain the updated values with `NaT` inserted at the beginning. This should resolve the issue and ensure that the returned `binner` and `labels` variables have the correct values.
+
+After applying these changes, the revised function can be used as a drop-in replacement for the buggy version.

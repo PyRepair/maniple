@@ -1,7 +1,7 @@
 ```python
 def _try_convert_to_date(self, data):
     """
-    Try to parse an ndarray-like object into a date column.
+    Try to parse a ndarray like into a date column.
 
     Try to coerce object in epoch/iso formats and integer/float in epoch
     formats. Return a boolean if parsing was successful.
@@ -10,31 +10,23 @@ def _try_convert_to_date(self, data):
     if not len(data):
         return data, False
 
-    if data.dtype == "object":
-        try:
-            new_data = data.astype("int64")
-        except (TypeError, ValueError, OverflowError):
-            pass
-        else:
-            data = new_data
-
-    # ignore non-date values and out of range numbers
-    if issubclass(data.dtype.type, np.number):
+    new_data = data.astype('int64', errors='ignore')  # Use astype to attempt conversion to int64
+    if pd.api.types.is_numeric_dtype(new_data):  # Check if the dtype is numeric
         in_range = (
-            isna(data._values)
-            | (data > self.min_stamp)
-            | (data._values == iNaT)
+            isna(new_data)
+            | (new_data > self.min_stamp)
         )
-        if not in_range.all():
+        if in_range.all():  # Check if all elements are within range instead of using not all()
+            return pd.to_datetime(new_data, errors='ignore'), True  # Use pd.to_datetime to convert data
+        else:
             return data, False
 
     date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
     for date_unit in date_units:
         try:
-            new_data = to_datetime(data, errors="raise", unit=date_unit)
-        except (ValueError, OverflowError):
-            pass
-        else:
+            new_data = to_datetime(data, errors='ignore', unit=date_unit)  # Use to_datetime with errors='ignore' to handle non-datetime elements
             return new_data, True
+        except (ValueError, OverflowError):
+            continue
     return data, False
 ```

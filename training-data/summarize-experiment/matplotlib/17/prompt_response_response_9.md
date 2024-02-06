@@ -1,23 +1,34 @@
-The function `nonsingular` is encountering an overflow warning when computing the maximum absolute value of `vmin` and `vmax` due to the combined use of `max` and `abs` functions on potentially large numbers. The current code for calculating `maxabsvalue` is:
-
-```python
-maxabsvalue = max(abs(vmin), abs(vmax))
-```
-
-To address this issue, we can swap the positions of `max` and `abs` to first find the maximum of `vmin` and `vmax` and then apply the absolute function. This will prevent the overflow warning.
-
-The revised code for calculating `maxabsvalue` is:
-
-```python
-maxabsvalue = abs(max(vmin, vmax))
-```
-
-After making this change, the function should compute `maxabsvalue` without encountering an overflow warning.
-
-Here is the corrected version of the `nonsingular` function:
-
 ```python
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
+    """
+    Modify the endpoints of a range as needed to avoid singularities.
+
+    Parameters
+    ----------
+    vmin, vmax : float
+        The initial endpoints.
+    expander : float, default: 0.001
+        Fractional amount by which *vmin* and *vmax* are expanded if
+        the original interval is too small, based on *tiny*.
+    tiny : float, default: 1e-15
+        Threshold for the ratio of the interval to the maximum absolute
+        value of its endpoints.  If the interval is smaller than
+        this, it will be expanded.  This value should be around
+        1e-15 or larger; otherwise the interval will be approaching
+        the double precision resolution limit.
+    increasing : bool, default: True
+        If True, swap *vmin*, *vmax* if *vmin* > *vmax*.
+
+    Returns
+    -------
+    vmin, vmax : float
+        Endpoints, expanded and/or swapped if necessary.
+        If either input is inf or NaN, or if both inputs are 0 or very
+        close to zero, it returns -*expander*, *expander*.
+    """
+
+    import numpy as np  # Add the import statement at the beginning of the function
+
     if (not np.isfinite(vmin)) or (not np.isfinite(vmax)):
         return -expander, expander
 
@@ -26,10 +37,11 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         vmin, vmax = vmax, vmin
         swapped = True
 
-    maxabsvalue = abs(max(vmin, vmax))
+    maxabsvalue = max(abs(float(vmin)), abs(float(vmax)))  # Cast to float before calculating absolute value
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
         vmin = -expander
         vmax = expander
+
     elif vmax - vmin <= maxabsvalue * tiny:
         if vmax == 0 and vmin == 0:
             vmin = -expander
@@ -42,5 +54,3 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         vmin, vmax = vmax, vmin
     return vmin, vmax
 ```
-
-With this revised code, overflow warnings should no longer occur when computing `maxabsvalue`. This corrected function can be used as a drop-in replacement for the buggy version of the function.

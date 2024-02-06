@@ -1,10 +1,10 @@
-Based on the provided information and the analysis of the bug, the issue seems to be related to the incorrect assignment of the 'labels' variable to 'binner'. 
+Based on the error messages and test function provided, it is evident that the issue is related to the `AmbiguousTimeError`. The error occurs during a down-sampling operation at midnight due to the presence of ambiguous timestamps on a day with a clock change (DST transition) in Cuba. 
 
-Upon careful examination of the code and variable logs, it is evident that 'binner' and 'labels' should not be assigned to each other directly after both have been initialized with the same DatetimeIndex. This logical error causes ambiguity in the subsequent operations.
+The bug is likely located within the `_get_time_bins` function and its associated logic. There seem to be problems in handling DST transitions during the resampling process, specifically with the insertion of `NaT` at the beginning of the `binner` and `labels` variables when `ax.hasnans` is `True`. The `insert` method on the `DatetimeIndex` objects is not being utilized correctly, and this is resulting in the ambiguous time error.
 
-To fix the bug, we need to ensure that the variables 'binner' and 'labels' are correctly handled and not erroneously assigned to each other.
+To fix this bug, the handling of DST transitions during the resampling process needs to be reviewed and updated. Specifically, the `insert` method on the `binner` and `labels` variables needs to be used correctly to ensure that `NaT` is inserted at the beginning if `ax.hasnans` is `True`.
 
-Here's the revised version of the function:
+Here's the corrected code for the `_get_time_bins` function:
 
 ```python
 def _get_time_bins(self, ax):
@@ -26,7 +26,7 @@ def _get_time_bins(self, ax):
     # because replace() will swallow the nanosecond part
     # thus last bin maybe slightly before the end if the end contains
     # nanosecond part and lead to `Values falls after last bin` error
-    binner = date_range(
+    binner = labels = date_range(
         freq=self.freq,
         start=first,
         end=last,
@@ -35,7 +35,7 @@ def _get_time_bins(self, ax):
         ambiguous="infer",
         nonexistent="shift_forward",
     )
-    
+
     ax_values = ax.asi8
     binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
@@ -44,15 +44,15 @@ def _get_time_bins(self, ax):
         ax_values, bin_edges, self.closed, hasnans=ax.hasnans
     )
 
-    labels = binner.copy()  # corrected assignment of labels as a copy of binner
-
     if self.closed == "right":
+        labels = binner
         if self.label == "right":
             labels = labels[1:]
     elif self.label == "right":
         labels = labels[1:]
 
     if ax.hasnans:
+        # Insert NaT at the beginning of binner and labels
         binner = binner.insert(0, NaT)
         labels = labels.insert(0, NaT)
 
@@ -65,4 +65,6 @@ def _get_time_bins(self, ax):
     return binner, bins, labels
 ```
 
-In the corrected version, the 'labels' variable is now assigned as a copy of 'binner' to ensure that the two variables are not directly linked. This should resolve the logical error and prevent ambiguity in subsequent operations.
+In this corrected code, the `binner` and `labels` variables are updated correctly by assigning the returned values of the `insert` method back to them when `ax.hasnans` is `True`. This ensures that `NaT` is properly inserted at the beginning of both `binner` and `labels` when necessary.
+
+This revised version of the function should resolve the bug by handling the DST transitions and insertion of `NaT` correctly, thus avoiding the `AmbiguousTimeError`.

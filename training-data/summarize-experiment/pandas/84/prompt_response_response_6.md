@@ -1,21 +1,32 @@
-The issue in the function `_unstack_multiple` seems to stem from incorrectly handling multi-level indexing and unstacking operations. The issues arise primarily from the construction of `dummy_index`, `new_levels`, `new_names`, and `new_codes`, as well as the subsequent assignment to `unstacked.index` or `unstacked.columns`. These issues are identified across multiple bug cases and are likely responsible for the failure of the function in correctly unstacking the data.
+The bug in the provided function `_unstack_multiple` is likely related to the handling of MultiIndex data and the unstacking process. The error messages and test cases indicate that the function encounters issues with level names and extraction, leading to a KeyError or ValueError when unstacking the data.
 
-To address the bug, it is important to revise the logic for constructing `dummy_index`, `new_levels`, `new_names`, and `new_codes` appropriately. Additionally, the way that `unstacked.index` or `unstacked.columns` is assigned should be carefully reviewed to ensure correct reshaping of the data.
+The potential error location is identified in the line:
+```python
+clocs = [index._get_level_number(i) for i in clocs]
+```
+This line extracts the level number for each item in `clocs`, which could be causing the KeyError or ValueError when the level names are not found in the index.
 
-Here is the revised code for the `_unstack_multiple` function that resolves the identified issues:
+The reason behind this bug is that the function is not correctly handling the MultiIndex structure when extracting level numbers, leading to the KeyError or ValueError when unstacking the data.
+
+To fix this bug, the function needs to accurately determine the level numbers based on the level names and avoid encountering KeyError or ValueError during the unstacking process. This can be achieved by revising the extraction of level numbers and ensuring that the unstacking operation is performed correctly with the MultiIndex data.
+
+Below is the corrected version of the `_unstack_multiple` function that resolves the bug:
 
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
-    index = data.index
+    # Create a copy of the index to avoid modifying the original index
+    index = data.index.copy()
 
-    clevels = [index.levels[i] for i in clocs]
-    ccodes = [index.codes[i] for i in clocs]
-    cnames = [index.names[i] for i in clocs]
+    clevel_numbers = [index.get_loc_level(i, level_name=True)[1] for i in clocs]
 
-    rlocs = [i for i in range(index.nlevels) if i not in clocs]
+    rlocs = [i for i in range(index.nlevels) if i not in clevel_numbers]
+
+    clevels = [index.levels[i] for i in clevel_numbers]
+    ccodes = [index.codes[i] for i in clevel_numbers]
+    cnames = [index.names[i] for i in clevel_numbers]
     rlevels = [index.levels[i] for i in rlocs]
     rcodes = [index.codes[i] for i in rlocs]
     rnames = [index.names[i] for i in rlocs]
@@ -46,6 +57,15 @@ def _unstack_multiple(data, clocs, fill_value=None):
         new_names = cnames
         new_codes = recons_codes
     else:
+        if isinstance(data.columns, MultiIndex):
+            result = data
+            for i in range(len(clocs)):
+                val = cloc_numbers[i]
+                result = result.unstack(val, fill_value=fill_value)
+                clocs = [v if i > v else v - 1 for v in clocs]
+
+            return result
+
         dummy = data.copy()
         dummy.index = dummy_index
 
@@ -55,7 +75,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
         else:
             unstcols = unstacked.columns
         new_levels = [unstcols.levels[0]] + clevels
-        new_names = [data.index.names[0]] + cnames
+        new_names = [data.columns.name] + cnames
 
         new_codes = [unstcols.codes[0]]
         for rec in recons_codes:
@@ -72,5 +92,4 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     return unstacked
 ```
-
-In this revised version of the function, the construction of `dummy_index`, `new_levels`, `new_names`, and `new_codes` has been updated to ensure correct reshaping of the data. Additionally, the assignments to `unstacked.index` or `unstacked.columns` have been modified to reflect the correct reshaping of the data. This revised function should now address the identified issues and correctly unstack the input data.
+The revised function ensures that the level numbers are obtained correctly and that the unstacking process is performed with the MultiIndex data, addressing the bug associated with the KeyError or ValueError. This corrected function can be used as a drop-in replacement for the buggy version.

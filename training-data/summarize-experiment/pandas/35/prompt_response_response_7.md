@@ -1,15 +1,17 @@
-The bug occurs in the `_engine` function, which is accessed through the `PeriodEngine` class. The error message suggests that the `self._do_monotonic_check()` call inside the `_engine` function returns a `NoneType` object, leading to an AttributeError. This implies that the `self._values` object is not being weakly referenced as intended, causing it to be dropped before it should.
+The error occurs when the function `is_monotonic_increasing` is called on the `PeriodIndex` object, but the `PeriodEngine` is receiving a `NoneType` instead of the expected `PeriodIndex`.
 
-To fix this bug, we need to ensure that the weakly referenced `self._values` object is preserved until it is no longer needed. This can be achieved by modifying the `_engine` function to properly use weak referencing.
+To fix this issue, we need to modify the `_engine` function in `PeriodIndex` class to correctly return the `self._engine_type` using a weak reference.
 
-Here's the corrected version of the `_engine` function that addresses the bug:
+The buggy `@cache_readonly` function `_engine` should be fixed as follows:
+
 ```python
 @cache_readonly
 def _engine(self):
-    # Weakly reference self._values to avoid a reference cycle
-    period = weakref.ref(self._values)
-    return self._engine_type(period, len(self._values))
+    # To avoid a reference cycle, pass a weakref of self to _engine_type.
+    period = weakref.ref(self)
+    return self._engine_type(period, len(self)) if self._engine_type else None
 ```
-In this revision, we are weakly referencing `self._values` instead of `self` to avoid the reference cycle, ensuring that it is preserved until it is no longer needed.
 
-The corrected code ensures that weak referencing is correctly used, preventing the premature dropping of the weakly referenced object. This should resolve the bug and allow the `test_get_level_values_when_periods` test case to pass without errors.
+This change ensures that if `self._engine_type` is `None`, then the function will return `None` as the result.
+
+The revised function can be used as a drop-in replacement for the buggy version of the function.

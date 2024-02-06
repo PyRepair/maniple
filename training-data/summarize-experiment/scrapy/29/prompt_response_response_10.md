@@ -1,27 +1,21 @@
-The error occurs in the `request_httprepr` function when trying to convert the `parsed.hostname` to bytes using the `to_bytes` function, which results in a `NoneType` error. This happens because `parsed.hostname` is an empty string for non-HTTP requests, and the `to_bytes` function does not handle empty strings gracefully.
+The error occurs at the line `s += b"Host: " + to_bytes(parsed.hostname) + b"\r\n"` in the `request_httprepr` function. This is because the `parsed.hostname` can be `None` for non-HTTP URLs, but the `to_bytes` function does not handle `None` values and raises a TypeError.
 
-To fix the bug, we should modify the `to_bytes` function to handle empty strings and ensure it returns an empty bytes object in this case. We can also modify the `request_httprepr` function to include a condition to check for the presence of `parsed.hostname` before converting it to bytes.
+To fix the bug, we need to handle the case where `parsed.hostname` is `None` and provide a default value. We can use the `netloc` attribute of the `parsed` variable, which contains the network location part of the URL.
 
-Here's the revised version of the function:
+Here's the corrected code for the `request_httprepr` function:
 
 ```python
-def to_bytes(text, encoding=None, errors='strict'):
-    """Return the binary representation of `text`. If `text`
-    is already a bytes object, return it as-is."""
-    if text is None:
-        return b''
-    if isinstance(text, bytes):
-        return text
-    if not isinstance(text, six.string_types):
-        raise TypeError('to_bytes must receive a unicode, str or bytes '
-                        'object, got %s' % type(text).__name__)
-
 def request_httprepr(request):
     parsed = urlparse_cached(request)
     path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))
-    s = to_bytes(request.method) + b" " + to_bytes(path) + b" HTTP/1.1\r\n"
+
     if parsed.hostname:
-        s += b"Host: " + to_bytes(parsed.hostname) + b"\r\n"
+        host = to_bytes(parsed.hostname)
+    else:
+        host = to_bytes(parsed.netloc)
+
+    s = to_bytes(request.method) + b" " + to_bytes(path) + b" HTTP/1.1\r\n"
+    s += b"Host: " + host + b"\r\n"
     if request.headers:
         s += request.headers.to_string() + b"\r\n"
     s += b"\r\n"
@@ -29,4 +23,4 @@ def request_httprepr(request):
     return s
 ```
 
-With these changes, the function should now be able to handle non-HTTP requests without raising errors.
+This revised version of the function checks if `parsed.hostname` is `None`, and if so, it uses `parsed.netloc` as the host. This should resolve the issue of the function throwing a TypeError for non-HTTP URLs.

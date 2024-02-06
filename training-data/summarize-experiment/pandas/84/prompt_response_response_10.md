@@ -1,11 +1,18 @@
+The error arises from the `_unstack_multiple` function, specifically when it tries to get the level number from the index using the `_get_level_number` method. The issue is caused by the presence of tuple names in the MultiIndex, which results in a KeyError when attempting to extract the level number.
+
+To fix this bug, we need to modify the `_unstack_multiple` function to handle MultiIndexes with tuple names appropriately. This will involve updating the logic for extracting level numbers and handling hierarchical indices.
+
+Here's the corrected version of the `_unstack_multiple` function that resolves the issue:
+
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
+    # Get the index of the data
     index = data.index
 
-    clocs = [index._get_level_number(i) if isinstance(i, tuple) else i for i in clocs]
+    clocs = [index._get_level_number(i) if isinstance(i, (list, tuple)) else index._get_level_number([i]) for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
@@ -77,3 +84,5 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     return unstacked
 ```
+
+This corrected version contains the required modifications to handle MultiIndexes with tuple names, ensuring that the level numbers are appropriately extracted and processed. This version should resolve the KeyError and allow the function to unstack the multi-indexed data as expected.

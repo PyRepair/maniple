@@ -145,7 +145,6 @@ def _cython_agg_blocks(
         offset += loc
 
     return agg_blocks, agg_items
-
 ```
 
 
@@ -171,43 +170,214 @@ class DataFrameGroupBy(GroupBy):
 
 
 
-## Test Case Summary
-From the error messages, it is clear that the issue is related to the `TypeError: Cannot cast array from dtype('float64') to dtype('int64') according to the rule 'safe'` occurring in the `integer.py 156` file. 
-
-Looking at the test being executed in the test apply to nullable integer returns float in the `test_function.py` file, it is observed that the test involves applying `mean`, `median`, and `var` functions to groups obtained from a dataframe with nullable integer data. 
-
-The line `result = getattr(groups, function)()` in the test function calls different group functions, including mean, median, and var.
-
-Given the error and the code snippet, it appears that the issue is related to casting between float values and integer values. The error message shows that there is a "TypeError" related to casting values from float to int.
-
-Looking at the function `_cython_agg_blocks` in the buggy function, it becomes clear that the error occurs when the function tries to cast the values to a different data type to perform aggregation. Specifically, the operation of casting float64 to int64 encounters an error in safe_cast.
-
-The problematic line inside `_cython_agg_blocks` is:  
+## Test Functions and Error Messages Summary
+The followings are test functions under directory `pandas/tests/groupby/test_function.py` in the project.
 ```python
-values = safe_cast(values, dtype, copy=False)
+@pytest.mark.parametrize(
+    "values",
+    [
+        {
+            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
+        },
+        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
+    ],
+)
+@pytest.mark.parametrize("function", ["mean", "median", "var"])
+def test_apply_to_nullable_integer_returns_float(values, function):
+    # https://github.com/pandas-dev/pandas/issues/32219
+    output = 0.5 if function == "var" else 1.5
+    arr = np.array([output] * 3, dtype=float)
+    idx = pd.Index([1, 2, 3], dtype=object, name="a")
+    expected = pd.DataFrame({"b": arr}, index=idx)
+
+    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
+
+    result = getattr(groups, function)()
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg(function)
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg([function])
+    expected.columns = MultiIndex.from_tuples([("b", function)])
+    tm.assert_frame_equal(result, expected)
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {
+            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
+        },
+        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
+    ],
+)
+@pytest.mark.parametrize("function", ["mean", "median", "var"])
+def test_apply_to_nullable_integer_returns_float(values, function):
+    # https://github.com/pandas-dev/pandas/issues/32219
+    output = 0.5 if function == "var" else 1.5
+    arr = np.array([output] * 3, dtype=float)
+    idx = pd.Index([1, 2, 3], dtype=object, name="a")
+    expected = pd.DataFrame({"b": arr}, index=idx)
+
+    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
+
+    result = getattr(groups, function)()
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg(function)
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg([function])
+    expected.columns = MultiIndex.from_tuples([("b", function)])
+    tm.assert_frame_equal(result, expected)
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {
+            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
+        },
+        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
+    ],
+)
+@pytest.mark.parametrize("function", ["mean", "median", "var"])
+def test_apply_to_nullable_integer_returns_float(values, function):
+    # https://github.com/pandas-dev/pandas/issues/32219
+    output = 0.5 if function == "var" else 1.5
+    arr = np.array([output] * 3, dtype=float)
+    idx = pd.Index([1, 2, 3], dtype=object, name="a")
+    expected = pd.DataFrame({"b": arr}, index=idx)
+
+    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
+
+    result = getattr(groups, function)()
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg(function)
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg([function])
+    expected.columns = MultiIndex.from_tuples([("b", function)])
+    tm.assert_frame_equal(result, expected)
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {
+            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
+        },
+        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
+    ],
+)
+@pytest.mark.parametrize("function", ["mean", "median", "var"])
+def test_apply_to_nullable_integer_returns_float(values, function):
+    # https://github.com/pandas-dev/pandas/issues/32219
+    output = 0.5 if function == "var" else 1.5
+    arr = np.array([output] * 3, dtype=float)
+    idx = pd.Index([1, 2, 3], dtype=object, name="a")
+    expected = pd.DataFrame({"b": arr}, index=idx)
+
+    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
+
+    result = getattr(groups, function)()
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg(function)
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg([function])
+    expected.columns = MultiIndex.from_tuples([("b", function)])
+    tm.assert_frame_equal(result, expected)
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {
+            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
+        },
+        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
+    ],
+)
+@pytest.mark.parametrize("function", ["mean", "median", "var"])
+def test_apply_to_nullable_integer_returns_float(values, function):
+    # https://github.com/pandas-dev/pandas/issues/32219
+    output = 0.5 if function == "var" else 1.5
+    arr = np.array([output] * 3, dtype=float)
+    idx = pd.Index([1, 2, 3], dtype=object, name="a")
+    expected = pd.DataFrame({"b": arr}, index=idx)
+
+    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
+
+    result = getattr(groups, function)()
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg(function)
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg([function])
+    expected.columns = MultiIndex.from_tuples([("b", function)])
+    tm.assert_frame_equal(result, expected)
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        {
+            "a": [1, 1, 1, 2, 2, 2, 3, 3, 3],
+            "b": [1, pd.NA, 2, 1, pd.NA, 2, 1, pd.NA, 2],
+        },
+        {"a": [1, 1, 2, 2, 3, 3], "b": [1, 2, 1, 2, 1, 2]},
+    ],
+)
+@pytest.mark.parametrize("function", ["mean", "median", "var"])
+def test_apply_to_nullable_integer_returns_float(values, function):
+    # https://github.com/pandas-dev/pandas/issues/32219
+    output = 0.5 if function == "var" else 1.5
+    arr = np.array([output] * 3, dtype=float)
+    idx = pd.Index([1, 2, 3], dtype=object, name="a")
+    expected = pd.DataFrame({"b": arr}, index=idx)
+
+    groups = pd.DataFrame(values, dtype="Int64").groupby("a")
+
+    result = getattr(groups, function)()
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg(function)
+    tm.assert_frame_equal(result, expected)
+
+    result = groups.agg([function])
+    expected.columns = MultiIndex.from_tuples([("b", function)])
+    tm.assert_frame_equal(result, expected)
 ```
-It employs the `safe_cast` function that aims to ensure the values are safely cast to the specified dtype. However, the error message shows that casting from dtype('float64') to dtype('int64') "according to the rule 'safe'" raises a TypeError.
 
-Based on the test and the error messages, the problem seems to be related to attempting to cast float values to integer, especially when performing certain types of aggregations. The test cases involve nullable integer values, and it is likely that the logic within the `_cython_agg_blocks` function is encountering issues due to the presence of nullable integer data.
+Here is a summary of the test cases and error messages:
+From the error message, it is evident that the error is specifically related to casting from float64 to int64. This is due to the fact that the DataFrame or Series, containing `float64` values, is not safely cast to a `int64`. The safe_cast function throws an error due to this type casting issue.
 
-To resolve the issue, it is necessary to review and potentially modify the logic in the `_cython_agg_blocks` function, ensuring that it can handle the specific data types appropriately, particularly when dealing with nullable integer values. Further investigation and adjustments are required in the casting process and the operations related to handling the data types and aggregations within the `_cython_agg_blocks` function.
+The root cause of the error indicated in the error message originates from an attempt to perform a type cast from `float64` to `int64`. These values are part of a DataFrame or Series produced by performing the calculation of 'variance' on a groupby object in the test code. This particular aggregation involves creating groups based on a certain criterion and then calculating the variance for each group. The resultant values are then in `float64` format, and there's an attempt to cast these into `int64` in the `_cython_agg_blocks` function from the original code, causing the error.
+
+To resolve the issue, the type casting needs to be corrected in the `_cython_agg_blocks` function so that it does not attempt to cast `float64` to `int64`. This would involve further updating the `type(block.values)._from_sequence` call in the `_cython_agg_blocks` function. A potential resolution could be to update this function to handle `float64` values appropriately and avoid casting to `int64`, or handle these data types specifically.
+
+By identifying the error message and connecting it with the relevant sections of the original code, the error in the `_cython_agg_blocks` function for type casting can sufficiently be diagnosed and resolved. This will involve handling the type casting operations to avoid any conflicts that might be present. Additionally, unit tests that specifically capture these type casting scenarios might be helpful to validate that the fix is comprehensive.
 
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-Based on the provided buggy function code and the variable logs for each buggy case, we can establish a detailed narrative for each case and identify the specific part of the code that causes the bug.
+The buggy function is a method called `_cython_agg_blocks` in the `pandas` library, which deals with aggregation operations on data blocks. It takes several input parameters, including `self`, `how`, `numeric_only`, `min_count`, and `alt`. The return type of the function is a tuple of a list of Blocks and an Index. The purpose of the function is to perform aggregation on the provided data and return the aggregated blocks and indices.
 
-Analysis of the buggy function code combined with the provided variable logs reveals the following insights for each case:
+In all the buggy cases, the `numeric_only` parameter is set to True, which indicates that only numeric data should be considered for aggregation. The `how` parameter represents the type of aggregation to be performed, and the `alt` parameter provides an alternative function for aggregation.
 
-1. The function `_cython_agg_blocks` seems to be managing and manipulating data blocks.
-2. The `data` variable is fetched from `_get_data_to_aggregate` and then possibly filtered using `get_numeric_data`.
-3. A loop iterates over the `blocks` within `data`, updating and aggregating values based on certain conditions and operations. Information from the logs provides details about the data types and values at various points within the loop.
-4. Based on the logs, it seems that the function is intended to return lists of aggregated data blocks and corresponding index items.
+In all buggy cases, the function retrieves the data to be aggregated and performs some operations related to managing block items. It then iterates through the data blocks, attempting to perform aggregation on each one, possibly using the alternative aggregation function specified by the `alt` parameter.
 
-Through the analysis of the logs, it becomes apparent that the function encounters issues in the process of aggregation, potentially due to inaccurate result values and data manipulation.
+At the end of the function, it checks whether any blocks have been successfully aggregated and returns the aggregated blocks and indices.
 
-Further investigation would involve examining the specific blocks of the function that correspond to the outliers in the variable logs, which would allow us to identify the root cause of the bugs and potential fixes.
+By examining the variable logs, we can observe that in each case, the function goes through the process of attempting to aggregate the data blocks. It seems to be processing correctly as it attempts to handle different scenarios depending on the nature of the data blocks.
+
+However, the variable logs do not contain any indication of the reason for the test cases failing. Further analysis of the specific failures and the expected behavior would be required to identify the root cause of the issues. This could involve examining the test cases that failed and comparing the expected results to the actual results generated by the function. Additionally, a detailed review of the logic within the function, particularly the aggregation process and handling of different data block types, may be necessary to identify any potential issues.
 
 
 

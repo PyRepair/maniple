@@ -1,17 +1,17 @@
-The error seems to be present in the `_engine` function of the `PeriodIndex` class. 
+The error message indicates that there is an AttributeError because the `PeriodEngine` is receiving a `NoneType` object instead of a `PeriodIndex`. This is likely occurring within the `_engine` method of the `PeriodIndex` class.
 
-The bug seems to be caused by the weakly referenced `PeriodIndex` being dropped before intended, resulting in the `PeriodEngine` getting a `None` instead of the `PeriodIndex`.
+The bug occurs because the `weakref.ref` being assigned to `period` does not retain a reference to the `self` object, resulting in the `NoneType` being passed to `_engine_type`.
 
-To fix this issue, we need to ensure that the weak reference to the `PeriodIndex` is maintained until after it's used in the `PeriodEngine`.
+To fix this bug, you can modify the `_engine` method to ensure that a strong reference to `self` is maintained within the weak reference. This can be done by directly passing `self` to the weak reference.
 
-Here's the corrected version of the function:
+Here's the corrected code for the `_engine` method:
 
 ```python
 @cache_readonly
 def _engine(self):
-    # To avoid a reference cycle, pass a weakref of self to _engine_type.
-    period = weakref.ref(self)
-    return self._engine_type(period(), len(self))
+    # Ensure a strong reference to self is maintained within the weak reference
+    period = weakref.ref(self, lambda _: None)  # maintain a strong reference to self
+    return self._engine_type(period, len(self))
 ```
 
-With this correction, we're maintaining a weak reference to `self` until it's used in creating the `PeriodEngine`, ensuring that it is not dropped prematurely.
+By maintaining a strong reference to `self` within the weak reference, we ensure that the `PeriodEngine` does not receive a `NoneType` object. This should resolve the AttributeError in the test case.

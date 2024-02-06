@@ -1,4 +1,6 @@
 ```python
+import numpy as np
+
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
     """
     Modify the endpoints of a range as needed to avoid singularities.
@@ -27,13 +29,15 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         close to zero, it returns -*expander*, *expander*.
     """
 
-    if (not np.isfinite(vmin)) or (not np.isfinite(vmax)) or np.isnan(vmin) or np.isnan(vmax) or (vmin == 0 and vmax == 0):
+    if (not np.isfinite(vmin)) or (not np.isfinite(vmax)):
         return -expander, expander
 
+    swapped = False
     if vmax < vmin:
         vmin, vmax = vmax, vmin
+        swapped = True
 
-    maxabsvalue = abs(max(vmin, vmax))
+    maxabsvalue = max(abs(float(vmin)), abs(float(vmax)))
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
         vmin = -expander
         vmax = expander
@@ -46,7 +50,7 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
             vmin -= expander*abs(vmin)
             vmax += expander*abs(vmax)
 
-    if vmax < vmin and not increasing:
+    if swapped and not increasing:
         vmin, vmax = vmax, vmin
     return vmin, vmax
 ```

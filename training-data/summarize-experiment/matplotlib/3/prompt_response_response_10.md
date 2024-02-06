@@ -1,8 +1,8 @@
-The error occurs because the `_filled` attribute is being set to `True` by default in the `_recache` function, instead of being set based on the value of the `fillstyle` attribute.
+The bug in the function `_recache` is that when the `MarkerStyle` is instantiated with `fillstyle='none'`, the `_filled` attribute is not getting updated accordingly. This leads to the `is_filled()` method returning `True` when it should return `False` as indicated by the failed test case.
 
-To fix this issue, we need to update the `_recache` function to set the `_filled` attribute based on the value of the `fillstyle` attribute.
+To fix this bug, we need to update the `_filled` attribute based on the `fillstyle` parameter provided during the instantiation of `MarkerStyle`.
 
-The corrected code for the `_recache` function is as follows:
+Here's the corrected version of the function `_recache`:
 
 ```python
 def _recache(self):
@@ -15,8 +15,8 @@ def _recache(self):
     self._snap_threshold = None
     self._joinstyle = 'round'
     self._capstyle = 'butt'
-    self._filled = True if self._fillstyle != 'none' else False  # update _filled attribute based on the fillstyle
+    self._filled = self._fillstyle != 'none'  # Update filled attribute based on fillstyle
     self._marker_function()
 ```
 
-By making this change, the `_recache` function will accurately set the `_filled` attribute based on the `fillstyle` attribute, resolving the issue where markers are not hollow when using `ax.scatter()` and setting the `fillstyle` to 'none'.
+With this change, the `_filled` attribute will be updated based on the `fillstyle` parameter, ensuring that the `is_filled()` method returns the correct value.

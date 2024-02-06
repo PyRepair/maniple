@@ -1,4 +1,12 @@
+The issue with the `nonsingular` function is likely caused by the use of large integer values as input parameters, which leads to an overflow error when calculating the maximum absolute value. Additionally, the function does not import the numpy module, which could lead to inconsistent behavior.
+
+To fix the bug, the `import numpy as np` statement should be added at the beginning of the function. Additionally, the function should handle input types appropriately to avoid overflow with large integer values.
+
+Here is the corrected version of the `nonsingular` function:
+
 ```python
+import numpy as np
+
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
     """
     Modify the endpoints of a range as needed to avoid singularities.
@@ -26,27 +34,34 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         If either input is inf or NaN, or if both inputs are 0 or very
         close to zero, it returns -*expander*, *expander*.
     """
+
     if (not np.isfinite(vmin)) or (not np.isfinite(vmax)):
         return -expander, expander
 
+    if not isinstance(vmin, float):
+        vmin = float(vmin)
+    if not isinstance(vmax, float):
+        vmax = float(vmax)
+
+    swapped = False
     if vmax < vmin:
         vmin, vmax = vmax, vmin
+        swapped = True
 
-    maxofvminvmax = max(vmin, vmax)
-    maxabsvalue = abs(maxofvminvmax)
-    
+    maxabsvalue = max(abs(float(vmin)), abs(float(vmax)))
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
-        return -expander, expander
+        vmin = -expander
+        vmax = expander
 
-    if vmax - vmin <= maxabsvalue * tiny:
+    elif vmax - vmin <= maxabsvalue * tiny:
         if vmax == 0 and vmin == 0:
-            return -expander, expander
+            vmin = -expander
+            vmax = expander
         else:
             vmin -= expander*abs(vmin)
             vmax += expander*abs(vmax)
 
-    if vmax < vmin and not increasing:
+    if swapped and not increasing:
         vmin, vmax = vmax, vmin
-    
     return vmin, vmax
 ```

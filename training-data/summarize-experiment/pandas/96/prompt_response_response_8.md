@@ -1,77 +1,79 @@
-The provided buggy function is trying to adjust a given timestamp based on a set of custom business hours. The issue might lie in one of the conditional blocks or in the calculation and adjustment of business days and remaining hours within the business time intervals.
+Based on the provided information and detailed analysis, it appears that the bug in the `apply` function is causing incorrect adjustments to the input datetime object. The adjustments are not aligning with the specified business hours and offsets, leading to unexpected results and test failures.
 
-It seems like the frequency validation is failing with a ValueError. The frequency check is reporting that the "Inferred frequency None from passed values does not conform to passed frequency CBH". This indicates that the bug might be within the frequency validation logic, specifically in the inference process of the frequency. The bug could be related to the DateOffset or CustomBusinessHour classes where the frequency is being misinterpreted or inferred incorrectly.
+One potential error location within the function is the conditional blocks for adjusting the timestamp based on the offset. These blocks handle business day adjustments and remaining business hours, which seem to be prone to errors, especially in scenarios with positive offsets.
 
-To fix the bug, you will need to thoroughly investigate the frequency validation related code and any inference mechanisms that exist within the DateOffset and CustomBusinessHour classes. Also, review the implementation and logic around custom business hour handling to provide more insights when fixing the identified bug.
+The reasons behind the occurrence of the bug are inconsistencies in the adjustment logic for positive offsets. The conditional blocks for business day adjustments and remaining business hours are not functioning correctly, leading to incorrect output.
 
-Here's the corrected version of the buggy function:
+To fix the bug, the adjustment and conditional logic within the function must be thoroughly reviewed and potentially restructured. It is essential to ensure accurate adjustments based on the specified business hours and provided offsets. Additionally, a review of the business day and business hour handling logic will be crucial to address the inconsistencies and inaccuracies observed in the function's behavior.
+
+Here is the corrected code for the `apply` function:
 
 ```python
-from datetime import timedelta
-
-class BusinessHourMixin(BusinessMixin):
-    # ... (other necessary imports and class code)
-
 @apply_wraps
 def apply(self, other):
     if isinstance(other, datetime):
-        # ... (other function components)
+        # Extract nanosecond attribute from input datetime
+        nanosecond = getattr(other, "nanosecond", 0)
+        businesshours = sum(
+            self._get_business_hours_by_sec(st, en)
+            for st, en in zip(self.start, self.end)
+        )
+        n = self.n
+        adjusted_datetime = other
 
-        bd, r = divmod(abs(n * 60), businesshours // 60)
+        # Adjust the datetime based on the specified business hours and offsets
+        if n >= 0:
+            if other.time() in self.end or not self._is_on_offset(other):
+                adjusted_datetime = self._next_opening_time(other)
+        else:
+            if other.time() in self.start:
+                adjusted_datetime = other - timedelta(seconds=1)
+            if not self._is_on_offset(other):
+                adjusted_datetime = self._next_opening_time(other)
+                adjusted_datetime = self._get_closing_time(adjusted_datetime)
+
+        adj, r = divmod(abs(n * 60), businesshours // 60)
         if n < 0:
-            bd, r = -bd, -r
+            adj, r = -adj, -r
 
-        # adjust by business days first
-        if bd != 0:
-            skip_bd = CustomBusinessHour(n=bd)  # Fix the instantiation
-            # midnight business hour may not on BusinessDay
-            if not self.is_on_offset(other):  # Fix the function call
+        # Adjust by business days first
+        if adj != 0:
+            skip_bd = BusinessDay(n=adj)
+            if not self._next_opening_time(other).is_on_offset(other):
                 prev_open = self._prev_opening_time(other)
                 remain = other - prev_open
-                other = prev_open + skip_bd + remain
+                adjusted_datetime = prev_open + skip_bd + remain
             else:
-                other = other + skip_bd
+                adjusted_datetime += skip_bd
 
-        # remaining business hours to adjust
+        # Remaining business hours to adjust
         bhour_remain = timedelta(minutes=r)
 
         if n >= 0:
             while bhour_remain != timedelta(0):
-                # business hour left in this business time interval
-                bhour = (
-                    self._get_closing_time(self._prev_opening_time(other)) - other
-                )
+                bhour = self._get_closing_time(self._prev_opening_time(adjusted_datetime)) - adjusted_datetime
                 if bhour_remain < bhour:
-                    # finish adjusting if possible
-                    other += bhour_remain
+                    adjusted_datetime += bhour_remain
                     bhour_remain = timedelta(0)
                 else:
-                    # go to next business time interval
                     bhour_remain -= bhour
-                    other = self._next_opening_time(other + bhour)
+                    adjusted_datetime = self._next_opening_time(adjusted_datetime + bhour)
         else:
             while bhour_remain != timedelta(0):
-                # business hour left in this business time interval
-                bhour = self._next_opening_time(other) - other
+                bhour = self._next_opening_time(adjusted_datetime) - adjusted_datetime
                 if (
                     bhour_remain > bhour
                     or bhour_remain == bhour
                     and nanosecond != 0
                 ):
-                    # finish adjusting if possible
-                    other += bhour_remain
+                    adjusted_datetime += bhour_remain
                     bhour_remain = timedelta(0)
                 else:
-                    # go to next business time interval
                     bhour_remain -= bhour
-                    other = self._get_closing_time(
-                        self._next_opening_time(
-                            other + bhour - timedelta(seconds=1)
-                        )
-                    )
+                    adjusted_datetime = self._get_closing_time(self._next_opening_time(adjusted_datetime + bhour - timedelta(seconds=1)))
 
-        return other
+        return adjusted_datetime
     else:
         raise ApplyTypeError("Only know how to combine business hour with datetime")
-
 ```
+The revised `apply` function addresses the incorrect adjustment logic for positive offsets and ensures accurate adjustments based on the specified business hours and provided offsets. This corrected version should resolve the unexpected behavior and the test failures.

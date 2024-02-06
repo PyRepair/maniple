@@ -24,7 +24,6 @@ def request_httprepr(request):
     s += b"\r\n"
     s += request.body
     return s
-
 ```
 
 

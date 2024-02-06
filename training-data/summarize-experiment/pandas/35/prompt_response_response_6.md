@@ -1,16 +1,21 @@
-The error occurs because the weak reference to the `PeriodIndex` object gets dropped before it is intended to, resulting in the `PeriodEngine` receiving a `None` instead of the `PeriodIndex`.
+The error message indicates that the PeriodEngine is receiving a None type instead of the expected PeriodIndex, which is causing the AttributeError when trying to access the 'view' attribute. 
 
-To fix the bug, we need to modify the `_engine` function to maintain the weak reference to the `self` object and ensure that it is not dropped prematurely. We can achieve this by storing the weak reference to `self` as an attribute of the `_engine` function to prevent it from being dropped.
+The issue seems to be related to the weak reference handling. When the PeriodIndex is weakly referenced, it's being dropped before it should be. This causes the PeriodEngine to receive a None instead of the expected PeriodIndex.
 
-Here's the corrected version of the function:
+To fix this issue, we need to ensure that the weak reference to the PeriodIndex is maintained until it's no longer needed by the PeriodEngine. 
+
+Here's the corrected code for the problematic function:
 
 ```python
 @cache_readonly
 def _engine(self):
-    # Maintain a weak reference to self as an attribute of the function
-    if not hasattr(self, '_weakref_period'):
-        self._weakref_period = weakref.ref(self)
-    return self._engine_type(self._weakref_period, len(self._values))
+    # To avoid a reference cycle, pass a weakref of self to _engine_type.
+    period = weakref.ref(self)
+    engine = self._engine_type(period, len(self))
+    self._engine = weakref.ref(engine)  # Store the weak reference in _engine attribute
+    return engine
 ```
 
-By storing the weak reference to `self` as an attribute of the `_engine` function, we ensure that the reference is not dropped prematurely, resolving the issue with the weak reference being lost. This corrected version of the function can be used as a drop-in replacement for the buggy version.
+By storing the weak reference to the engine in the `_engine` attribute, we ensure that the PeriodIndex is not dropped prematurely, and it remains accessible to the PeriodEngine when needed.
+
+This fix should address the weak reference handling issue and resolve the AttributeError.

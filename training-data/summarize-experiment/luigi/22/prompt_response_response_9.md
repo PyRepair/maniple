@@ -1,8 +1,8 @@
-The error message indicates that there is a TypeError because the addition operation is being performed on a NoneType and an int. This suggests that the last_active variable is not being properly initialized, and the addition operation is failing due to the NoneType value.
+The error message indicates a `TypeError` caused by attempting to add a `NoneType` and an `int` together. This is likely due to the `last_active` variable being set to `None` by default, and then trying to perform arithmetic operations on it.
 
-To fix this issue, we need to ensure that the last_active variable is properly initialized with a default value if it is not provided. We can use the value of time.time() as the default value for last_active if it is not provided.
+To fix this, we need to assign the value of `time.time()` to `last_active` if no value is provided, rather than leaving it as `None`. This will ensure that the variable always holds a valid timestamp.
 
-Here's the corrected code for the __init__ function:
+Here's the corrected code for the `Worker` class with the `__init__` function fixed:
 
 ```python
 class Worker(object):
@@ -17,6 +17,8 @@ class Worker(object):
         self.started = time.time()  # seconds since epoch
         self.tasks = set()  # task objects
         self.info = {}
+
+    # ... other methods ...
 ```
 
-By using the conditional expression `last_active if last_active is not None else time.time()`, we ensure that the last_active variable is initialized with a valid value, either the provided last_active value or the current time if last_active is not provided. This should resolve the TypeError issue when using the Worker class.
+This revised version ensures that `last_active` is always initialized to a valid timestamp, preventing any `NoneType` related errors during arithmetic operations.

@@ -14,7 +14,6 @@ def info(self):
                  stdout=PIPE, stderr=DEVNULL)
     version = proc.stdout.read().decode('utf-8').strip()
     return u'Fish Shell {}'.format(version)
-
 ```
 
 

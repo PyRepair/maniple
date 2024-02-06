@@ -1,4 +1,12 @@
+The error in the `nonsingular` function seems to be related to handling large integer values, as indicated by the overflow error encountered when taking the absolute value of integers.
+
+The function should be modified to handle input parameter types appropriately to avoid the overflow error. Additionally, the imports for the required modules should be added to ensure the function works as intended.
+
+Here's the corrected code for the `nonsingular` function:
+
 ```python
+import numpy as np
+
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
     """
     Modify the endpoints of a range as needed to avoid singularities.
@@ -35,8 +43,7 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         vmin, vmax = vmax, vmin
         swapped = True
 
-    maxabsvalue = abs(max(vmin, vmax))  # Modify this line
-
+    maxabsvalue = max(abs(float(vmin)), abs(float(vmax)))  # Ensure type consistency for integer inputs
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
         vmin = -expander
         vmax = expander
@@ -53,3 +60,5 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         vmin, vmax = vmax, vmin
     return vmin, vmax
 ```
+
+The corrected code ensures that integer inputs are consistently cast to float where necessary, and addresses potential overflow issues when calculating the maximum absolute value. Additionally, the required module import for `numpy` has been added to the function.

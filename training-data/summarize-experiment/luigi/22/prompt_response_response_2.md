@@ -1,11 +1,26 @@
-The error occurs in the `prune` method of the `Worker` class, where the addition operation is being performed between `NoneType` and `int` types.
+The error occurs in the `prune` method of the `Worker` class when trying to add `self.last_active` (which has a default value of `None`) to `config.worker_disconnect_delay` at the line:
 
-The bug occurs because the `last_active` parameter has a default value of `None` in the `__init__` method, and it is not handled correctly in the `prune` method.
+```python
+if self.last_active + config.worker_disconnect_delay < time.time():
+```
 
-To fix the bug, we need to check if the `last_active` parameter is `None` before performing the addition operation in the `prune` method. If it is `None`, we should handle it appropriately.
+The reason for the error is that `self.last_active` is initialized with a default value of `None` and is not properly handled in the `prune` method.
 
-Here's the corrected code for the `__init__` method:
+To fix the bug, we need to modify the `prune` method to check if `self.last_active` is `None`. If it is `None`, we can assume that the worker has never been active and should not prune it.
 
+Here's the corrected code for the `prune` method:
+
+```python
+def prune(self, config):
+    # Delete workers that haven't said anything for a while (probably killed)
+    if self.last_active is not None and self.last_active + config.worker_disconnect_delay < time.time():
+        # Prune the worker
+        pass  # Add the logic to prune the worker here
+```
+
+By adding the condition `self.last_active is not None` before attempting to compare with `config.worker_disconnect_delay`, we can prevent the TypeError from occurring.
+
+Here is the revised version of the `__init__` method with the fix:
 ```python
 def __init__(self, worker_id, last_active=None):
     self.id = worker_id
@@ -15,9 +30,3 @@ def __init__(self, worker_id, last_active=None):
     self.tasks = set()  # task objects
     self.info = {}
 ```
-
-Now, with the fixed `__init__` method, the `last_active` parameter will default to the current time if it is not provided.
-
-This will prevent `last_active` from being `None`, therefore fixing the bug in the `prune` method.
-
-With this correction, the `prune` method should work correctly and the addition operation will not raise a `TypeError`.

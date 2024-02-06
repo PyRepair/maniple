@@ -1,9 +1,6 @@
 Please correct the malfunctioning function provided below by using the relevant information listed to address this bug. Then, produce a revised version of the function that resolves the issue. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function.
 
-Assume that the following list of imports are available in the current environment, so you don't need to import them when generating a fix.
-```python
-None
-```
+
 
 The following is the buggy function that you need to fix:
 ```python
@@ -15,7 +12,6 @@ def initialize(self, make_current=None):
         if IOLoop.current(instance=False) is None:
             raise RuntimeError("current IOLoop already exists")
         self.make_current()
-
 ```
 
 

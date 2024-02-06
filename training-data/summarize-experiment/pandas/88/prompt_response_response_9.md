@@ -1,20 +1,20 @@
-Based on the error message and the test case provided, it seems that the issue is occurring when the pivot_table function is invoked with multi-index columns only. The error specifically points to accessing the 'columns' attribute on a 'Series' object, indicating that the problematic function is inadvertently manipulating the input data in a way that results in 'Series' objects instead of 'DataFrame' objects.
-
-The potential error location within the pivot_table function could be the section where the function tries to access the 'columns' attribute on the 'table' object. This indicates that the function may not correctly handle the input data in some cases and may return 'Series' objects instead of 'DataFrame' objects.
-
-The reason behind the occurrence of the bug could be related to the function's input handling and table creation process. It seems that the function is not correctly manipulating the input data and is returning 'Series' objects in certain cases, leading to errors when trying to access the 'columns' attribute.
-
-To fix the bug, the function's implementation of data manipulation and column handling needs to be reviewed. Specifically, the erroneous lines of code involving data manipulation and assignment to the 'table' variable need to be identified and fixed. Additionally, it is important to ensure that the function correctly handles input data to return the expected 'DataFrame' objects.
-
-Here's the corrected version of the pivot_table function:
-
 ```python
-# Corrected version of the pivot_table function to resolve the bug
+from typing import TYPE_CHECKING, Callable, Dict, List, Tuple, Union
+from pandas.util._decorators import Appender, Substitution
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.frame import _shared_docs
+from pandas.core.groupby import Grouper
+from pandas.core.indexes.api import Index, MultiIndex, get_objs_combined_axis
+from pandas.core.reshape.concat import concat
+from pandas.core.reshape.util import cartesian_product
+from pandas import DataFrame
 
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
-    data,
+    data: DataFrame,  # Ensure the input is explicitly defined as a DataFrame
     values=None,
     index=None,
     columns=None,
@@ -51,10 +51,124 @@ def pivot_table(
 
     keys = index + columns
 
-    if values is not None:
-        table = data.pivot_table(values=values, index=index, columns=columns, aggfunc=aggfunc, fill_value=fill_value, margins=margins, dropna=dropna, margins_name=margins_name, observed=observed)
+    values_passed = values is not None
+    if values_passed:
+        if is_list_like(values):
+            values_multi = True
+            values = list(values)
+        else:
+            values_multi = False
+            values = [values]
+
+        # GH14938 Make sure value labels are in data
+        for i in values:
+            if i not in data:
+                raise KeyError(i)
+
+        to_filter = []
+        for x in keys + values:
+            if isinstance(x, Grouper):
+                x = x.key
+            try:
+                if x in data:
+                    to_filter.append(x)
+            except TypeError:
+                pass
+        if len(to_filter) < len(data.columns):
+            data = data[to_filter]
+
+    else:
+        values = data.columns
+        for key in keys:
+            try:
+                values = values.drop(key)
+            except (TypeError, ValueError, KeyError):
+                pass
+        values = list(values)
+
+    grouped = data.groupby(keys, observed=observed)
+    agged = grouped.agg(aggfunc)
+    if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
+        agged = agged.dropna(how="all")
+
+        # gh-21133
+        # we want to down cast if
+        # the original values are ints
+        # as we grouped with a NaN value
+        # and then dropped, coercing to floats
+        for v in values:
+            if (
+                v in data
+                and is_integer_dtype(data[v])
+                and v in agged
+                and not is_integer_dtype(agged[v])
+            ):
+                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
+
+    table = agged
+    if table.index.nlevels > 1:
+        # Related GH #17123
+        # If index_names are integers, determine whether the integers refer
+        # to the level position or name.
+        index_names = agged.index.names[: len(index)]
+        to_unstack = []
+        for i in range(len(index), len(keys)):
+            name = agged.index.names[i]
+            if name is None or name in index_names:
+                to_unstack.append(i)
+            else:
+                to_unstack.append(name)
+        table = agged.unstack(to_unstack)
+
+    if not dropna:
+        if table.index.nlevels > 1:
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.index.levels), names=table.index.names
+            )
+            table = table.reindex(m, axis=0)
+
+        if table.columns.nlevels > 1:
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.columns.levels), names=table.columns.names
+            )
+            table = table.reindex(m, axis=1)
+
+    if isinstance(table, ABCDataFrame):
+        table = table.sort_index(axis=1)
+
+    if fill_value is not None:
+        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
+
+    if margins:
+        if dropna:
+            data = data[data.notna().all(axis=1)]
+        table = _add_margins(
+            table,
+            data,
+            values,
+            rows=index,
+            cols=columns,
+            aggfunc=aggfunc,
+            observed=dropna,
+            margins_name=margins_name,
+            fill_value=fill_value,
+        )
+
+    # discard the top level
+    if (
+        values_passed
+        and not values_multi
+        and not table.empty
+        and (table.columns.nlevels > 1)
+    ):
+        table = table[values[0]]
+
+    if len(index) == 0 and len(columns) > 0:
+        table = table.T
+
+    # GH 15193 Make sure empty columns are removed if dropna=True
+    if isinstance(table, ABCDataFrame) and dropna:
+        table = table.dropna(how="all", axis=1)
 
     return table
 ```
-
-This corrected version of the pivot_table function handles the input data correctly and ensures that the returned output is a 'DataFrame' object. It resolves the bug by appropriately handling the input data and returning the expected result.

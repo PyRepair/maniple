@@ -1,20 +1,18 @@
-The bug occurs within the `match` function. The function currently attempts to split the `command.script` attribute and access the second element in the resulting list. However, it doesn't account for the case when `command.script` does not contain multiple elements after splitting, leading to an `IndexError`.
+The issue with the buggy function is that it is trying to access the second element of the list created by splitting the `command.script`, but in the case when the script is just `'git'`, the split list will contain only one element, leading to an `IndexError` when trying to access the second element.
 
-To fix this bug, we can first check if the length of the split result is greater than 1 before accessing the second element. If it's not, we can return False.
+To fix this issue, we need to first check if the split list contains at least two elements before trying to access the second element. If not, we can return False immediately.
 
-Here's the revised version of the function:
+Here's the corrected code for the function:
 
 ```python
-from thefuck.specific.git import git_support
-
 @git_support
 def match(command):
-    script_parts = command.script.split()
-    if len(script_parts) <= 1:
+    split_script = command.script.split()
+    if len(split_script) < 2:
         return False
-    return (script_parts[1] == 'stash' and 'usage:' in command.stderr)
+
+    return (split_script[1] == 'stash'
+            and 'usage:' in command.stderr)
 ```
 
-This version of the function checks if the length of `script_parts` is less than or equal to 1, returning False if it is. Otherwise, it proceeds to check if the second element is 'stash' and if 'usage:' is in the `command.stderr`.
-
-This fix should resolve the `IndexError` and ensure that the function behaves as expected.
+This revised function checks if the split script contains at least two elements, and if not, it returns False. Otherwise, it performs the original comparison and returns the result. This should resolve the `IndexError` issue when the script is just `'git'`.

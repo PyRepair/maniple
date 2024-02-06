@@ -1,8 +1,10 @@
-The error is occurring in the `prune` method of the `Worker` class. The error message indicates that there is a `TypeError` because the `last_active` attribute is `None` and it is trying to perform an operation with an `int` (config.worker_disconnect_delay) and a `NoneType`. This is happening because the `last_active` attribute is not being initialized properly when the Worker object is created.
+The error occurs in the `prune()` method of the `Worker` class when trying to compare `self.last_active` with `time.time()` and encountering a `TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'`.
 
-To fix this bug, we need to ensure that the `last_active` attribute is properly initialized, either with the provided value or with the current time when no value is provided.
+The reason behind this bug is that the `last_active` parameter in the `__init__` function is initialized with a default value of `None`. When the `prune()` method is called and tries to compare `self.last_active` (which is `None`) with `config.worker_disconnect_delay`, it results in a `TypeError` because you cannot perform arithmetic operations with a `None` type.
 
-Here's the corrected code for the `__init__` method of the `Worker` class:
+To fix this bug, you need to initialize `last_active` with the current time in seconds if it is not provided. This will ensure that `last_active` is always a valid numeric value representing the seconds since epoch.
+
+Here's the corrected code for the `__init__` function:
 
 ```python
 class Worker(object):
@@ -13,13 +15,10 @@ class Worker(object):
     def __init__(self, worker_id, last_active=None):
         self.id = worker_id
         self.reference = None  # reference to the worker in the real world. (Currently a dict containing just the host)
-        if last_active is not None:
-            self.last_active = last_active  # seconds since epoch
-        else:
-            self.last_active = time.time()  # seconds since epoch if last_active is not provided
+        self.last_active = last_active if last_active is not None else time.time()  # seconds since epoch
         self.started = time.time()  # seconds since epoch
         self.tasks = set()  # task objects
         self.info = {}
 ```
 
-With this fix, the `last_active` attribute is properly initialized with the current time if no value is provided. This should resolve the `TypeError` issue in the `prune` method.
+With this fix, the `last_active` parameter is initialized with the current time if it is not provided, ensuring that it is always a valid numeric value. This will resolve the `TypeError` when comparing `self.last_active` with `config.worker_disconnect_delay` in the `prune()` method.

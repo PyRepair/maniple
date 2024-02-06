@@ -1,10 +1,12 @@
-Based on the observed test case and error message, it seems that the issue is related to incorrect indentation for tabulated comments after a dedent. The function `_partially_consume_prefix` processes the input prefix string character by character, building up lines of text until a certain column width is reached. It then returns the accumulated lines and the remaining unparsed portion of the input prefix.
+There are several issues with the `_partially_consume_prefix` function:
 
-The bug appears to be related to how the function handles different types of indentation (spaces, tabs) and newline characters. This is evident from the inconsistent behavior observed in the test cases and the mismatched expected and actual output.
+1. The condition for checking if the current column is less than the specified column is incorrect, resulting in premature returning of consumed lines.
+2. The function does not handle the case of an empty prefix correctly.
+3. Improper handling of tabs and newlines leads to unexpected behavior.
 
-To fix this bug, it may be necessary to carefully review and possibly rewrite the logic for handling indentation, spaces, tabs, and newline characters within the function. Thorough testing with various input prefixes and column values will be necessary to ensure that the function behaves consistently and accurately returns the expected results.
+To fix these issues, we need to revise the logic of the function. First, we should correct the condition for checking the column, ensuring that it properly handles indentation levels. Second, we need to handle the case of an empty prefix explicitly. Finally, we should adjust the logic to correctly handle tabs and newlines.
 
-Here's the corrected version of the function:
+Here's the revised version of the function that addresses the identified issues:
 
 ```python
 def _partially_consume_prefix(self, prefix, column):
@@ -14,33 +16,27 @@ def _partially_consume_prefix(self, prefix, column):
     wait_for_nl = False
     for char in prefix:
         if wait_for_nl:
-            if char == '\n':
-                if current_line.strip() and current_column < column:
-                    res = ''.join(lines)
-                    return res, prefix[len(res):]
+            if char == '\n' or (char == ' ' and current_column >= column):
+                res = ''.join(lines)
+                return res, prefix[len(res):]
 
+        if char == ' ':
+            current_column += 1
+        elif char == '\t':
+            current_column = (current_column // 4 + 1) * 4  # Adjust column for tabs
+        elif char == '\n':
+            if not current_line.strip():
                 lines.append(current_line)
-                current_line = ""
-                current_column = 0
-                wait_for_nl = False
-            else:
-                current_line += char
+            current_line = ""
+            current_column = 0
+            wait_for_nl = False
         else:
-            if char == ' ':
-                current_column += 1
-                current_line += char
-            elif char == '\t':
-                current_column += 4
-                current_line += char
-            elif char == '\n':
-                lines.append(current_line + char)
-                current_line = ""
-                current_column = 0
-            else:
-                wait_for_nl = True
-                current_line += char
-                
+            current_line += char
+            wait_for_nl = True
+
     return ''.join(lines), current_line
 ```
 
-This revised version of the function restructures the logic for handling indentation, spaces, tabs, and newline characters by explicitly tracking the `wait_for_nl` condition and appending characters to the `current_line` accordingly. Thorough testing should be conducted to ensure that the revised function behaves consistently and accurately returns the expected results.
+With these changes, the function should now handle the indentation correctly, handle empty prefixes, and properly consume the prefix according to the specified column.
+
+Please replace the original `_partially_consume_prefix` function with the provided revised version to address the identified issues.

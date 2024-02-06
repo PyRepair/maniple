@@ -1,26 +1,24 @@
-The error occurs when the `prune` method of the `Worker` class is called, as it tries to add a `NoneType` and an `int` in this line `if self.last_active + config.worker_disconnect_delay < time.time():`. 
+The error message indicates that the code is trying to add an integer to a value of type NoneType, resulting in a TypeError. This error occurs in the `prune` method of the Worker class.
 
-This happens because the `last_active` attribute is set to `None` by default, and the comparison is trying to add `None` with an `int`, which is causing the `TypeError`.
+The reason behind this bug is that the `last_active` attribute is initialized as None when no value is provided, and the code does not account for this possibility when using the attribute in the `prune` method.
 
-To fix this bug, we can modify the `__init__` method to handle the `last_active` attribute appropriately by providing a default value for it.
+To fix the bug, we need to check if `last_active` is None, and if so, handle it appropriately in the `prune` method. We can set `last_active` to the current time if it is None, and then proceed with the comparison.
 
-Here's the corrected code for the `__init__` method:
+Here is the corrected code for the `__init__` method of the Worker class:
 
 ```python
-class Worker(object):
-    """
-    Structure for tracking worker activity and keeping their references.
-    """
-
-    def __init__(self, worker_id, last_active=None):
-        self.id = worker_id
-        self.reference = None  # reference to the worker in the real world. (Currently a dict containing just the host)
-        self.last_active = last_active if last_active is not None else time.time()  # seconds since epoch
-        self.started = time.time()  # seconds since epoch
-        self.tasks = set()  # task objects
-        self.info = {}
+def __init__(self, worker_id, last_active=None):
+    self.id = worker_id
+    self.reference = None  # reference to the worker in the real world. (Currently a dict containing just the host)
+    if last_active is not None:
+        self.last_active = last_active  # seconds since epoch
+    else:
+        self.last_active = time.time()  # seconds since epoch
+    self.started = time.time()  # seconds since epoch
+    self.tasks = set()  # task objects
+    self.info = {}
 ```
 
-By using the default value of `time.time()` for `last_active` when it is not provided, the comparison in the `prune` method will no longer cause a `TypeError`.
+With this fix, the `last_active` attribute is initialized to the current time if no value is provided, ensuring that it is always of type float when used in the `prune` method.
 
-This should resolve the bug and ensure that the `prune` method functions as expected.
+This revised code can be used as a drop-in replacement for the buggy version of the `__init__` method in the Worker class.

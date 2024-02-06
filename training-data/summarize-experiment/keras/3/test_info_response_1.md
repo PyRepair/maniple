@@ -1,11 +1,21 @@
-From the error message, we can tell that the problem happens during the execution of the test case `test_clone_functional_model_with_multi_outputs` in the file `tests/keras/test_sequential_model.py`, specifically at line 360, which is the line where `keras.models.clone_model(model)` is called.
+From the given source code and error messages, we can discern that there is an issue with the `clone_functional_model` function within the `keras/models.py` file. The error message originates from the test function `test_clone_functional_model_with_multi_outputs` within the `test_sequential_model.py` file.
 
-The specific assertion error is raised from the `_clone_functional_model` function in `keras.models.py` file at line 166. The assertion error is triggered by the line `assert x in tensor_map, 'Could not compute output ' + str(x)`.
+The purpose of the `clone_functional_model` function is to create a new instance of the `Model` class by cloning the functional model. The error message indicates that the assertion `assert x in tensor_map` failed, citing a specific output tensor `Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)` which could not be computed.
 
-By looking at the test function `test_clone_functional_model_with_multi_outputs`, we see that it is testing the cloning of a functional model with multiple outputs. The test involves creating some layers, defining the model, then cloning the model using `keras.models.clone_model(model)`.
+In order to understand this error, we need to analyze the code in the `test_clone_functional_model_with_multi_outputs` function and the structure of the functional model being used.
 
-The `keras.models.clone_model` function internally calls `_clone_functional_model` function, which is the source of the error. The error message indicates that there is an issue with computing the output tensor from the `clone_model` operation, as the specific tensor `Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)` could not be found in the `tensor_map`.
+Looking at the test function, it involves creating a functional model with multiple inputs and outputs, using layers like `Lambda` and `SwapLayer`. It asserts that the output of the cloned model is equal to the original model for given input data. The error occurs when the `clone_model` function is called on the `model`.
 
-The problem could be rooted in the construction of the `new_model` and particularly in how the tensors are mapped during the cloning process. 
+The error messages instantly reveal that the issue arises from the `clone_model` function calling the `_clone_functional_model` function. Within the `_clone_functional_model` function, there are multiple stages involved such as caching created layers, mapping input tensors, iterating through the reference model nodes, and creating the corresponding layers in the cloned model.
 
-We would need to inspect the `clone_model` operation in more detail and possibly trace back to the core of the `_clone_functional_model` function to identify why the output tensor is unable to be computed. It's possible that there's an issue with how the `tensor_map` is being populated or used during the cloning process. Further diagnosis would require a deep dive into the internals of the `clone_model` function and the `_clone_functional_model` function, possibly involving debugging and stepping through the code to understand how the tensors are being handled and why the specific output tensor cannot be computed.
+From the error message, the specific output tensor `Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)` indicates that there might be an issue with the `SwapLayer` and its output being properly computed or mapped with the `tensor_map`.
+
+The failure of the assertion `assert x in tensor_map` means that there is a missing output tensor i.e., it was not properly computed or mapped during the process of cloning the model.
+
+To effectively diagnose and resolve the issue, we need to carefully examine the following:
+1. The creation and computation of the layers in the functional model, especially the ones with multiple inputs/outputs and custom behavior such as the `Lambda` and `SwapLayer`.
+2. The caching and mapping of the input and output tensors in the `_clone_functional_model` function.
+3. The process of iterating through the nodes of the reference model and creating corresponding layers in the cloned model.
+4. The specific handling of complex layers such as `SwapLayer`, ensuring that their input and output tensors are properly considered and mapped during the cloning process.
+
+By understanding and debugging these specific sections, we can identify the root cause of the error and introduce the necessary corrections to ensure the successful clone of the functional model.

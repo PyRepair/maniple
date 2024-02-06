@@ -11,7 +11,6 @@ The following is the buggy function that you need to fix:
 def match(command):
     return (command.script.split()[1] == 'stash'
             and 'usage:' in command.stderr)
-
 ```
 
 

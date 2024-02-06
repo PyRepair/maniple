@@ -1,17 +1,16 @@
-The error in the code is caused by the incorrect command used to get the Fish Shell version. The command 'echo $FISH_VERSION' is not correct and needs to be replaced with 'fish --version' to correctly obtain the version number.
+The error in the buggy function is occurring because the command being used to get the Fish shell version is incorrect. The command 'echo $FISH_VERSION' is not the correct way to get the Fish shell version.
 
-The reason for the bug is that the 'echo $FISH_VERSION' command does not return the version number of the Fish Shell. This causes the test to fail when comparing the expected version ('Fish Shell 3.5.9') with the incorrect version obtained from the 'echo $FISH_VERSION' command ('fish, version 3.5.9').
+To fix this bug, the 'fish' command with the '--version' flag should be used to get the Fish shell version.
 
-To fix the bug, we need to update the command used to obtain the Fish Shell version to 'fish --version'.
-
-Here is the corrected code for the `info` function:
+Here's the corrected version of the function:
 
 ```python
 def info(self):
     """Returns the name and version of the current shell"""
-    proc = Popen(['fish', '--version'], stdout=PIPE, stderr=DEVNULL)
-    version = proc.stdout.read().decode('utf-8').strip()
+    proc = Popen(['fish', '--version'],
+                 stdout=PIPE, stderr=DEVNULL)
+    version = proc.stdout.read().decode('utf-8').strip().split(', ')[1]
     return u'Fish Shell {}'.format(version)
 ```
 
-With this updated code, the `info` function will correctly obtain the Fish Shell version using the 'fish --version' command, resolving the issue and allowing the test case to pass.
+This fix will use the correct command to get the Fish shell version and return the expected output, resolving the issue identified in the bug report.

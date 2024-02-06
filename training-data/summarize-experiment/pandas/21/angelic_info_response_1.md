@@ -1,11 +1,21 @@
-This function, `_get_with`, is designed to handle different types of inputs and extract data from a Series object. 
+The _get_with function is responsible for returning data based on the input key. The function has conditional statements that check the type of the input key and execute different blocks of logic accordingly.
 
-The function takes an input parameter, `key`, and based on its type, executes different logic. The first condition checks if the `key` is a slice, then does necessary conversions and returns the result. The second condition raises a `TypeError` if `key` is of type `DataFrame`. The third condition deals with tuple inputs and retrieves the values based on the key. 
+1. If the key is of type `slice`, it converts the slice indexer and returns the sliced data from the Series.
 
-The next block checks if `key` is not list-like and returns the location of the element identified by `key`. If the `key` is not list-like and not an instance of a list, a NumPy array, a pandas ExtensionArray, a Series, or an Index, it converts the `key` to a list. 
+2. If the key is of type `ABCDataFrame`, it raises a TypeError since indexing a Series with a DataFrame is not supported.
 
-After this, it uses the `lib.infer_dtype` method to infer the type of the `key`. If the type is identified as an integer, it determines whether the positional or label-based indexer should be used. If the former applies, the `iloc` method is called with the `key`, otherwise, the `loc` method is used.
+3. If the key is of type `tuple`, it returns the data based on the provided tuple key.
 
-Subsequently, it checks if `key` is an instance of a list, and if so, it handles duplicate indexing by returning the location of the elements identified by `key`. Finally, if none of the previous conditions are satisfied, it calls the `reindex` method with the `key` and returns its result.
+4. If the key is not list-like, it checks if the key is recognized as a scalar by the library. If not, it returns data based on label indexing using `self.loc`.
 
-Based on the expected variable values and types before function return, the function should perform these conditional checks to correctly determine the type of `key,` its appropriate handling, and return the expected results.
+5. If the key is of type `list`, it reassigns the key to be a list.
+
+6. If the key is of type `Index`, it determines the type of the key and assigns it to the variable `key_type`. Otherwise, it infers the type and assigns it to `key_type`.
+
+7. If the `key_type` is "integer", it checks whether to treat it as a positional indexer and returns data based on that decision.
+
+8. If the key is of type `list`, it handles the duplicate indexing case and returns the appropriate data.
+
+9. For any other type of the key, it reindexes and returns the data using `self.reindex`.
+
+The function's logic generally relies on checking the type of the input key and processing it differently based on its type, along with handling additional checks such as recognizing scalar values or handling duplicate index cases. The aim is to return the appropriate data from the Series based on the input key.

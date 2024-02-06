@@ -1,17 +1,23 @@
-The test case `test_info` asserts that the output of `shell.info()` should be 'Fish Shell 3.5.9', but the actual output is 'Fish Shell fish, version 3.5.9'. This indicates that the function is not correctly extracting the version number from the shell command output.
+The buggy function `info` is supposed to return the name and version of the current shell, but it currently has issues reading the version from the subprocess. The issue is related to how the version is being read from the subprocess and formatted.
 
-The issue lies in the line `version = proc.stdout.read().decode('utf-8').strip()`. It seems that the command `echo $FISH_VERSION` is returning the entire string 'fish, version 3.5.9' instead of just the version number.
+The error message from the test indicates that the version returned by the function includes unexpected characters like "fish, version" which should be stripped out. This suggests that the subprocess command `echo $FISH_VERSION` is not providing the expected output.
 
-To fix this issue, we need to modify the command being executed to only return the version number.
+To fix the bug, we need to modify the function to read the version information in the correct way and format it properly.
 
-The corrected code for the buggy function is:
+Here's the corrected code for the `info` function:
 
 ```python
 def info(self):
     """Returns the name and version of the current shell"""
-    proc = Popen(['fish', '--version'], stdout=PIPE, stderr=DEVNULL)
-    version = proc.stdout.read().decode('utf-8').strip().split()[-1]
-    return u'Fish Shell {}'.format(version)
+    proc = Popen(['fish', '--version'],
+                 stdout=PIPE, stderr=DEVNULL)
+    version = proc.stdout.read().decode('utf-8').strip()
+    version = version.split()[-1]  # Get the last word, which is the version number
+    return 'Fish Shell {}'.format(version)
 ```
 
-This code changes the command from `echo $FISH_VERSION` to `fish --version` to directly get the version information. Additionally, the `split()[-1]` method is used to extract the version number from the returned string. This should resolve the issue and provide the correct version number for the Fish shell.
+With this fix, the function uses the `--version` flag to get the version information directly from the shell, and then extracts the version number from the output by splitting the string and taking the last word.
+
+This should resolve the issue and provide the expected version string without any extra characters.
+
+You can use the corrected function as a drop-in replacement for the buggy version.

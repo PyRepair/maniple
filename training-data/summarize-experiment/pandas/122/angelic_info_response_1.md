@@ -1,7 +1,9 @@
-The "equals" function takes in two parameters, "self" and "other", both of type BlockManager. It first compares the axes of both BlockManagers and returns False if they have different lengths or if any of the corresponding axes are not equal. 
+The function `equals` takes in two parameters, `self` and `other`. These parameters are instances of the `BlockManager` class, and they both have `axes` and `blocks` attributes. The function first checks if the number of axes in `self` and `other` are not equal, in which case it returns `False`.
 
-It then consolidates both BlockManagers in place and checks if the number of blocks within each BlockManager is the same. If not, it returns False.
+Next, it checks if all the axes in `self` are equal to the corresponding axes in `other`. If not, it returns `False`. Then, both `self` and `other` are consolidated in place by calling the `_consolidate_inplace` method on each of them.
 
-The function then defines a "canonicalize" function that takes a block and returns a tuple of the block's dtype name and mgr_locs. It then sorts the blocks of both BlockManagers using this "canonicalize" function and checks if all corresponding blocks are equal.
+After consolidation, the function compares the number of blocks in `self` and `other` and returns `False` if they are not equal. If the number of blocks is equal, it proceeds to sort the blocks in both `self` and `other` based on a defined `canonicalize` function, which uses the block's `dtype.name` and `mgr_locs` to create a tuple for sorting.
 
-To summarize, the function first checks the axes and block count, then consolidates the BlockManagers, sorts and compares the blocks, and returns True if all conditions are met, and False otherwise.
+Finally, the function iterates through the sorted blocks and checks if each block in `self` is equal to the corresponding block in `other`. If any pair of blocks are not equal, the function returns `False`. If all the block pairs are equal, the function returns `True`.
+
+The expected return value and types for specific input parameter values are provided, along with the expected values and types for relevant variables before the function returns. These logs will help in comparing the actual behavior of the function with the expected behavior based on the input parameters.

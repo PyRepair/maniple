@@ -1,8 +1,8 @@
-The test case `test_info` is comparing the output of the `info` function which is supposed to return the version of the Fish shell, but the output includes the string "Fish Shell" along with the version. This discrepancy is causing the assertion error in the test case.
+The error is occurring in the `info` function of the `Fish` class. The function is supposed to return the name and version of the current shell, but it's currently not correctly parsing the version information and is returning just the version number without the shell name.
 
-It seems that the issue is with the string format used in the `info` function. The function is prepending "Fish Shell" to the version retrieved from the shell, which is not matching the expected value in the test case.
+The reason for the bug is that the command `echo $FISH_VERSION` is being used to get the version, but the output of this command includes the shell name ("fish") along with the version number. The current implementation is only extracting the version number and not including the shell name.
 
-To fix this issue, we need to modify the `info` function to only return the version without prepending "Fish Shell" to it.
+To fix the bug, we need to modify the command to retrieve the version information in a way that includes both the shell name and the version number. Then, we need to update the parsing logic in the function to correctly extract both the shell name and the version number.
 
 Here's the corrected code for the `info` function:
 
@@ -10,10 +10,9 @@ Here's the corrected code for the `info` function:
 def info(self):
     """Returns the name and version of the current shell"""
     proc = Popen(['fish', '--version'], stdout=PIPE, stderr=DEVNULL)
-    version = proc.stdout.read().decode('utf-8').strip()
-    return version
+    version_output = proc.stdout.read().decode('utf-8').strip()
+    shell_name, version = version_output.split(', version ')
+    return u'{} {}'.format(shell_name, version)
 ```
 
-With this modification, the function will now only return the version without any additional text. This should resolve the assertion error in the test case.
-
-The corrected code can be used as a drop-in replacement for the buggy version of the `info` function.
+This fixed version of the function retrieves the shell name and version number using the command `fish --version` and then correctly parses the output to extract both pieces of information. This should resolve the issue and ensure that the function returns the correct shell name and version.

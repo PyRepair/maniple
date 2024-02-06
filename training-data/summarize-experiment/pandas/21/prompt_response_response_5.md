@@ -1,11 +1,12 @@
-Based on the provided details, the bug in the `_get_with` function occurs due to incorrect handling of different types of input keys. The conditional blocks within the function do not accurately match the types of input keys, leading to the execution of the last conditional block and the return of `self.reindex(key)` in all cases.
+Based on the analysis of the provided function and the associated test cases, as well as the runtime variables and expected parameters, the bug in the `_get_with` function is likely caused by the incorrect inference of the type of the input key, which always results in 'string'. This leads to an incorrect return from the function and causes the test cases to fail.
 
-To address this issue, the conditional logic in the function needs to be re-evaluated to accurately classify and handle the different types of input keys, ensuring that each conditional block returns the expected result based on the input type. Additionally, the implementation of `self.reindex` may need to be reviewed and potentially revised to ensure it correctly handles the input keys.
+To fix this bug, the conditional block that determines the type of the key and assigns it to `key_type` needs to be revised. The function should correctly infer the type of the input key and then execute the appropriate logic based on that type, ensuring that the returned data matches the expected behavior for different types of keys.
 
-To resolve the bug, the following revised code for the `_get_with` function can be used as a drop-in replacement for the buggy version:
+Here's the corrected version of the `_get_with` function that addresses the bug:
 
 ```python
 def _get_with(self, key):
+    # other: fancy integer or otherwise
     if isinstance(key, slice):
         slobj = self.index._convert_slice_indexer(key, kind="getitem")
         return self._slice(slobj)
@@ -16,21 +17,27 @@ def _get_with(self, key):
         )
     elif isinstance(key, tuple):
         return self._get_values_tuple(key)
-    elif is_list_like(key):
+
+    elif not is_list_like(key) and not isinstance(key, (np.ndarray, Index)):
         return self.loc[key]
-    elif isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):
+
+    if isinstance(key, Index):
+        key_type = key.inferred_type
+    else:
         key_type = lib.infer_dtype(key, skipna=False)
-        if key_type == "integer":
-            if not self.index._should_fallback_to_positional():
-                return self.loc[key]
-            else:
-                return self.iloc[key]
+
+    if key_type == "integer":
+        if self.index._should_fallback_to_positional():
+            return self.iloc[key]
         else:
             return self.loc[key]
-    else:
-        return self.reindex(key)
+
+    if isinstance(key, list):
+        return self.loc[key]
+
+    return self.reindex(key)
 ```
 
-This revised version of the function includes updated conditional logic to accurately classify and handle different types of input keys, ensuring the expected behavior for each type. Additionally, the ordering of conditions has been adjusted to prioritize handling specific types before falling back on the general reindexing approach.
+This corrected version addresses the bug by updating the conditional block that determines the type of the input key and assigns it to `key_type`. It also adjusts the logic to handle different types of keys appropriately, ensuring that the function returns the expected data based on the type of the input key.
 
-By using the corrected `_get_with` function, the issues identified in the test cases and the associated GitHub issue can be addressed, leading to consistent and expected behavior when using different types of indexers with a Series object.
+This revised function can be used as a drop-in replacement for the buggy version to resolve the issue.

@@ -1,10 +1,12 @@
-Based on the provided analysis, it seems that the bug is caused by the `clocs` input being a tuple with the value `('A', 'a')`, which leads to issues in the `MultiIndex` naming and level retrieval within the `_unstack_multiple` function. The error messages indicate that the method cannot locate the name 'A' in the `names` attribute of the `MultiIndex` and raises a `ValueError` or `KeyError` exception. This occurs when trying to unstack the MultiIndex using the first level's MultiIndex name `("A", "a")` as `unstack_idx`.
+Based on the test function `test_unstack_tuplename_in_multiindex`, it seems that the error is occurring in the `_get_level_number` method of the index. The error message indicates that 'A' is not in the list of names of the multi-index.
 
-The issue seems to arise from the construction of `new_levels`, `new_columns`, and their respective assignment to `unstacked.index` or `unstacked.columns`. The restructuring of the column levels, names, and codes may not be happening correctly, resulting in the failure of the function to correctly unstack the data.
+In the function `_unstack_multiple`, the line `clocs = [index._get_level_number(i) for i in clocs]` is used to get the level number for each item in `clocs`. This is where the error is occurring, as it fails to find 'A' in the list of names for the multi-index.
 
-To resolve this bug, it is necessary to modify the `MultiIndex` class to handle the situation when the input names are tuples and ensure that the levels are accessed correctly. Additionally, the construction of `new_levels`, `new_columns`, and their assignments to `unstacked.index` or `unstacked.columns` should be checked and updated as needed to ensure the correct restructuring of the column levels.
+The reason for this bug is that the `_get_level_number` method is not handling the multi-index with tuple names properly. It is failing to identify the tuple names like `('A', 'a')` and `('B', 'b')`. This is causing the error when trying to unstack the dataframe based on these tuple names.
 
-Below is the revised version of the `_unstack_multiple` function that resolves the issue:
+To fix this bug, the `_get_level_number` method needs to be updated to correctly handle tuple names in the multi-index. This may involve iterating over the tuple names and retrieving the corresponding level number.
+
+Here's the corrected version of the `_unstack_multiple` function that addresses this bug:
 
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
@@ -13,30 +15,35 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     index = data.index
 
-    clevels = [index.levels[index._get_level_number(i)] for i in clocs]
-    cnames = [n if isinstance(n, str) else n[0] for n in clocs]
-    
-    rlocs = [i for i in range(index.nlevels) if i not in [index._get_level_number(i) for i in clocs]]
-    rlevels = [index.levels[i] for i in rlocs]
-    rnames = [index.names[i] for i in rlocs]
+    clevels = []
+    ccodes = []
+    cnames = []
+    rlevels = []
+    rcodes = []
+    rnames = []
 
-    dummy_index = MultiIndex(levels=rlevels + [index.levels[index._get_level_number(i)] for i in clocs],
-                             codes=[index.codes[i] for i in rlocs] + [index.codes[index._get_level_number(i)] for i in clocs],
-                             names=rnames + cnames)
+    for loc in clocs:
+        if isinstance(loc, tuple):
+            # Handle tuple names in MultiIndex
+            try:
+                clevel = index.names.index(loc)
+                clevels.append(index.levels[clevel])
+                ccodes.append(index.codes[clevel])
+                cnames.append(index.names[clevel])
+            except ValueError:
+                raise KeyError(f'Level {loc} not found')
+        else:
+            clevel = index._get_level_number(loc)
+            clevels.append(index.levels[clevel])
+            ccodes.append(index.codes[clevel])
+            cnames.append(index.names[clevel])
 
-    if isinstance(data, Series):
-        dummy = data.copy()
-        dummy.index = dummy_index
+    rlocs = [i for i in range(index.nlevels) if i not in clevels]
 
-        unstacked = dummy.unstack(cnames, fill_value=fill_value)
-        
-    else:
-        dummy = data.copy()
-        dummy.index = dummy_index
-
-        unstacked = dummy.unstack(cnames, fill_value=fill_value)
-        
-    return unstacked
+    # Rest of the function remains the same
+    # ...
 ```
 
-This revised version of the function addresses the issues with the `MultiIndex` handling and restructuring of column levels, names, and codes. It ensures that the levels are accessed correctly and properly unstacks the data based on the specified column levels.
+This corrected version of the function includes a conditional check for handling tuple names in the MultiIndex. If the `loc` in `clocs` is a tuple, it retrieves the level number by checking the index names. If it is a single name, it proceeds with the original approach.
+
+By adding this conditional handling, the function should now be able to correctly identify the level numbers for tuple names in the MultiIndex and address the error observed in the provided test case.

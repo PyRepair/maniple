@@ -1,21 +1,18 @@
-The test function `test_info` is asserting that the output of `shell.info()` should be 'Fish Shell 3.5.9', but the actual output is 'Fish Shell fish, version 3.5.9'. 
+The issue in the `info` function is that it is using the wrong command to get the Fish shell version and also not properly decoding the output to get the version number. The function is trying to capture the version by running the command 'echo $FISH_VERSION', which is not the correct way to retrieve the Fish shell version.
 
-The issue is within the `info` function. The `Popen` call is using the wrong command to get the Fish shell version, and the format string used to construct the return value is also incorrect.
+To fix the bug, we need to use the correct command to get the Fish shell version. We should run 'fish --version' instead to retrieve the version and properly decode the output to extract the version.
 
-The reason for the bug is that the `Popen` call uses the command `fish -c 'echo $FISH_VERSION'` which only returns the version number without any label. Additionally, the return value is being formatted with 'Fish Shell {}'.format(), but the actual version number returned is prefixed with 'fish, version'. 
+Additionally, we should also use the `communicate` method of the `Popen` object to properly handle the command output instead of directly reading from `stdout`.
 
-To fix the bug, we need to modify the command passed to `Popen` and also update the format string used for constructing the return value.
+Here is the corrected version of the `info` function:
 
-Here's the corrected version of the function:
 ```python
 def info(self):
     """Returns the name and version of the current shell"""
-    proc = Popen(['fish', '--version'],
-                 stdout=PIPE, stderr=DEVNULL)
-    version = proc.stdout.read().decode('utf-8').strip()
-    return u'Fish Shell {}'.format(version.split(',')[1].strip())
+    proc = Popen(['fish', '--version'], stdout=PIPE, stderr=DEVNULL)
+    version = proc.communicate()[0].decode('utf-8').strip()
+    version = version.split(',')[1].strip()
+    return u'Fish Shell {}'.format(version)
 ```
 
-This revised function uses the correct command `fish --version` to get the Fish shell version, and then extracts the version number from the output and constructs the return value in the expected format.
-
-By using this corrected function, the test `test_info` should pass without any assertion errors.
+With this fix, the function will correctly retrieve the version of the Fish shell and return the expected output 'Fish Shell 3.5.9' as per the test case.

@@ -1,18 +1,18 @@
-The bug occurs because the buggy function `match` assumes that the `command.script` will always have more than one element after being split. However, in the test case provided, the `command.script` is simply `'git'`, which results in an `IndexError` when accessing `command.script.split()[1]`.
+The issue in the `match` function is caused by trying to access the second element of the list returned by `command.script.split()`. However, when the input to the function is just `'git'`, this results in a list with only one element and attempting to access the second element causes an `IndexError`.
 
-To fix this issue, we need to check if the length of the split `command.script` is greater than 1 before accessing the second element. If the length is less than 2, then the function should return `False`.
+To fix this issue, we need to check the length of the list returned by `command.script.split()` before attempting to access the second element.
 
-Here's the revised version of the function that addresses the issue:
+Here's the corrected version of the `match` function:
 
 ```python
 @git_support
 def match(command):
     script_parts = command.script.split()
-    if len(script_parts) > 1:
-        return (script_parts[1] == 'stash'
-                and 'usage:' in command.stderr)
-    else:
-        return False
+    if len(script_parts) >= 2:
+        return (script_parts[1] == 'stash' and 'usage:' in command.stderr)
+    return False
 ```
 
-With this fix, the function will first check if the length of `script_parts` is greater than 1 before accessing index 1 to avoid the `IndexError` that occurred previously. This corrected code can be used as a drop-in replacement for the buggy version of the function.
+In this version, we first split the `command.script` and store the result in `script_parts`. Then, we check if the length of `script_parts` is at least 2 before attempting to access the second element. If the length is at least 2, we proceed with the comparison as before. If the length is less than 2, we return `False`, indicating that the match condition is not met.
+
+This should resolve the `IndexError` caused by the original implementation when `command.script` has only one word. The corrected function will correctly handle this scenario and prevent the error from occurring.

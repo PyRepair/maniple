@@ -1,8 +1,15 @@
-Analysis Summary:
-The function `_maybe_empty_lines` takes a `current_line` as input and returns a Tuple of two integers. The variable `max_allowed` is used to determine the maximum number of empty lines allowed before the current line. This value is updated based on whether `current_line.depth` is 0. If `current_line.leaves` is not empty, it processes the first leaf's extra newlines. Otherwise, it sets `before` to 0. It then iterates over the `self.previous_defs` list and updates `before` based on certain conditions. 
+The `_maybe_empty_lines` function takes in a `current_line` object of type `Line` and returns a tuple of two integers representing the number of empty lines to be inserted before and after the current line.
 
-The function then checks various conditions related to line types like decorator, def, class, flow control, and import. Based on these conditions, it returns the number of empty lines before the current line and a flag indicating whether the line is a yield or not.
+1. It starts by setting `max_allowed` to 1, but if `current_line.depth` is equal to 0, then `max_allowed` is set to 2.
+   
+2. If `current_line.leaves` is not empty, it gets the number of newlines in the prefix of the first leaf, then sets `before` to the minimum between the number of newlines and `max_allowed` and finally sets the prefix to an empty string.
 
-The comprehensive examination of each test case shows that the function's behavior is coherent with the expected logic. This includes checking if the current line is a decorator, a def, a class, a flow control, and an import. The function also updates the `self.previous_defs` list and handles line depth appropriately.
+3. If `current_line.leaves` is empty, `before` is set to 0.
 
-The function has a clear flow of logic and accurately responds to different scenarios based on the input `current_line` and other related variables. Overall, the core logic of the function revolves around the processing of different line types and the calculation of the number of empty lines allowed before the current line.
+4. It establishes the value of `depth` as the value of `current_line.depth`.
+   
+5. It then iterates through `self.previous_defs` and pops values until a condition is not met. Respectively, `before` is set to 1 if `depth` is truthy, otherwise, it is set to 2.
+
+6. Depending on the type of `current_line` (such as decorator, def, class, etc.) and the relationship with the previous line, it sets the appropriate number of newlines to be added before and after the current line.
+
+7. The final return is `before` to indicate how many empty lines are to be added before the current line, and 0 to indicate that there should not be any empty lines added after the current line.

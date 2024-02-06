@@ -18,7 +18,7 @@ def _get_time_bins(self, ax):
     # because replace() will swallow the nanosecond part
     # thus last bin maybe slightly before the end if the end contains
     # nanosecond part and lead to `Values falls after last bin` error
-    binner = date_range(
+    binner = labels = date_range(
         freq=self.freq,
         start=first,
         end=last,
@@ -44,6 +44,10 @@ def _get_time_bins(self, ax):
         labels = labels[1:]
 
     if ax.hasnans:
+        binner = binner.insert(0, NaT)
+        labels = labels.insert(0, NaT)
+
+        # Update binner and labels with the new DatetimeIndex objects
         binner = binner.insert(0, NaT)
         labels = labels.insert(0, NaT)
 

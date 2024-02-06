@@ -1,6 +1,10 @@
-The issue with the provided function is that it does not handle the scenario when `self.columns` is `None`. This leads to a `TypeError` when trying to determine the length of `None`. The bug can be fixed by adding a condition to handle the case when `self.columns` is `None`. One approach is to check if `self.columns` is not `None` before attempting to determine its length.
+The bug is located in the `copy` method of the `S3CopyToTable` class. The bug occurs because the `copy` method does not handle the case where `self.columns` is `None`. This results in a `TypeError` when attempting to obtain the length of a `NoneType` object.
 
-Here's the revised version of the function that addresses the issue:
+The reason for the bug is that the `copy` method assumes that `self.columns` will always be a non-empty list, and it constructs the `colnames` string based on the assumption. When `self.columns` is `None`, the length cannot be obtained, leading to the `TypeError`.
+
+To fix the bug, the `copy` method should be modified to conditionally construct the `colnames` string and use it in the SQL query based on the state of `self.columns`. When `self.columns` is `None`, the `colnames` should be excluded from the SQL query altogether.
+
+The corrected code for the `copy` method:
 
 ```python
 def copy(self, cursor, f):
@@ -10,10 +14,12 @@ def copy(self, cursor, f):
     If both key-based and role-based credentials are provided, role-based will be used.
     """
     logger.info("Inserting file: %s", f)
-    colnames = ''
-    if self.columns and len(self.columns) > 0:
+  
+    if self.columns is not None and len(self.columns) > 0:
         colnames = ",".join([x[0] for x in self.columns])
         colnames = '({})'.format(colnames)
+    else:
+        colnames = ''
 
     cursor.execute("""
      COPY {table} {colnames} from '{source}'
@@ -28,4 +34,4 @@ def copy(self, cursor, f):
     )
 ```
 
-This revised function includes a conditional check `if self.columns and len(self.columns) > 0` to ensure that the length is only determined when `self.columns` is not `None`. This prevents the `TypeError` from occurring when `self.columns` is `None`.
+This modification ensures that the `colnames` string is only constructed and used in the SQL query when `self.columns` is not `None` and has a length greater than 0. When `self.columns` is `None`, the `colnames` is set to an empty string and excluded from the SQL query, resolving the `TypeError` issue.

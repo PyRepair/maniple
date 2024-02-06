@@ -14,7 +14,6 @@ def __init__(self, worker_id, last_active=None):
     self.started = time.time()  # seconds since epoch
     self.tasks = set()  # task objects
     self.info = {}
-
 ```
 
 

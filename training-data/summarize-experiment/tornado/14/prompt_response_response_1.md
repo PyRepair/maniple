@@ -1,20 +1,25 @@
-The test case `test_force_current` is trying to create an `IOLoop` instance with `make_current=True`. This should throw a `RuntimeError` because the `IOLoop.current()` is already set, as specified in the test function. However, the buggy function `initialize` does not handle this case correctly.
+The error occurs in the `initialize` method of the `IOLoop` class. The issue arises because the code is attempting to check if the current IOLoop exists and then make it the current IOLoop if it doesn't exist. However, if `make_current` is True, it should check if the current IOLoop already exists and only raise an error if it does.
 
-The bug is occurring because the if condition `if IOLoop.current(instance=False) is None` is evaluating to False when it should be True, causing the `make_current` method to be called even when the current `IOLoop` instance already exists. This leads to the subsequent check for `IOLoop.current(instance=False) is None` to evaluate to False, triggering the `RuntimeError` to be raised incorrectly.
+To fix the bug, we need to modify the `initialize` method to properly handle the case when `make_current` is True.
 
-To fix this bug, we need to modify the condition to properly check if the current `IOLoop` instance exists, and if it does, then raise the `RuntimeError`. If the current `IOLoop` instance does not exist, then we can proceed to call the `make_current` method.
-
-Here's the revised code for the `initialize` method:
+Here's the corrected code for the `initialize` method of the `IOLoop` class:
 
 ```python
-def initialize(self, make_current=None):
-    if make_current is None:
-        if IOLoop.current(instance=False) is None:
+class IOLoop(Configurable):
+    # ... (other code)
+
+    def initialize(self, make_current=None):
+        if make_current is None:
+            if IOLoop.current(instance=False) is None:
+                self.make_current()
+        elif make_current:  # Handle the case when make_current is True
+            if IOLoop.current(instance=False) is not None:  # Check if the current IOLoop already exists
+                raise RuntimeError("current IOLoop already exists")  # Raise an error if it does
             self.make_current()
-    elif make_current:
-        if IOLoop.current(instance=False) is not None:
-            raise RuntimeError("current IOLoop already exists")
-        self.make_current()
 ```
 
-With this change, the `initialize` method will now correctly handle the case when `make_current` is True and the current `IOLoop` instance already exists.
+With this correction, the `initialize` function will handle the case when `make_current` is True and properly check if the current IOLoop already exists before attempting to make it the current IOLoop.
+
+This fix ensures that the error related to the current IOLoop already existing is only raised when the current IOLoop needs to be made and already exists.
+
+You can use the corrected code as a drop-in replacement for the buggy version of the function.

@@ -1,8 +1,10 @@
-The error occurs in the line `s += b"Host: " + to_bytes(parsed.hostname) + b"\r\n"` due to the `parsed.hostname` sometimes being `None`, which causes an error when trying to convert it to bytes.
+The error message indicates that the `to_bytes` function is receiving a `NoneType` instead of the expected `unicode`, `str`, or `bytes` object. This leads us to the line where `to_bytes` is being applied to `parsed.hostname`.
 
-To fix this bug, we can check if `parsed.hostname` is `None` and provide a default value in that case.
+The bug occurs because the `parsed.hostname` extracted from the URL might be `None` in the case of non-HTTP URLs such as 'file:/' or 'ftp://'. This causes the `to_bytes` function to fail when trying to convert `None` to bytes.
 
-Here's the corrected code for the `request_httprepr` function:
+To fix this bug, we can modify the code to handle the case where `parsed.hostname` is `None` and provide a default value for the host.
+
+Here's the revised version of the function with the bug fixed:
 
 ```python
 def request_httprepr(request):
@@ -13,9 +15,9 @@ def request_httprepr(request):
     """
     parsed = urlparse_cached(request)
     path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))
-    hostname = to_bytes(parsed.hostname) if parsed.hostname else b"localhost"
+    host = parsed.hostname if parsed.hostname else b'localhost'  # provide a default value for the host
     s = to_bytes(request.method) + b" " + to_bytes(path) + b" HTTP/1.1\r\n"
-    s += b"Host: " + hostname + b"\r\n"
+    s += b"Host: " + to_bytes(host) + b"\r\n"
     if request.headers:
         s += request.headers.to_string() + b"\r\n"
     s += b"\r\n"
@@ -23,4 +25,4 @@ def request_httprepr(request):
     return s
 ```
 
-This code checks if `parsed.hostname` is `None` and if it is, it uses the default value `b"localhost"`. This will prevent the `NoneType` error and provide a default value in case `parsed.hostname` is not available.
+With this modified version, we handle the case where `parsed.hostname` is `None` by providing a default value 'localhost' for the host, ensuring that the `to_bytes` function has a valid input to convert to bytes. This revised function should now work correctly for non-HTTP URLs like 'file:/' or 'ftp://'.

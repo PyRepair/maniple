@@ -1,8 +1,8 @@
-The bug in the _dict_arg function stems from the incorrect formatting of the command list. The current implementation does not properly handle quoting for key-value pairs when creating the command list. This results in the assertion error in the test case, specifically related to the --conf option.
+The issue with the `_dict_arg` function is due to the incorrect formatting of the command list when appending values from the input dictionary. The conditional statement for determining whether the input value is a non-empty dictionary is flawed, leading to the error.
 
-To fix the bug, the _dict_arg function needs to ensure that the key-value pairs are formatted with proper quoting when added to the command list.
+To fix this bug, the conditional statement needs to be corrected to ensure that values from the dictionary are correctly appended to the command list. Additionally, the values should be formatted in a manner compatible with the input requirements of `spark-submit`.
 
-Here's the corrected code for the _dict_arg function:
+Here is the corrected version of the `_dict_arg` function:
 
 ```python
 def _dict_arg(self, name, value):
@@ -12,3 +12,5 @@ def _dict_arg(self, name, value):
             command += [name, '"{0}={1}"'.format(prop, val)]
     return command
 ```
+
+With the corrected function, the values from the dictionary will be properly formatted and appended to the command list, resolving the issue and ensuring compatibility with the input requirements of `spark-submit`.

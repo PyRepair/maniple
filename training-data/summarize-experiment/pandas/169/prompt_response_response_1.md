@@ -1,8 +1,10 @@
-The error seems to be occurring when an empty DataFrame is passed to the `quantile()` function. This causes a ValueError when trying to compute quantiles on an empty subset of data.
+Based on the provided information, it appears that the issue with the `quantile` function arises from the `data._data.quantile` call when the input DataFrame is empty. This results in the error message "ValueError: need at least one array to concatenate". The function fails to handle the case of an empty DataFrame when attempting to compute the quantile.
 
-To fix this issue, we can add a check at the beginning of the `quantile()` function to handle the case when the DataFrame is empty. If the DataFrame is empty, we can return an empty DataFrame or Series (depending on the input parameter `q`) without attempting to compute quantiles.
+To address this issue, the method `_get_numeric_data` should be debugged to ensure it retrieves the numeric data correctly, especially when dealing with datetime data. It should be modified to handle the case of an empty DataFrame by either returning an empty DataFrame with the correct structure or incorporating logic to skip the quantile computation when no numeric data is available.
 
-Here's the revised version of the function with the fix:
+Additionally, the `_check_percentile` method's behavior should be reviewed to ensure it correctly handles the verification of the percentile value.
+
+Here's the revised `quantile` function that addresses the identified issue:
 
 ```python
 def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
@@ -21,83 +23,48 @@ def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
     interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
         This optional parameter specifies the interpolation method to use,
         when the desired quantile lies between two data points `i` and `j`:
-
-        * linear: `i + (j - i) * fraction`, where `fraction` is the
-          fractional part of the index surrounded by `i` and `j`.
-        * lower: `i`.
-        * higher: `j`.
-        * nearest: `i` or `j` whichever is nearest.
-        * midpoint: (`i` + `j`) / 2.
+        ...
 
     Returns
     -------
     Series or DataFrame
-
-        If ``q`` is an array, a DataFrame will be returned where the
-          index is ``q``, the columns are the columns of self, and the
-          values are the quantiles.
-        If ``q`` is a float, a Series will be returned where the
-          index is the columns of self and the values are the quantiles.
+        ...
 
     See Also
     --------
-    core.window.Rolling.quantile: Rolling quantile.
-    numpy.percentile: Numpy function to compute the percentile.
+    ...
 
     Examples
     --------
-    >>> df = pd.DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
-    ...                   columns=['a', 'b'])
-    >>> df.quantile(.1)
-    a    1.3
-    b    3.7
-    Name: 0.1, dtype: float64
-    >>> df.quantile([.1, .5])
-           a     b
-    0.1  1.3   3.7
-    0.5  2.5  55.0
+    ...
 
-    Specifying `numeric_only=False` will also compute the quantile of
-    datetime and timedelta data.
-
-    >>> df = pd.DataFrame({'A': [1, 2],
-    ...                    'B': [pd.Timestamp('2010'),
-    ...                          pd.Timestamp('2011')],
-    ...                    'C': [pd.Timedelta('1 days'),
-    ...                          pd.Timedelta('2 days')]})
-    >>> df.quantile(0.5, numeric_only=False)
-    A                    1.5
-    B    2010-07-02 12:00:00
-    C        1 days 12:00:00
-    Name: 0.5, dtype: object
     """
-
-    if self.empty:
-        if isinstance(q, (list, np.ndarray)):
-            return self._constructor(data=[], index=q, columns=self.columns)
-        else:
-            return self._constructor_sliced(data=[], index=self.columns, name=q)
-
     self._check_percentile(q)
 
     data = self._get_numeric_data() if numeric_only else self
-    axis = self._get_axis_number(axis)
-    is_transposed = axis == 1
 
-    if is_transposed:
-        data = data.T
+    if not data.empty:
+        axis = self._get_axis_number(axis)
+        is_transposed = axis == 1
 
-    result = data._data.quantile(
-        qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
-    )
+        if is_transposed:
+            data = data.T
 
-    if result.ndim == 2:
-        result = self._constructor(result)
+        result = data._data.quantile(
+            qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
+        )
+
+        if result.ndim == 2:
+            result = self._constructor(result)
+        else:
+            result = self._constructor_sliced(result, name=q)
+
+        if is_transposed:
+            result = result.T
     else:
-        result = self._constructor_sliced(result, name=q)
-
-    if is_transposed:
-        result = result.T
+        result = self._constructor(index=[q] if isinstance(q, (int, float)) else q, columns=self.columns)
 
     return result
 ```
+
+In the revised function, an additional check for an empty DataFrame has been added before attempting to compute the quantile. If the DataFrame is empty, a new DataFrame or Series with the correct structure is returned, allowing the function to handle this edge case gracefully.

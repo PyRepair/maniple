@@ -1,19 +1,17 @@
-Based on the test case provided and the error message, it seems that the bug is related to the incorrect extraction of the version number from the output of the 'fish --version' command. The error message indicates that the expected version is 'Fish Shell 3.5.9' but the actual output is 'Fish Shell fish, version 3.5.9'.
+Based on the provided information, the issue seems to be with the command used to retrieve the Fish shell version in the `info` function of the `Fish` class. The `Popen` call is using the command `echo $FISH_VERSION`, while the test is expecting the version to be retrieved using the command `fish --version`.
 
-The cause of this bug is that the 'fish --version' output is not being parsed correctly in the `info` function.
+The potential error location is the line where the `Popen` command is instantiated in the `info` function.
 
-To fix this bug, we can modify the `info` function to properly parse the version number from the output of the 'fish --version' command.
+The reason behind the occurrence of the bug is that the `Popen` call is using the incorrect command to retrieve the Fish shell version, leading to a mismatch in the expected and actual values when the test is run.
 
-Here's the revised version of the fixed function:
+To fix the bug, the command passed to the `Popen` call in the `info` function should be changed to `['fish', '--version']` in order to retrieve the Fish shell version as expected. Additionally, the `.stdout.read().decode('utf-8').strip()` should be replaced with `.communicate()[0].decode('utf-8').strip()` to properly retrieve the output of the command.
 
+Here is the corrected code for the `info` function of the `Fish` class:
 ```python
 def info(self):
     """Returns the name and version of the current shell"""
-    proc = Popen(['fish', '--version'],
-                 stdout=PIPE, stderr=DEVNULL)
-    output = proc.stdout.read().decode('utf-8').strip()
-    version = output.split(' ')[2]  # Extracting the version number from the output
-    return f'Fish Shell {version}'
+    proc = Popen(['fish', '--version'], stdout=PIPE, stderr=DEVNULL)
+    version = proc.communicate()[0].decode('utf-8').strip().split(' ')[-1]
+    return u'Fish Shell {}'.format(version)
 ```
-
-This revised function uses the `--version` option instead of `-c` to run the 'fish' command and properly extracts the version number from the output using the `split` method. This should resolve the bug and provide the expected output.
+This corrected code should resolve the issue and produce the expected result when the test is run.

@@ -1,8 +1,8 @@
-The error occurs in the `prune` method of the `Worker` class. This is because the `last_active` parameter has a default value of `None`, and the code attempts to perform an addition operation with it. This results in a `TypeError` when the `prune` method is called.
+The error occurs when the `prune` method is called on the `Worker` object, and it tries to perform an operation with a `NoneType` and an `int`. This is because the `last_active` attribute is initialized as `None` in the buggy function, and it is used in the `prune` method without being properly handled for the `None` case.
 
-To fix this issue, we need to check if `last_active` is `None` and handle it appropriately before performing the addition operation.
+To fix this issue, we need to initialize the `last_active` attribute differently.
 
-Here's the corrected code for the `Worker` class:
+Here is the corrected code for the `__init__` method of the `Worker` class:
 
 ```python
 class Worker(object):
@@ -10,19 +10,17 @@ class Worker(object):
     Structure for tracking worker activity and keeping their references.
     """
 
+    # ... omitted code ...
+
     def __init__(self, worker_id, last_active=None):
         self.id = worker_id
         self.reference = None  # reference to the worker in the real world. (Currently a dict containing just the host)
-        self.last_active = last_active if last_active is not None else time.time()  # seconds since epoch
+        self.last_active = last_active if last_active is not None else time.time()  # seconds since epoch if not provided
         self.started = time.time()  # seconds since epoch
         self.tasks = set()  # task objects
         self.info = {}
-
-    def prune(self, config):
-        # Delete workers that haven't said anything for a while (probably killed)
-        if self.last_active + config.worker_disconnect_delay < time.time():
-            # Perform the pruning operation
-            pass  # Placeholder for the actual pruning logic
 ```
 
-With this modification, the `last_active` parameter is checked for `None` and assigned the current time using `time.time()` if it is `None`. This ensures that the addition operation in the `prune` method does not encounter a `NoneType` and `int` operand error.
+With this fix, the `last_active` attribute is set to the current time if it is not provided when the `Worker` object is instantiated. This ensures that it will always have a valid value when used in the `prune` method.
+
+The `Worker` class with the corrected `__init__` method can be used as a drop-in replacement for the buggy version in the codebase.

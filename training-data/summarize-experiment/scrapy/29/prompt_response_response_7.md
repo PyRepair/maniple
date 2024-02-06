@@ -1,18 +1,19 @@
-The error occurs when the `to_bytes` function is called with the `parsed.hostname` variable, which is `None` in the case of `file://` URLs. This triggers a `TypeError` because the `to_bytes` function cannot handle a `None` type.
+The error occurs at the line `s += b"Host: " + to_bytes(parsed.hostname) + b"\r\n"` in the `request_httprepr` function. This is because `parsed.hostname` can be `None` when using non-HTTP schemes like `file` or `ftp`. The `to_bytes` function doesn't allow a `None` type as input, which results in a `TypeError`.
 
-To fix this bug, we need to handle the case where the parsed URL scheme is not HTTP or HTTPS. We can modify the `request_httprepr` function to check if the parsed `scheme` is `http` or `https` before constructing the raw HTTP representation. If the scheme is not `http` or `https`, we can set the `host` to the `netloc` of the parsed URL.
+To fix this bug, we need to update the code to handle the case where `parsed.hostname` is `None`. We can use the `netloc` attribute of the `parsed` object as the host when `parsed.hostname` is `None`.
 
-Here's the corrected function:
+Here's the corrected code for the `request_httprepr` function:
 
 ```python
 def request_httprepr(request):
+    """Return the raw HTTP representation (as bytes) of the given request.
+    This is provided only for reference since it's not the actual stream of
+    bytes that will be send when performing the request (that's controlled
+    by Twisted).
+    """
     parsed = urlparse_cached(request)
-    if parsed.scheme in ['http', 'https']:
-        path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))
-        host = parsed.hostname
-    else:
-        path = parsed.path or '/'
-        host = parsed.netloc
+    path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))
+    host = parsed.hostname if parsed.hostname else parsed.netloc  # Use netloc if hostname is None
     s = to_bytes(request.method) + b" " + to_bytes(path) + b" HTTP/1.1\r\n"
     s += b"Host: " + to_bytes(host) + b"\r\n"
     if request.headers:
@@ -22,6 +23,4 @@ def request_httprepr(request):
     return s
 ```
 
-This revised function first checks if the scheme is `http` or `https` and constructs the `path` and `host` variables accordingly. If the scheme is not `http` or `https`, it sets the `path` to the parsed path or '/' and the `host` to the parsed netloc.
-
-By adding this conditional check, we can ensure that the `parsed.hostname` is only used when the scheme is `http` or `https`, thus resolving the issue.
+With this correction, the `parsed.netloc` is used as the host when `parsed.hostname` is `None`. This will avoid the `TypeError` caused by passing a `None` type to the `to_bytes` function.

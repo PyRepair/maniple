@@ -1,8 +1,10 @@
-The error message indicates a `TypeError` in the function `to_bytes` due to receiving a `NoneType` as input. Looking at the code, the variable `parsed.hostname` might be `None` if there is no `netloc` provided, which is the case for non-HTTP requests.
+The error occurs when the function `request_httprepr` tries to concatenate the `parsed.hostname` with the `b"Host: "` using the `to_bytes` function. The error message states that it received a `NoneType` instead of the expected data types, which means `parsed.hostname` is resolving to `None`.
 
-To fix this bug, we need to handle the case where `parsed.hostname` is `None` and provide a default value.
+The bug is occurring because the `parsed` object obtained from `urlparse_cached(request)` is not guaranteed to have a `hostname` attribute. This can happen if the URL does not contain a hostname.
 
-Here's the corrected code for the `request_httprepr` function:
+To fix this, we need to check if `parsed.hostname` is not None before using it in the concatenation.
+
+Here's the corrected version of the function:
 
 ```python
 def request_httprepr(request):
@@ -12,23 +14,15 @@ def request_httprepr(request):
     by Twisted).
     """
     parsed = urlparse_cached(request)
-    if parsed.scheme in ['http', 'https']:
-        path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))
-        s = to_bytes(request.method) + b" " + to_bytes(path) + b" HTTP/1.1\r\n"
+    path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))
+    s = to_bytes(request.method) + b" " + to_bytes(path) + b" HTTP/1.1\r\n"
+    if parsed.hostname:  # Check if parsed.hostname is not None
         s += b"Host: " + to_bytes(parsed.hostname) + b"\r\n"
-        if request.headers:
-            s += request.headers.to_string() + b"\r\n"
-        s += b"\r\n"
-        s += request.body
-    else:
-        # For non-HTTP requests, set a default value for the host
-        # and do not include headers
-        path = urlunparse(('', '', parsed.path, parsed.params, parsed.query, ''))
-        s = to_bytes(request.method) + b" " + to_bytes(path) + b" HTTP/1.1\r\n"
-        s += b"Host: " + b"localhost" + b"\r\n"
-        s += b"\r\n"
-        s += request.body
+    if request.headers:
+        s += request.headers.to_string() + b"\r\n"
+    s += b"\r\n"
+    s += request.body
     return s
-```
+``` 
 
-By adding a conditional check for non-HTTP requests and setting a default value for the host, we can avoid the `NoneType` issue and correctly handle non-HTTP requests without triggering a `TypeError`.
+With this fixed function, the `parsed.hostname` will be concatenated only if it is not None, which resolves the issue and prevents the `NoneType` error from occurring.

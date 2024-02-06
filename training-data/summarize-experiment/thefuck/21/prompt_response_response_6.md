@@ -1,13 +1,14 @@
-The bug occurs in the `match` function, where it attempts to access the second element of the split `command.script`, which results in an IndexError when the script is just "git."
+The error occurs in the `match` function due to an `IndexError` when trying to access the second element of the `command.script.split()` list. This error occurs because the `split` method is applied to `command.script` without checking if it contains more than one element.
 
-To fix this bug, we need to check whether the script starts with "git stash" instead of directly accessing the second element of the split script.
+To fix this bug, we need to first check if the `command.script.split()` list contains more than one element before trying to access the second element.
 
-Here's the corrected function:
+Here's the corrected code for the `match` function:
 
 ```python
 @git_support
 def match(command):
-    return command.script.startswith('git stash') and 'usage:' in command.stderr
-``` 
+    script_parts = command.script.split()
+    return len(script_parts) > 1 and script_parts[1] == 'stash' and 'usage:' in command.stderr
+```
 
-This updated function will check if the script starts with "git stash" and if 'usage:' is present in the command's stderr, which addresses the bug. This fix ensures that the function does not attempt to access the second element of the split command.script when it doesn't exist.
+With this correction, we first check if the `script_parts` list has more than one element before checking if the second element is `'stash'`. This will prevent the `IndexError` from occurring.

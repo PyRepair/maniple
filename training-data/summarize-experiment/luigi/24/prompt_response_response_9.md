@@ -1,16 +1,16 @@
-Based on the analysis of the test case and the error message, the issue seems to be related to the improper quoting of the key-value pairs in the `--conf` option when creating the command list. This discrepancy occurs within the `_dict_arg` method when processing the input dictionary.
+The issue in the `_dict_arg` function occurs when formatting the dictionary values into the command list. The current implementation does not correctly handle quoting values when appending them to the command list.
 
-To fix the bug, the `_dict_arg` method should be modified to include proper quoting for the key-value pairs in the `--conf` option. The key-value pairs should be enclosed within double quotes to ensure correct processing of the command list.
+To address this issue, the function should ensure that the values from the dictionary are properly formatted and quoted when added to the command list.
 
-Here's the corrected code for the `_dict_arg` method:
+Here's the corrected version of the `_dict_arg` function:
 
 ```python
 def _dict_arg(self, name, value):
     command = []
     if value and isinstance(value, dict):
-        for prop, value in value.items():
-            command += [name, '"{0}={1}"'.format(prop, value)]
+        for prop, val in value.items():
+            command += [name, '"{0}={1}"'.format(prop, val)]
     return command
 ```
 
-With this correction, the key-value pairs within the `--conf` option will be properly enclosed within double quotes, resolving the quoting discrepancy observed in the test case and eliminating the assertion error.
+In the corrected version, the variable `val` is used instead of reusing the name `value` to avoid overwriting the input. Additionally, the value is properly quoted and formatted as per the requirements of the `spark-submit` command. This should resolve the issue with the incorrect formatting in the command list.

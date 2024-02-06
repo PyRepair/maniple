@@ -27,25 +27,40 @@ def _preprocess_numpy_input(x, data_format, mode):
         return x
 
     if mode == 'torch':
-        x = x / 255.  # Scaling pixels between 0 and 1
-        mean = np.array([0.485, 0.456, 0.406])  # Convert mean to NumPy array for compatibility
-        std = np.array([0.229, 0.224, 0.225])  # Convert std to NumPy array for compatibility
-    else:
+        x /= 255.
+        mean = [0.485, 0.456, 0.406]
+        std = [0.229, 0.224, 0.225]
         if data_format == 'channels_first':
-            # 'RGB'->'BGR'
-            if x.ndim == 3:
-                x = x[:, ::-1, ...]
-            else:
-                x = x[:, :, ::-1, ...]
+            x -= np.array(mean)[:, None, None]
+            if std is not None:
+                x /= np.array(std)[:, None, None]
         else:
-            # 'RGB'->'BGR'
-            x = x[..., ::-1]
-        mean = np.array([103.939, 116.779, 123.68])  # Convert mean to NumPy array for compatibility
-        std = None
+            x -= np.array(mean)
+            if std is not None:
+                x /= np.array(std)
+        return x
 
-    # Zero-center by mean pixel and normalize if std is not None
-    x = x - mean
-    if std is not None:
-        x /= std
+    if data_format == 'channels_first':
+        # 'RGB'->'BGR'
+        if x.ndim == 3:
+            x = x[::-1, ...]
+        else:
+            x = x[:, ::-1, ...]
+    else:
+        # 'RGB'->'BGR'
+        x = x[..., ::-1]
+        
+    mean = [103.939, 116.779, 123.68]
+    std = None
+    
+    if data_format == 'channels_first':
+        x -= np.array(mean)[:, None, None]
+        if std is not None:
+            x /= np.array(std)[:, None, None]
+    else:
+        x -= np.array(mean)
+        if std is not None:
+            x /= np.array(std)
+    
     return x
 ```

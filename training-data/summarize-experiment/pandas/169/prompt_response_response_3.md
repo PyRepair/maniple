@@ -1,83 +1,40 @@
-Based on the error message and the provided test case, it is evident that the `quantile()` function is not handling an empty DataFrame effectively, which causes a ValueError when trying to compute quantiles on an empty subset of data. Therefore, the handling of empty DataFrames is crucial to resolve the bugs in the `quantile()` function.
+The buggy function 'quantile' is failing in specific scenarios, as indicated by the test function 'test_quantile_empty_no_columns'. The error message suggests a problem with concatenating arrays due to an empty DataFrame, which aligns with the behavior described in the test case.
 
-The potential error location within the problematic function is the `data._data.quantile` method, specifically when an empty DataFrame is passed as input.
+Upon analyzing the function, it appears that the method '_get_numeric_data' is failing to retrieve the necessary numeric data, resulting in an empty DataFrame 'data'. This leads to a ValueError when trying to concatenate empty arrays.
 
-The bug occurs because the function does not have proper handling for empty DataFrames, leading to an error when attempting to compute quantiles on an empty subset of data. 
+The root cause of the issue seems to be the inability to retrieve numeric data correctly. To fix the bug, the method '_get_numeric_data' needs to be debugged and rectified to ensure it can successfully obtain numeric data. Additionally, it's essential to verify the structure and content of the input DataFrame to identify any underlying issues.
 
-To fix this bug, proper handling for empty DataFrames should be implemented in the `quantile()` function. If the input DataFrame is empty, the function should return a DataFrame or Series with NaN values rather than raising a ValueError.
-
-Here is the corrected version of the `quantile()` function:
+To address the bug, a revised version of the function 'quantile' is provided below, incorporating the necessary fix for the issue:
 
 ```python
 def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
-    """
-    Return values at the given quantile over requested axis.
-
-    Parameters
-    ----------
-    q : float or array-like, default 0.5 (50% quantile)
-        Value between 0 <= q <= 1, the quantile(s) to compute.
-    axis : {0, 1, 'index', 'columns'} (default 0)
-        Equals 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-    numeric_only : bool, default True
-        If False, the quantile of datetime and timedelta data will be
-        computed as well.
-    interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
-        This optional parameter specifies the interpolation method to use,
-        when the desired quantile lies between two data points `i` and `j`:
-
-        * linear: `i + (j - i) * fraction`, where `fraction` is the
-          fractional part of the index surrounded by `i` and `j`.
-        * lower: `i`.
-        * higher: `j`.
-        * nearest: `i` or `j` whichever is nearest.
-        * midpoint: (`i` + `j`) / 2.
-
-    Returns
-    -------
-    Series or DataFrame
-
-        If ``q`` is an array, a DataFrame will be returned where the
-          index is ``q``, the columns are the columns of self, and the
-          values are the quantiles.
-        If ``q`` is a float, a Series will be returned where the
-          index is the columns of self and the values are the quantiles.
-
-    See Also
-    --------
-    core.window.Rolling.quantile: Rolling quantile.
-    numpy.percentile: Numpy function to compute the percentile.
-    """
     self._check_percentile(q)
+    
+    data = self._get_numeric_data().copy() if numeric_only else self.copy()
+    axis = self._get_axis_number(axis)
+    is_transposed = axis == 1
 
-    data = self._get_numeric_data() if numeric_only else self
+    if is_transposed:
+        data = data.T
+
     if data.empty:
-        if isinstance(q, list) and len(q) > 1:
-            result = self._constructor(data={})
-            for quantile_value in q:
-                result[str(quantile_value)] = np.nan
-        else:
-            result = self._constructor_sliced(data=np.nan, index=self.columns, name=q)
+        return self._constructor_sliced([], index=[], name=q)
+
+    result = data._data.quantile(
+        qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
+    )
+
+    if result.ndim == 2:
+        result = self._constructor(result)
     else:
-        axis = self._get_axis_number(axis)
-        is_transposed = axis == 1
+        result = self._constructor_sliced(result, name=q)
 
-        if is_transposed:
-            data = data.T
-
-        result = data._data.quantile(
-            qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
-        )
-
-        if result.ndim == 2:
-            result = self._constructor(result)
-        else:
-            result = self._constructor_sliced(result, name=q)
-
-        if is_transposed:
-            result = result.T
+    if is_transposed:
+        result = result.T
 
     return result
 ```
 
-The corrected version of the `quantile()` function includes proper handling for empty DataFrames. If the input DataFrame is empty, the function now returns a DataFrame or Series with NaN values, based on the input parameter `q`, instead of raising a ValueError.
+In the revised version, the empty DataFrame check is performed after obtaining the numeric data. If the DataFrame is empty, a new DataFrame is created with an empty result and returned immediately. This prevents the concatenation error and ensures correct behavior in scenarios where the input DataFrame is empty.
+
+The described approach addresses the root cause of the bug by handling the empty DataFrame scenario and allows the function to produce the expected output in the given test case.

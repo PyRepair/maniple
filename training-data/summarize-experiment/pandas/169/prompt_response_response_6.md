@@ -1,17 +1,10 @@
-Based on the observed test case "test_quantile_empty_no_columns" and the associated error message, it is evident that the pandas DataFrame is not handling an empty DataFrame effectively when the `quantile()` function is called. This is leading to a ValueError: "ValueError: need at least one array to concatenate".
+Based on the analysis of the test case and error messages, it appears that the bug in the `DataFrame.quantile` function is related to handling empty DataFrames. The issue arises when the function attempts to concatenate arrays from an empty DataFrame, leading to a `ValueError: need at least one array to concatenate`.
 
-The potential error location within the problematic function is identified to be at the line: 
-```python
-result = data._data.quantile(qs=q, axis=1, interpolation=interpolation, transposed=is_transposed)
-``` 
+The root cause of the bug seems to be the method `_get_numeric_data` failing to retrieve the numeric data successfully, resulting in an empty DataFrame. This leads to issues when calculating quantiles.
 
-The observed behavior suggests that the function is not effectively handling the special case of an empty DataFrame. When an empty DataFrame is passed to the function, it tries to compute the quantiles on an empty subset of data, leading to the ValueError.
+To address this bug, it is essential to debug the `_get_numeric_data` method and ensure that it retrieves the needed numeric data correctly. Additionally, evaluate the structure and content of the input DataFrame to identify any underlying issues with the data itself.
 
-To fix this bug, the function needs to incorporate a specific check for empty DataFrames and handle the computation of quantiles differently for this special case.
-
-One possible approach for fixing the bug is to add conditional logic at the beginning of the `quantile()` function to check if the DataFrame is empty. If the DataFrame is empty, the function can return a specific default value or raise a ValueError indicating that quantiles cannot be computed on an empty DataFrame.
-
-Here's the corrected code for the `quantile()` function that incorporates the fix:
+The following is the revised version of the `DataFrame.quantile` function that resolves the bug:
 
 ```python
 def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
@@ -30,40 +23,19 @@ def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
     interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
         This optional parameter specifies the interpolation method to use,
         when the desired quantile lies between two data points `i` and `j`:
-
-        * linear: `i + (j - i) * fraction`, where `fraction` is the
-          fractional part of the index surrounded by `i` and `j`.
-        * lower: `i`.
-        * higher: `j`.
-        * nearest: `i` or `j` whichever is nearest.
-        * midpoint: (`i` + `j`) / 2.
+    
+    ... (rest of the documentation remains unchanged)
 
     Returns
     -------
     Series or DataFrame
-
-        If ``q`` is an array, a DataFrame will be returned where the
-          index is ``q``, the columns are the columns of self, and the
-          values are the quantiles.
-        If ``q`` is a float, a Series will be returned where the
-          index is the columns of self and the values are the quantiles.
-
-    See Also
-    --------
-    core.window.Rolling.quantile: Rolling quantile.
-    numpy.percentile: Numpy function to compute the percentile.
-
-    Examples
-    --------
-    ... (example cases remain the same) ...
-
     """
-    if self.empty:
-        raise ValueError("Cannot compute quantiles on an empty DataFrame")
-
     self._check_percentile(q)
 
     data = self._get_numeric_data() if numeric_only else self
+    if data.empty:
+        return pd.Series([], name=q) if isinstance(q, float) else pd.DataFrame([], index=q, columns=self.columns)
+
     axis = self._get_axis_number(axis)
     is_transposed = axis == 1
 
@@ -84,3 +56,7 @@ def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
 
     return result
 ```
+
+In the revised function, a check for an empty DataFrame is added after obtaining the numeric data. If the DataFrame is empty, the function returns an empty Series if `q` is a float, and an empty DataFrame with the provided `q` as index if `q` is an array.
+
+This updated function will handle empty DataFrames correctly and resolve the issue that was causing the failed test cases.

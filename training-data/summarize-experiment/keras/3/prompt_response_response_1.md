@@ -1,36 +1,69 @@
-Based on the provided error message, it seems that there is an issue in the `clone_model` function, where the output tensor cannot be computed. The function `_clone_functional_model` inside the Keras library seems to be the source of this problem. This function is responsible for cloning a functional `Model` instance and appears to encounter issues when dealing with a layer that has multiple outputs without mask support.
-
-The error suggests that the `output_masks` for the layers with multiple outputs is always `None`, whereas it's expected to be `[None, None]`. This is likely due to the fact that the function `layer.compute_mask(...)` always returns `None` since Lambda layers do not support using masks.
-
-To fix this bug, one possible approach is to modify the function to handle the case where a layer with multiple outputs without mask support is encountered. This might involve updating the logic around computing output tensors and masks for such layers.
-
-Here's the revised and fixed version of the `_clone_functional_model` function to address the bug:
-
 ```python
 def _clone_functional_model(model, input_tensors=None):
+    """Clone a functional `Model` instance.
+
+    Model cloning is similar to calling a model on new inputs,
+    except that it creates new layers (and thus new weights) instead
+    of sharing the weights of the existing layers.
+
+    # Arguments
+        model: Instance of `Model`.
+        input_tensors: optional list of input tensors
+            to build the model upon. If not provided,
+            placeholders will be created.
+
+    # Returns
+        An instance of `Model` reproducing the behavior
+        of the original model, on top of new inputs tensors,
+        using newly instantiated weights.
+
+    # Raises
+        ValueError: in case of invalid `model` argument value.
+    """
     if not isinstance(model, Model):
-        raise ValueError('Expected `model` argument to be a `Model` instance, got ', model)
+        raise ValueError('Expected `model` argument '
+                         'to be a `Model` instance, got ', model)
     if isinstance(model, Sequential):
-        raise ValueError('Expected `model` argument to be a functional `Model` instance, got a `Sequential` instance instead:', model)
+        raise ValueError('Expected `model` argument '
+                         'to be a functional `Model` instance, '
+                         'got a `Sequential` instance instead:', model)
 
     layer_map = {}  # Cache for created layers.
     tensor_map = {}  # Map {reference_tensor: (corresponding_tensor, mask)}
     if input_tensors is None:
-        input_layers = [Input(batch_shape=layer.batch_input_shape,
-                              dtype=layer.dtype,
-                              sparse=layer.sparse,
-                              name=layer.name) for layer in model._input_layers]
-        input_tensors = input_layers
-        for original, cloned in zip(model._input_layers, input_layers):
-            layer_map[original] = cloned
+        # Create placeholders to build the model on top of.
+        input_layers = []
+        input_tensors = []
+        for layer in model._input_layers:
+            input_tensor = Input(batch_shape=layer.batch_input_shape,
+                                 dtype=layer.dtype,
+                                 sparse=layer.sparse,
+                                 name=layer.name)
+            input_tensors.append(input_tensor)
+            # Cache newly created input tensor.
+            input_layer = input_tensor._keras_history[0]
+            layer_map[layer] = input_layer
     else:
-        if not all(K.is_keras_tensor(x) for x in to_list(input_tensors)):
-            raise ValueError('All input tensors must come from a Keras layer')
+        # Make sure that all input tensors come from a Keras layer.
+        input_tensors = to_list(input_tensors)
+        _input_tensors = []
+        for i, x in enumerate(input_tensors):
+            if not K.is_keras_tensor(x):
+                name = model._input_layers[i].name
+                input_tensor = Input(tensor=x,
+                                     name='input_wrapper_for_' + name)
+                _input_tensors.append(input_tensor)
+                # Cache newly created input tensor.
+                input_layer = x._keras_history[0]
+                layer_map[input_layer] = input_tensor
+            else:
+                _input_tensors.append(x)
+        input_tensors = _input_tensors
 
     for x, y in zip(model.inputs, input_tensors):
         tensor_map[x] = (y, None)  # tensor, mask
 
-    # Iterated over every node in the reference model, in depth order.
+    # Iterate over every node in the reference model, in depth order.
     depth_keys = list(model._nodes_by_depth.keys())
     depth_keys.sort(reverse=True)
     for depth in depth_keys:
@@ -50,18 +83,15 @@ def _clone_functional_model(model, input_tensors=None):
 
             # Gather inputs to call the new layer.
             reference_input_tensors = node.input_tensors
+            reference_output_tensors = node.output_tensors
 
-            # If all previous input tensors are available in tensor_map,
-            # then call node.inbound_layer on them.
-            computed_data = []  # List of tuples (input, mask).
-            for x in reference_input_tensors:
-                if x in tensor_map:
-                    computed_data.append(tensor_map[x])
+            # Call the new layer.
+            kwargs = node.arguments if node.arguments else {}
+            output_tensors = to_list(layer(reference_input_tensors, **kwargs))
 
-            if len(computed_data) == len(reference_input_tensors):
-                # Update tensor_map.
-                for x, y, mask in zip(node.output_tensors, layer(computed_data)):
-                    tensor_map[x] = (y, mask)
+            # Update tensor_map.
+            for x, y in zip(reference_output_tensors, output_tensors):
+                tensor_map[x] = (y, None)
 
     # Check that we did compute the model outputs,
     # then instantiate a new model from inputs and outputs.
@@ -72,7 +102,3 @@ def _clone_functional_model(model, input_tensors=None):
         output_tensors.append(tensor)
     return Model(input_tensors, output_tensors, name=model.name)
 ```
-
-By modifying and updating the logic in the `_clone_functional_model` function, we aim to address the issues related to computing the output tensors and masks for layers with multiple outputs without mask support.
-
-This revised function ensures that the input tensors are correctly mapped, handles the creation and reuse of layers, and properly computes the output tensors and masks. This should resolve the bug encountered during the cloning process.

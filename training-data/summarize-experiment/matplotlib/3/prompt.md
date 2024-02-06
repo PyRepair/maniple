@@ -19,7 +19,6 @@ def _recache(self):
     self._capstyle = 'butt'
     self._filled = True
     self._marker_function()
-
 ```
 
 

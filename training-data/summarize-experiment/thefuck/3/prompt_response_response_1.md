@@ -1,17 +1,15 @@
-Upon analyzing the test case and the error message, it appears that the issue lies within the `info` function of the `Fish` class. The error message indicates that the expected output is "Fish Shell 3.5.9" but the actual output is "Fish Shell fish, version 3.5.9".
+The problem with the `info` function is that it is fetching the version number with the command `echo $FISH_VERSION`, but the expected version number in the test is different, `fish, version 3.5.9`. This discrepancy causes the assertion error in the test.
 
-The bug occurs because the `Popen` command is using the `-c` flag to execute the command specified in the string as a script using the fish shell. However, the correct command should be `fish --version` rather than `echo $FISH_VERSION`.
+To fix this issue, the function should be updated to fetch the version using the `--version` flag with the `fish` command, as expected in the test case.
 
-One possible approach to fixing the bug is to update the command passed to `Popen` to execute `fish --version` and then parse the output to extract the version number.
-
-Here's the corrected code for the `info` function:
+Here's the corrected version of the function:
 
 ```python
 def info(self):
     """Returns the name and version of the current shell"""
     proc = Popen(['fish', '--version'], stdout=PIPE, stderr=DEVNULL)
-    version = proc.stdout.read().decode('utf-8').strip().split()[-1]
+    version = proc.stdout.read().decode('utf-8').strip().split(',')[1].strip()  # Extracting version number from the output
     return u'Fish Shell {}'.format(version)
 ```
 
-By using the command `fish --version` and then parsing the output to extract the version number, the bug should be resolved. This corrected code should be used as a drop-in replacement for the buggy version of the function.
+With this fix, the function will accurately fetch the version of the Fish shell and return it in the expected format. This updated function can be used as a drop-in replacement for the buggy version.

@@ -1,12 +1,28 @@
-The buggy function `_recache` is called with an instance of the `MarkerStyle` class as a parameter and is expected to set various attributes of the instance. The buggy function is not correctly updating the `_filled` attribute based on the `fillstyle` parameter of the `MarkerStyle` instance. The issue arises when the `is_filled` function is called on the `MarkerStyle` instance, and it fails to return the expected value.
+The error occurs within the `MarkerStyle` class, where the `is_filled()` method is not implemented correctly. This causes the `assert not marker_style.is_filled()` to fail in the test function `test_marker_fillstyle()`.
 
-To fix this bug:
-1. The `_filled` attribute should be updated based on the `fillstyle` parameter of the `MarkerStyle` instance. If the `fillstyle` is set to `'none'`, then `_filled` should be set to `False`, otherwise set it to `True`.
-2. A conditional statement should be added to properly update the `_filled` attribute according to the `fillstyle` parameter of the `MarkerStyle` instance.
+To fix this bug, we need to update the `is_filled()` method within the `MarkerStyle` class to return the negation of the `fillstyle` attribute being set to 'none'.
 
-Here's the corrected version of the function:
+Here is the corrected code for the `MarkerStyle` class:
 
 ```python
+class MarkerStyle():    
+    # other class methods
+    
+    def is_filled(self):
+        return self._fillstyle != 'none'  # Return True for any fillstyle other than 'none'
+```
+
+By updating the `is_filled()` method to return `True` for any `fillstyle` other than 'none', the issue with the failing test should be resolved. This ensures that the marker is considered filled when the `fillstyle` is not 'none'.
+
+The updated function is provided below, including the changes made to the `MarkerStyle` class:
+
+```python
+class MarkerStyle():    
+    # other class methods
+    
+    def is_filled(self):
+        return self._fillstyle != 'none'  # Return True for any fillstyle other than 'none'
+
 def _recache(self):
     if self._marker_function is None:
         return
@@ -17,11 +33,6 @@ def _recache(self):
     self._snap_threshold = None
     self._joinstyle = 'round'
     self._capstyle = 'butt'
-    if self._fillstyle == 'none':
-        self._filled = False
-    else:
-        self._filled = True
+    self._filled = True
     self._marker_function()
 ```
-
-By making these changes, the `_recache` function should update the `_filled` attribute as expected based on the `fillstyle` parameter of the `MarkerStyle` instance, resolving the bug. This corrected function can be used as a drop-in replacement for the buggy version.

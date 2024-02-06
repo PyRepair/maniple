@@ -334,9 +334,6 @@ def main():
     database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment"
 
     for bugid, project_folder, bugid_folder in iter_bugid_folders(database_folder_path):
-        if bugid != "luigi:28":
-            continue
-
         print_in_yellow(f"Processing {bugid}...")
 
         facts_proc = CustomFactProcessor(bugid=bugid, bug_working_directory=bugid_folder)
