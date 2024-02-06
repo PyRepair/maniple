@@ -1,0 +1,3 @@
+The function takes in a command as input, which has attributes script, stdout, and stderr. The function then checks if the second word in the script attribute is 'stash' and if the word 'usage:' is in the stderr attribute. If both conditions are true, the function returns True.
+
+Based on the expected return value, the function will return True for the given input values because the word 'stash' is the second word in the script attribute and the word 'usage:' is present in the stderr attribute.

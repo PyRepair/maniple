@@ -251,10 +251,14 @@ def get_response_and_store_results(prompt: str, prompt_file: Path, response_file
 def main():
     global total_usage
 
-    database_folder_path = Path.cwd().parent / "training-data" / "LLM_summarizer"
+    database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment"
 
     for bugid, project_folder, bugid_folder in iter_bugid_folders(database_folder_path):
         print_in_yellow(f"Processing {bugid}...")
+
+        if (bugid_folder / "prompt.md").exists():
+            print_in_yellow(f"Prompt already exists for {bugid}. Skipping")
+            continue
 
         facts_proc = CustomFactProcessor(bugid=bugid, bug_working_directory=bugid_folder)
 

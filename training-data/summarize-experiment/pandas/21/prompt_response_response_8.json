@@ -1,0 +1,11 @@
+{
+    "pandas": [
+        {
+            "bugID": 21,
+            "start_line": 915,
+            "file_name": "pandas/core/series.py",
+            "replace_code": "def _get_with(self, key):\n    # handle slice\n    if isinstance(key, slice):\n        slobj = self.index._convert_slice_indexer(key, kind=\"getitem\")\n        return self._slice(slobj)\n    # handle DataFrame\n    elif isinstance(key, ABCDataFrame):\n        raise TypeError(\n            \"Indexing a Series with DataFrame is not \"\n            \"supported, use the appropriate DataFrame column\"\n        )\n    # handle tuple\n    elif isinstance(key, tuple):\n        return self._get_values_tuple(key)\n\n    # handle non-list-like\n    elif not is_list_like(key):\n        try:\n            return self.loc[key]\n        except KeyError:\n            raise KeyError(f\"None of {key} are in the index\")\n\n    # handle other cases\n    if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):\n        key = list(key)\n\n    if isinstance(key, Index):\n        key_type = key.inferred_type\n    else:\n        if is_bool(key):\n            key_type = \"boolean\"\n        else:\n            key_type = lib.infer_dtype(key, skipna=False)\n\n    # handle integer type\n    if key_type == \"integer\":\n        if not self.index._should_fallback_to_positional():\n            return self.loc[key]\n        else:\n            return self.iloc[key]\n\n    # handle list type\n    if isinstance(key, list):\n        return self.loc[key]\n\n    # handle other cases with reindex\n    return self.reindex(key)",
+            "import_list": []
+        }
+    ]
+}

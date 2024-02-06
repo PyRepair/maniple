@@ -1,1 +1,0 @@
-The match function takes an input parameter, command, and checks if the second word in the script attribute of the command is 'stash' and if the word 'usage:' is present in the stderr attribute of the command object. If both conditions are met, the function returns True. If either of the conditions is not met, the function returns False.

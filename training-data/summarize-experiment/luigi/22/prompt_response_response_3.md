@@ -1,0 +1,21 @@
+```python
+# class declaration containing the buggy function
+class Worker(object):
+    """
+    Structure for tracking worker activity and keeping their references.
+    """
+
+    # ... omitted code ...
+
+    def __init__(self, worker_id, last_active=None):
+        self.id = worker_id
+        self.reference = None  # reference to the worker in the real world. (Currently a dict containing just the host)
+        # Set self.last_active to zero if last_active is None
+        if last_active is None:
+            self.last_active = 0
+        else:
+            self.last_active = last_active  # seconds since epoch
+        self.started = time.time()  # seconds since epoch
+        self.tasks = set()  # task objects
+        self.info = {}
+```

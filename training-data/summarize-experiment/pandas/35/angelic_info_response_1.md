@@ -1,0 +1,2 @@
+## Summary
+The function `_engine` is a cached read-only function that takes in the input parameters `self` and `self._engine_type`. It creates a weak reference to the `self` parameter and then returns the result of calling `self._engine_type` with the weak reference `period` and the length of `self` as its arguments. The expected return value in tests indicates that the function is expected to create an instance of `self._engine_type` with the weak reference `period` and the length of `self` as its arguments and return this instance.

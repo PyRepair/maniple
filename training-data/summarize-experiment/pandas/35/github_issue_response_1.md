@@ -1,0 +1,3 @@
+Summary:
+
+The bug reported on GitHub is related to a problem with copying PeriodIndex levels on MultiIndex, which results in the loss of weak references. When attempting to check if all levels in the copied MultiIndex are monotonic, an error is raised due to the weakly referenced PeriodIndex being dropped before intended, causing the PeriodEngine to receive a None instead of the PeriodIndex. The expected output should be True, but due to the bug, it does not return the expected result. This issue requires debugging to identify and resolve the problem with copying PeriodIndex levels on MultiIndex.

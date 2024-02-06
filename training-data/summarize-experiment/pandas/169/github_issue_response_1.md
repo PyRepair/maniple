@@ -1,0 +1,5 @@
+Summary:
+
+The issue reported on GitHub pertains to a bug in the functionality of the `quantile` method in the context of datetime data within pandas DataFrames. The problem arises when attempting to use the `quantile` method with a DataFrame that contains datetime data. While the method works as expected with a pandas Series, an attempt to employ the equivalent method with a DataFrame triggers a `ValueError`.
+
+The expected outcome of the `quantile` method with a DataFrame containing datetime data should mirror the behavior of the method when used with a Series. The bug has been identified and detailed with a clear depiction of the error trace, allowing for a comprehensive understanding of the issue at hand. Therefore, the issue aims for the debugging process to resolve the bug and ensure that the `quantile` method functions appropriately with datetime data within DataFrames.

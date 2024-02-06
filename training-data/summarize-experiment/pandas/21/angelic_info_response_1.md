@@ -1,0 +1,5 @@
+The `_get_with` function appears to handle various cases based on the type of input parameter and its content. The initial checks are for `slice`, `DataFrame` and `tuple` types. The main logic begins when the input parameter doesn't match any of the initial checks. The function then proceeds to check the type and content of the input parameter and act accordingly.
+
+It checks if the input is list-like, and if not scalar, checks if it should fallback to positional indexing or not. Based on the inferred type, it chooses whether to use positional-based or label-based indexing (`iloc` or `loc`). The last check is for `Index`, where it uses the `reindex` method.
+
+It is evident that the function has various paths based on the type of the input parameter, and it handles each path differently. The expected outcome in each test case appears to be the updated values of `self.loc`, `self.iloc`, and `key_type`. Additionally, in cases where the input key type matches a corresponding output, such as a `list` input generating a `list` output, the list is directly returned without any change.
