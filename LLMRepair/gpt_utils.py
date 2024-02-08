@@ -118,7 +118,7 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_fi
 class GPTConnection:
     def __init__(self):
         self.max_generation_count = 3
-        self.max_conversation_count = 3
+        # self.max_conversation_count = 3
         self.buggy_function_name = ""
 
     def get_response_with_fix_path(self, prompt: str, gpt_model: str, trial: int, buggy_function_name: str) -> dict:
@@ -217,6 +217,14 @@ class GPTConnection:
         if len(responses["responses"]) > 0:
             print_in_yellow(f"Tried {str(self.max_generation_count)} times still fail to get enough responses")
             responses["responses"] = responses["responses"][:trial]
+
+            for response in responses["responses"]:
+                fix_patch = find_patch_from_response(response["response"], self.buggy_function_name)
+                response["fix_patch"] = fix_patch
+                replace_code, import_list = extract_function_and_imports_from_code_block(fix_patch, self.buggy_function_name)
+                response["replace_code"] = replace_code
+                response["import_list"] = import_list
+
             return responses
 
 
