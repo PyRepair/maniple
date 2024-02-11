@@ -419,7 +419,9 @@ class PromptGenerator:
                 "7": self.strata_7_content,
                 "8": self.strata_8_content,
                 "9": self.strata_9_content,
-                "1.3.3": self.strata_1_3_3_content
+                "1.3.3": self.strata_1_3_3_content,
+                "source_code_section": self.strata_1_content.replace(self.strata_1_3_3_content, "", 1)
+                if self.strata_1_3_3_content != "" else self.strata_1_content
             }
 
             json.dump(facts_content_strata, prompt_facts_file, indent=4)
