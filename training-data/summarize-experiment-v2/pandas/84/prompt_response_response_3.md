@@ -1,30 +1,81 @@
-The potential error in the buggy function is likely occurring when trying to access the level name 'A' in the MultiIndex, which is not found and causing a KeyError. This issue is leading to the failing test cases.
-
-Possible approaches for fixing the bug could include:
-   1. Checking for the existence of the level names before using them in the function.
-   2. Handling the case where the level names are not found in a more graceful manner, such as providing a default behavior or raising a more informative error message.
-
-Here is the corrected code for the problematic function:
-
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
+    # NOTE: This doesn't deal with hierarchical columns yet
+
     index = data.index
 
-    clocs = [index._get_level_number(i) if i in index.names else None for i in clocs]
-    if None in clocs:
-        raise ValueError("One or more level names not found in the MultiIndex")
+    clocs = [index._get_level_number(i) for i in clocs]
 
-    # The rest of the function remains the same as the original
-    # ...
-    # ...
-    # ...
+    rlocs = [i for i in range(index.nlevels) if i not in clocs]
+
+    clevels = [index.levels[i] for i in clocs]
+    ccodes = [index.codes[i] for i in clocs]
+    cnames = [index.names[i] for i in clocs]
+    rlevels = [index.levels[i] for i in rlocs]
+    rcodes = [index.codes[i] for i in rlocs]
+    rnames = [index.names[i] for i in rlocs]
+
+    shape = [len(x) for x in clevels]
+    group_index = get_group_index(ccodes, shape, sort=False, xnull=False)
+
+    comp_ids, obs_ids = compress_group_index(group_index, sort=False)
+    recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
+
+    if rlocs == []:
+        # Everything is in clocs, so the dummy df has a regular index
+        dummy_index = Index(obs_ids, name="__placeholder__")
+    else:
+        dummy_index = MultiIndex(
+            levels=rlevels + [obs_ids],
+            codes=rcodes + [comp_ids],
+            names=rnames + ["__placeholder__"],
+            verify_integrity=False,
+        )
+
+    if isinstance(data, Series):
+        dummy = data.copy()
+        dummy.index = dummy_index
+
+        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
+        new_levels = clevels
+        new_names = cnames
+        new_codes = recons_codes
+    else:
+        if isinstance(data.columns, MultiIndex):
+            result = data
+            for i in range(len(clocs)):
+                val = clocs[i]
+                result = result.unstack(val, fill_value=fill_value)
+                clocs = [v if i > v else v - 1 for v in clocs]
+
+            return result
+
+        dummy = data.copy()
+        dummy.index = dummy_index
+
+        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
+        if isinstance(unstacked, Series):
+            unstcols = unstacked.index
+        else:
+            unstcols = unstacked.columns
+        new_levels = [unstcols.levels[0]] + clevels
+        new_names = [data.columns.names] + cnames
+
+        new_codes = [unstcols.codes[0]]
+        for rec in recons_codes:
+            new_codes.append(rec.take(unstcols.codes[-1]))
+
+    new_columns = MultiIndex(
+        levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
+    )
+
+    if isinstance(unstacked, Series):
+        unstacked.index = new_columns
+    else:
+        unstacked.columns = new_columns
 
     return unstacked
 ```
-
-This corrected code checks for the existence of the level names before using them, and raises a more informative error when encountering missing level names.
-
-This corrected code should pass the failing test cases, satisfy the expected input/output variable information, and successfully resolve the issue posted in GitHub.

@@ -1,3 +1,6 @@
+Please fix the buggy function provided below and output a corrected version. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function.
+
+
 Assume that the following list of imports are available in the current environment, so you don't need to import them when generating a fix.
 ```python
 from datetime import date, datetime, timedelta
@@ -244,24 +247,86 @@ def test_date_range_with_custom_holidays():
 
 Here is a summary of the test cases and error messages:
 
-The failing test `test_date_range_with_custom_holidays` at `pandas/tests/indexes/datetimes/test_date_range.py` is trying to call the `pd` function `date_range` with custom business hours. The error message seems to be originating from the `cls._validate_frequency` at `pandas/core/indexes/datetimes.py:246`. The error occurred due to the frequency not conforming to the passed frequency `CBH`, specifically because the inferred frequency was `None`.
+The original long error message can be simplified as the source code being the buggy function:
 
-Simplified Error Message:
-```
-ValueError: Inferred frequency None from passed values does not conform to passed frequency CBH
+
+
+```text
+ValueError: Inferred frequency from passed values does not conform to passed frequency CBH
 ```
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-Input:
-- Date and time: '2020-11-25 15:00:00'
-- Number of business hours: 3
-- Weekmask: 'Mon Tue Wed Thu Fri'
-- Holidays: '2020-11-26'
+Based on the given information, it seems that the variable "n" and "other" are directly contributing to the buggy function result. The other variables with various names do not seem to have a notable impact on the function's return values. Here are the simplified input-output value pairs for the failing test cases:
 
-Output:
-- Expected output: '2020-11-27 16:00:00'
+## Simplified Input-Output Value Pairs
+
+### Case 1
+- Input:
+  - `other`: `Timestamp('2020-11-25 15:00:00')`
+  - `self.n`: `3`
+- Output:
+  - `other`: `Timestamp('2020-11-27 16:00:00')`
+  - `n`: `3`
+
+### Case 2
+- Input:
+  - `other`: `Timestamp('2020-11-25 15:00:00')`
+  - `self.n`: `1`
+- Output:
+  - `other`: `datetime.datetime(2020, 11, 25, 16, 0)`
+  - `n`: `1`
+
+### Case 3
+- Input:
+  - `other`: `Timestamp('2020-11-25 16:00:00')`
+  - `self.n`: `1`
+- Output:
+  - `other`: `datetime.datetime(2020, 11, 27, 15, 0)`
+  - `n`: `1`
+
+### Case 4
+- Input:
+  - `other`: `Timestamp('2020-11-27 15:00:00')`
+  - `self.n`: `1`
+- Output:
+  - `other`: `datetime.datetime(2020, 11, 27, 16, 0)`
+  - `n`: `1`
+
+### Case 5
+- Input:
+  - `other`: `Timestamp('2020-11-25 15:00:00', freq='CBH')`
+  - `self.n`: `3`
+- Output:
+  - `other`: `Timestamp('2020-11-27 16:00:00')`
+  - `n`: `3`
+
+### Case 6
+- Input:
+  - `other`: `Timestamp('2020-11-25 15:00:00', freq='CBH')`
+  - `self.n`: `1`
+- Output:
+  - `other`: `datetime.datetime(2020, 11, 25, 16, 0)`
+  - `n`: `1`
+
+### Case 7
+- Input:
+  - `other`: `Timestamp('2020-11-25 16:00:00')`
+  - `self.n`: `1`
+- Output:
+  - `other`: `datetime.datetime(2020, 11, 27, 15, 0)`
+  - `n`: `1`
+
+### Case 8
+- Input:
+  - `other`: `Timestamp('2020-11-27 15:00:00')`
+  - `self.n`: `1`
+- Output:
+  - `other`: `datetime.datetime(2020, 11, 27, 16, 0)`
+  - `n`: `1`
+
+By focusing on the variables "other" and "n" in the input and output value pairs, we can identify the specific issue causing the failing test cases.
 
 
 # A GitHub issue title for this bug

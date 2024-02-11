@@ -1,16 +1,16 @@
-Based on the failing test cases, the issue seems to be with the creation of the `command` list in the `_dict_arg` function. The function is supposed to create a list of command line arguments based on the input dictionary `value`. However, it is currently not formatting the command properly.
+The issue with the `_dict_arg` function is that it incorrectly formats the key-value pairs when constructing the command. The values should not be enclosed within quotes as it results in a mismatch when comparing the arguments in the failing tests.
 
-To fix this issue, we need to update the `_dict_arg` function to correctly format the command list. Specifically, we need to format the `value` and `prop` variables with a specific format and then append them to the `command` list.
+To fix this issue, we need to modify the `_dict_arg` function to construct the command without enclosing the values in quotes.
 
-Here's the corrected code for the `_dict_arg` function:
+Here is the corrected version of the `_dict_arg` function:
 
 ```python
 def _dict_arg(self, name, value):
     command = []
     if value and isinstance(value, dict):
         for prop, val in value.items():
-            command += [name, '"{0}={1}"'.format(prop, val)]  # Corrected formatting here
+            command += [name, "{0}={1}".format(prop, val)]
     return command
 ```
 
-With this correction, the function should now properly format the command list based on the input dictionary `value`. It should pass the failing test cases and satisfy the expected input/output variable information provided.
+This version of the function removes the unnecessary quotes around the values, which should resolve the comparison issues in the failing tests.

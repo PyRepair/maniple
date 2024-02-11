@@ -1,35 +1,102 @@
-The buggy function `_cython_agg_blocks` is a method within the `DataFrameGroupBy` class in the pandas library that is responsible for performing aggregation operations on grouped data. The function takes several input parameters and processes the data to perform aggregation based on the specified method.
-
-Based on the failing test and the error message, the issue seems to occur when attempting to cast values from float to int within the `_cython_agg_blocks` function. The `safe_cast` method is expected to safely cast an array to a specified data type, but it is failing in this case.
-
-The input data is represented by a DataFrame with nullable integer data type, and the failing test suggests that calling certain aggregation methods (such as mean, median, and var) on grouped data leads to a TypeError.
-
-The GitHub issue provides an example of the problem by using a DataFrame with nullable integer data type, grouping by a column, and then trying to call the mean method on the grouped data. The expected output is a DataFrame with the mean values for each group, but instead, a TypeError is encountered.
-
-### Bug Cause:
-There are several potential causes for the bug:
-1. Type mismatch when casting from float to int within the `_cython_agg_blocks` function.
-2. Incompatibility of the aggregation methods with nullable integer data type.
-
-### Possible Approaches for Fixing the Bug:
-1. Update the `safe_cast` method to handle the conversion from float to int for nullable integer data type appropriately. This may involve checking for null values and handling the conversion accordingly.
-2. Reassess the logic for casting values from float to int within the `_cython_agg_blocks` function and ensure that it is compatible with nullable integer data type.
-
-### Corrected Code:
 ```python
-# Corrected _cython_agg_blocks function
+# The corrected version of the function
 def _cython_agg_blocks(
     self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
 ) -> "Tuple[List[Block], Index]":
-    # existing logic and code
+    # TODO: the actual managing of mgr_locs is a PITA
+    # here, it should happen via BlockManager.combine
 
-    # Update casting from float to int for nullable integer data type
-    # Check for null values and handle conversion appropriately
-    result = maybe_convert_objects(result, convert_integer=True)
+    data: BlockManager = self._get_data_to_aggregate()
 
-    # existing logic and code
+    if numeric_only:
+        data = data.get_numeric_data(copy=False)
+
+    agg_blocks: List[Block] = []
+    new_items: List[np.ndarray] = []
+    deleted_items: List[np.ndarray] = []
+    # Some object-dtype blocks might be split into List[Block[T], Block[U]]
+    split_items: List[np.ndarray] = []
+    split_frames: List[DataFrame] = []
+
+    no_result = object()
+    for block in data.blocks:
+        # Avoid inheriting result from earlier in the loop
+        result = no_result
+        locs = block.mgr_locs.as_array
+        try:
+            result, _ = self.grouper.aggregate(block.values, how, axis=1, min_count=min_count)
+        except NotImplementedError:
+            if alt is None:
+                assert how == "ohlc"
+                deleted_items.append(locs)
+                continue
+
+            obj = self.obj[data.items[locs]]
+            if obj.shape[1] == 1:
+                obj = obj.iloc[:, 0]
+
+            s = get_groupby(obj, self.grouper)
+            try:
+                result = s.aggregate(lambda x: alt(x, axis=self.axis))
+            except TypeError:
+                deleted_items.append(locs)
+                continue
+            else:
+                result = cast(DataFrame, result)
+
+                if len(result._data.blocks) != 1:
+                    split_items.append(locs)
+                    split_frames.append(result)
+                    continue
+
+                assert len(result._data.blocks) == 1
+                result = result._data.blocks[0].values
+                if isinstance(result, np.ndarray) and result.ndim == 1:
+                    result = result.reshape(1, -1)
+
+        assert not isinstance(result, DataFrame)
+
+        if result is not no_result:
+            result = maybe_downcast_numeric(result, block.dtype)
+
+            if block.is_extension and isinstance(result, np.ndarray):
+                assert result.ndim == 1 or result.shape[0] == 1
+                try:
+                    result = type(block.values)._from_sequence(result.ravel(), dtype=block.values.dtype)
+                except ValueError:
+                    result = result.reshape(1, -1)
+
+            agg_block: Block = block.make_block(result)
+
+        new_items.append(locs)
+        agg_blocks.append(agg_block)
+
+    if not (agg_blocks or split_frames):
+        raise DataError("No numeric types to aggregate")
+
+    if split_items:
+        for locs, result in zip(split_items, split_frames):
+            assert len(locs) == result.shape[1]
+            for i, loc in enumerate(locs):
+                new_items.append(np.array([loc], dtype=locs.dtype))
+                agg_blocks.append(result.iloc[:, [i]]._data.blocks[0])
+
+    indexer = np.concatenate(new_items)
+    agg_items = data.items.take(np.sort(indexer))
+
+    if deleted_items:
+
+        deleted = np.concatenate(deleted_items)
+        ai = np.arange(len(data))
+        mask = np.zeros(len(data))
+        mask[deleted] = 1
+        indexer = (ai - mask.cumsum())[indexer]
+
+    offset = 0
+    for blk in agg_blocks:
+        loc = len(blk.mgr_locs)
+        blk.mgr_locs = indexer[offset : (offset + loc)]
+        offset += loc
+
+    return agg_blocks, agg_items
 ```
-
-The corrected code involves updating the `maybe_convert_objects` method to handle the conversion from float to int for nullable integer data type. This should resolve the TypeError issue encountered when using certain aggregation methods on grouped data with nullable integer data type.
-
-By making this change, the failing test cases related to calling aggregation methods on grouped data with nullable integer data type should pass, and the issue described in the GitHub bug report should be resolved.

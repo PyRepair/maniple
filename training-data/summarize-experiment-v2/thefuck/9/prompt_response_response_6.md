@@ -1,36 +1,35 @@
-The bug is occurring in the `get_new_command` function, particularly in the logic that removes the `--set-upstream` or `-u` option and its argument from the `command.script_parts`. The error message indicates an `IndexError` at the line where `command.script_parts.pop(upstream_option_index)` is called.
+Approach for fixing the bug:
+The buggy function is failing because the `pop` function is being called twice on the same index, which results in an `IndexError` when the index is out of range.
 
-Looking at the failing test, it seems that the expected output for `git push -u` is "git push --set-upstream origin master", but the function is returning an error due to the `pop` operation. This discrepancy in the expected and actual outputs is causing the test to fail.
+We can fix this by using the `pop` function only once and removing the specified index from the list of `command.script_parts`.
 
-The GitHub issue titled "Fix suggestions for git push -u origin" provides more context about the expected behavior of the function and how it has been impacted by a previous merge (#538). According to the GitHub issue, the suggested fix for the bug is to revert back to the original behavior of the function, where it would output "git push --set-upstream origin master" for the input "git push -u".
-
-To fix the bug, the logic for finding and removing the `--set-upstream` or `-u` option and its argument needs to be corrected. Additionally, the function should be modified to return the expected output for each test case.
-
-Below is the corrected code for the `get_new_command` function:
+Here's the corrected code for the buggy function:
 
 ```python
+from thefuck.utils import replace_argument
+from thefuck.specific.git import git_support
+
 @git_support
 def get_new_command(command):
     # If --set-upstream or -u are passed, remove it and its argument. This is
     # because the remaining arguments are concatenated onto the command suggested
     # by git, which includes --set-upstream and its argument
-    command_parts = command.script.split()
-    if '--set-upstream' in command_parts:
-        upstream_index = command_parts.index('--set-upstream')
-    elif '-u' in command_parts:
-        upstream_index = command_parts.index('-u')
-    else:
-        upstream_index = -1
-
-    if upstream_index != -1:
-        command_parts.pop(upstream_index)  # remove the option
-        if upstream_index < len(command_parts):  # check if there is an argument to be removed
-            command_parts.pop(upstream_index)  # remove the argument
-
+    upstream_option_index = -1
+    try:
+        upstream_option_index = command.script_parts.index('--set-upstream')
+    except ValueError:
+        pass
+    try:
+        upstream_option_index = command.script_parts.index('-u')
+    except ValueError:
+        pass
+    if upstream_option_index is not -1:
+        command.script_parts.pop(upstream_option_index)
+        
     push_upstream = command.stderr.split('\n')[-3].strip().partition('git ')[2]
-    return replace_argument(" ".join(command_parts), 'push', push_upstream)
+    return replace_argument(" ".join(command.script_parts), 'push', push_upstream)
 ```
 
-This corrected code should address the bug by correctly identifying and removing the `--set-upstream` or `-u` option and its argument, and then returning the expected output for each test case. This solution will also resolve the issue raised in the GitHub ticket.
+The corrected version of the function addressed the issue with calling `pop` function twice on the same index.
 
-With this approach, the `get_new_command` function will be able to pass the failing test and satisfy the expected input/output variable information.
+Now, the corrected function is expected to pass the failing test as well as satisfy the expected input/output variable information provided. It should also resolve the issue posted on GitHub.

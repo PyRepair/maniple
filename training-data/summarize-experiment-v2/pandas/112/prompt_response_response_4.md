@@ -1,71 +1,72 @@
-Potential error location within the problematic function:
-The potential error is likely occurring in the `get_indexer` function on line 964 due to the type error when attempting to retrieve an indexer.
-
-Bug cause:
-1. The `get_indexer` function is expecting a specific input shape or type, causing a type error when trying to retrieve an indexer.
-2. The function has conditional logic to handle different types of the `target_as_index`, but this logic may not be covering all possible cases, leading to the type error.
-3. The function also makes use of other class methods and properties such as `left`, `right`, `closed`, and `dtype`, which could be causing the issue.
-
-Potential approaches for fixing the bug:
-1. Update the conditional logic in the `get_indexer` function to handle all possible cases of the `target_as_index` input, ensuring that all input shapes and types are properly handled to avoid type errors.
-2. Check the compatibility of the input and the conditional logic to ensure that the correct operations are performed for each case.
-3. Ensure that the class properties and methods being used within the function are returning the expected types and shapes, and that they are compatible with the operations being performed in the function.
-
-Corrected code for the problematic function:
 ```python
-def get_indexer(
-    self,
-    target: AnyArrayLike,
-    method: Optional[str] = None,
-    limit: Optional[int] = None,
-    tolerance: Optional[Any] = None,
-) -> np.ndarray:
-
-    self._check_method(method)
-
-    if self.is_overlapping:
-        msg = (
-            "cannot handle overlapping indices; use "
-            "IntervalIndex.get_indexer_non_unique"
+    @Substitution(
+        **dict(
+            _index_doc_kwargs,
+            **{
+                "raises_section": textwrap.dedent(
+                    """
+        Raises
+        ------
+        NotImplementedError
+            If any method argument other than the default of
+            None is specified as these are not yet implemented.
+        """
+                )
+            },
         )
-        raise InvalidIndexError(msg)
-
-    target_as_index = ensure_index(target)
-
-    if isinstance(target_as_index, IntervalIndex):
-        # equal indexes -> 1:1 positional match
-        if self.equals(target_as_index):
-            return np.arange(len(self), dtype="intp")
-
-        # different closed or incompatible subtype -> no matches
-        common_subtype = find_common_type(
-            [self.dtype.subtype, target_as_index.dtype.subtype]
-        )
-        if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
-            return np.repeat(np.intp(-1), len(target_as_index))
-
-        # non-overlapping -> at most one match per interval in target_as_index
-        # want exact matches -> need both left/right to match, so defer to
-        # left/right get_indexer, compare elementwise, equality -> match
-        left_indexer = self.left.get_indexer(target_as_index.left)
-        right_indexer = self.right.get_indexer(target_as_index.right)
-        indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
-    elif not is_object_dtype(target_as_index):
-        # homogeneous scalar index: use IntervalTree
-        target_as_index = self._maybe_convert_i8(target_as_index)
-        indexer = self._engine.get_indexer(target_as_index.values)
-    else:
-        # heterogeneous scalar index: defer elementwise to get_loc
-        # (non-overlapping so get_loc guarantees scalar of KeyError)
-        indexer = []
-        for key in target_as_index:
-            try:
-                loc = self.get_loc(key)
-            except KeyError:
-                loc = -1
-            indexer.append(loc)
-
-    return ensure_platform_int(indexer)
+    )
+    @Appender(_index_shared_docs["get_indexer"])
+    def get_indexer(
+        self,
+        target: AnyArrayLike,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        tolerance: Optional[Any] = None,
+    ) -> np.ndarray:
+    
+        self._check_method(method)
+    
+        if self.is_overlapping:
+            msg = (
+                "cannot handle overlapping indices; use "
+                "IntervalIndex.get_indexer_non_unique"
+            )
+            raise InvalidIndexError(msg)
+    
+        target_as_index = ensure_index(target)
+    
+        if isinstance(target_as_index, IntervalIndex):
+            # equal indexes -> 1:1 positional match
+            if self.equals(target_as_index):
+                return np.arange(len(self), dtype="intp")
+    
+            # different closed or incompatible subtype -> no matches
+            common_subtype = find_common_type(
+                [self.dtype.subtype, target_as_index.dtype.subtype]
+            )
+            if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
+                return np.repeat(np.intp(-1), len(target_as_index))
+    
+            # non-overlapping -> at most one match per interval in target_as_index
+            # want exact matches -> need both left/right to match, so defer to
+            # left/right get_indexer, compare elementwise, equality -> match
+            left_indexer = self.left.get_indexer(target_as_index.left)
+            right_indexer = self.right.get_indexer(target_as_index.right)
+            indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
+        elif not is_object_dtype(target_as_index.dtype):
+            # homogeneous scalar index: use IntervalTree
+            target_as_index = self._maybe_convert_i8(target_as_index)
+            indexer = self._engine.get_indexer(target_as_index.values)
+        else:
+            # heterogeneous scalar index: defer elementwise to get_loc
+            # (non-overlapping so get_loc guarantees scalar of KeyError)
+            indexer = []
+            for key in target_as_index:
+                try:
+                    loc = self.get_loc(key)
+                except KeyError:
+                    loc = -1
+                indexer.append(loc)
+    
+        return ensure_platform_int(indexer)
 ```
-
-The corrected code should handle all cases of `target_as_index` input and ensure that all property and method calls within the function return the expected types and shapes, resolving the type error and passing the failing test.

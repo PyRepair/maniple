@@ -1,47 +1,77 @@
-The issue occurs in the `get_indexer` function of the `IntervalIndex` class. The function is failing to return the correct indexer for the target index. The type error occurs due to a mismatch in the signature of the function.
-
-The bug is caused by the incorrect comparison of the `IntervalIndex` instances and an incorrectly processed `target_as_index`. This causes the function to return incorrect values for the indexer, leading to a type error.
-
-To fix the bug, the comparison between the `IntervalIndex` instances and the processing of `target_as_index` needs to be corrected to return the correct indexer.
-
-Here's the corrected code for the `get_indexer` function:
-
 ```python
-def get_indexer(
-    self,
-    target: AnyArrayLike,
-    method: Optional[str] = None,
-    limit: Optional[int] = None,
-    tolerance: Optional[Any] = None,
-) -> np.ndarray:
+# The corrected version of the function
+from pandas.core.indexes.interval import IntervalIndex
+from pandas.core.dtypes.common import is_object_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype
+from pandas._typing import ArrayLike
+import numpy as np
+import pandas as pd
 
-    self._check_method(method)
+class IntervalIndex(IntervalMixin, Index):
+    # ... (other methods and class attributes)
 
-    if self.is_overlapping:
-        msg = (
-            "cannot handle overlapping indices; use "
-            "IntervalIndex.get_indexer_non_unique"
+    @Substitution(
+        **dict(
+            _index_doc_kwargs,
+            **{
+                "raises_section": textwrap.dedent(
+                    """
+        Raises
+        ------
+        NotImplementedError
+            If any method argument other than the default of
+            None is specified as these are not yet implemented.
+        """
+                )
+            },
         )
-        raise InvalidIndexError(msg)
+    )
+    @Appender(_index_shared_docs["get_indexer"])
+    def get_indexer(
+        self,
+        target: AnyArrayLike,
+        method: Optional[str] = None,
+        limit: Optional[int] = None,
+        tolerance: Optional[Any] = None,
+    ) -> np.ndarray:
 
-    target_as_index = ensure_index(target)
+        self._check_method(method)
 
-    if isinstance(target_as_index, IntervalIndex):
-        if self.equals(target_as_index):
-            return np.arange(len(self), dtype="intp")
+        if self.is_overlapping:
+            msg = (
+                "cannot handle overlapping indices; use "
+                "IntervalIndex.get_indexer_non_unique"
+            )
+            raise InvalidIndexError(msg)
 
-        if self.closed != target_as_index.closed or not self.dtype.equals(target_as_index.dtype):
-            return np.repeat(np.intp(-1), len(target_as_index))
+        target_as_index = ensure_index(target)
 
-        left_indexer = self.left.get_indexer(target_as_index.left)
-        right_indexer = self.right.get_indexer(target_as_index.right)
-        indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
-    else:
-        indexer = np.repeat(-1, len(target_as_index))
+        if isinstance(target_as_index, IntervalIndex):
+            # equal indexes -> 1:1 positional match
+            if self.equals(target_as_index):
+                return np.arange(len(self), dtype="intp")
 
-    return ensure_platform_int(indexer)
+            # different closed or incompatible subtype -> no matches
+            common_subtype = find_common_type(
+                [self.dtype.subtype, target_as_index.dtype.subtype]
+            )
+            if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
+                return np.repeat(np.intp(-1), len(target_as_index))
+
+            # non-overlapping -> at most one match per interval in target_as_index
+            # want exact matches -> need both left/right to match, so defer to
+            # left/right get_indexer, compare elementwise, equality -> match
+            left_indexer = self.left.get_indexer(target_as_index.left)
+            right_indexer = self.right.get_indexer(target_as_index.right)
+            indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
+        elif not is_object_dtype(target_as_index):
+            # homogeneous scalar index: use IntervalTree
+            target_as_index = self._maybe_convert_i8(target_as_index)
+            indexer = self._engine.get_indexer(target_as_index)
+        else:
+            # heterogeneous scalar index: defer elementwise to get_loc
+            # (non-overlapping so get_loc guarantees scalar of KeyError)
+            indexer = np.array([self.get_loc(key) for key in target_as_index], dtype=np.intp)
+
+        return ensure_platform_int(indexer)
 ```
-
-With this change, the `get_indexer` function should now return the correct indexer, and the error in the failing test should be resolved.
-
-This corrected code addresses the GitHub issue by fixing the bug in the `get_indexer` function, allowing it to work correctly with `CategoricalIndex` made from an `IntervalIndex`.
+By replacing the previous code with the corrected version above, the function is fixed and can be used as a drop-in replacement for the buggy version.

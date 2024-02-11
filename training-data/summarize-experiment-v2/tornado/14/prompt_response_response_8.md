@@ -1,26 +1,68 @@
-### Bug Location
-The potential error is located in the conditional statement `if make_current:` of the `initialize` function in the `IOLoop` class.
-
-### Bug Cause
-The issue is caused by the conditional statement `if make_current:` falsely assuming that `IOLoop.current(instance=False)` is always `None`. This assumption leads to the premature raising of the "current IOLoop already exists" error.
-
-### Possible Approaches
-To fix this issue, we need to ensure that the condition for raising the error is accurate. We should check if `make_current` is `True` and if an instance of `IOLoop.current(instance=False)` already exists.
-
-### Corrected Code
 ```python
-def initialize(self, make_current=None):
-    if make_current is None:
-        if IOLoop.current(instance=False) is None:
+class IOLoop(Configurable):
+    """
+    A level-triggered I/O loop.
+    
+    We use ``epoll`` (Linux) or ``kqueue`` (BSD and Mac OS X) if they
+    are available, or else we fall back on select(). If you are
+    implementing a system that needs to handle thousands of
+    simultaneous connections, you should use a system that supports
+    either ``epoll`` or ``kqueue``.
+    
+    Example usage for a simple TCP server:
+    
+    .. testcode::
+    
+        import errno
+        import functools
+        import tornado.ioloop
+        import socket
+    
+        def connection_ready(sock, fd, events):
+            while True:
+                try:
+                    connection, address = sock.accept()
+                except socket.error as e:
+                    if e.args[0] not in (errno.EWOULDBLOCK, errno.EAGAIN):
+                        raise
+                    return
+                connection.setblocking(0)
+                handle_connection(connection, address)
+    
+        if __name__ == '__main__':
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.setblocking(0)
+            sock.bind(("", port))
+            sock.listen(128)
+    
+            io_loop = tornado.ioloop.IOLoop.current()
+            callback = functools.partial(connection_ready, sock)
+            io_loop.add_handler(sock.fileno(), callback, io_loop.READ)
+            io_loop.start()
+    
+    .. testoutput::
+       :hide:
+    
+    By default, a newly-constructed `IOLoop` becomes the thread's current
+    `IOLoop`, unless there already is a current `IOLoop`. This behavior
+    can be controlled with the ``make_current`` argument to the `IOLoop`
+    constructor: if ``make_current=True``, the new `IOLoop` will always
+    try to become current and it raises an error if there is already a
+    current instance. If ``make_current=False``, the new `IOLoop` will
+    not try to become current.
+    
+    .. versionchanged:: 4.2
+       Added the ``make_current`` keyword argument to the `IOLoop`
+       constructor.
+    """
+    
+    def initialize(self, make_current=None):
+        if make_current is None:
+            if IOLoop.current(instance=False) is not None:  # Fix the condition
+                self.make_current()
+        elif make_current:
+            if IOLoop.current(instance=False) is not None:  # Fix the condition
+                raise RuntimeError("current IOLoop already exists")
             self.make_current()
-    elif make_current: 
-        if IOLoop.current(instance=False) is not None:
-            raise RuntimeError("current IOLoop already exists")
-        self.make_current()
 ```
-
-With this correction, the condition `if IOLoop.current(instance=False) is not None:` ensures that the error is only raised if an instance of the current IOLoop already exists when `make_current` is `True`. This fix should resolve the issue and make the failing test pass.
-
-### GitHub Issue
-Title: "Condition for raising 'current IOLoop already exists' error in IOLoop.initialize is inaccurate"
-Description: The condition for raising the 'current IOLoop already exists' error in the `IOLoop.initialize` function is inaccurate, leading to premature errors. This has been corrected by ensuring that the error is only raised when `make_current` is `True` and an instance of `IOLoop.current(instance=False)` already exists.

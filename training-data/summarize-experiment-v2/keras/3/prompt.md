@@ -1,3 +1,6 @@
+Please fix the buggy function provided below and output a corrected version. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function.
+
+
 Assume that the following list of imports are available in the current environment, so you don't need to import them when generating a fix.
 ```python
 from . import backend as K
@@ -193,20 +196,50 @@ def test_clone_functional_model_with_multi_outputs():
 
 Here is a summary of the test cases and error messages:
 
-The error message indicates an `AssertionError` in the `clone_model` function of the `keras/models.py` file where it's unable to compute an output tensor. The stack trace provides details of the failing line in the failing test file and the internal function call path, which ultimately leads to the `AssertionError`.
+The error occurs in the `clone_model` function of `keras.models.py` at line 166. The error is raised when attempting to compute the outputs of the model. It fails at the assertion check where it cannot compute the output for the specified tensor.
 
-Simplified Error:
+The error message in the failing test script points to the `clone_model` function and identifies a specific tensor for which the output cannot be computed.
+
+Simplified Error Message:
 ```
-AssertionError: Could not compute output Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)
+Assert Error: Could not compute output for tensor "swap_layer_1/Identity:0"
 ```
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-Input pair:
+Shortened version of the input and output pair related to the failing test cases for Case 1 is given below.
 
-Input: (model._input_layers, model.inputs)
-Output: (input_layers, input_tensors)
+**Input:**
+
+model._input_layers: `[<keras.engine.input_layer.InputLayer object at 0x7f21169baa10>]`
+
+model.inputs: `[<tf.Tensor 'input_1:0' shape=(?, 4) dtype=float32>]`
+
+
+**Output:**
+
+layer_map: `{<keras.engine.input_layer.InputLayer object at 0x7f21169baa10>: <keras.engine.input_layer.InputLayer object at 0x7f21169bf0d0>}`
+
+input_tensors: `[<tf.Tensor 'input_1_1:0' shape=(?, 4) dtype=float32>]`
+
+input_layers: `[]`
+
+layer.name: `'swap_layer_1'`
+
+x: `<tf.Tensor 'swap_layer_1/Identity_1:0' shape=(?, 4) dtype=float32>`
+
+y: `<tf.Tensor 'swap_layer_1_1/Identity_1:0' shape=(?, 4) dtype=float32>`
+
+nodes: `[<keras.engine.base_layer.Node object at 0x7f211717eed0>]`
+
+reference_input_tensors: `[<tf.Tensor 'lambda_1/add:0' shape=(?, 4) dtype=float32>, <tf.Tensor 'lambda_1/Identity:0' shape=(?, 4) dtype=float32>]`
+
+reference_output_tensors: `[<tf.Tensor 'swap_layer_1/Identity:0' shape=(?, 4) dtype=float32>, <tf.Tensor 'swap_layer_1/Identity_1:0' shape=(?, 4) dtype=float32>]`
+
+computed_tensors: `[<tf.Tensor 'lambda_1_1/add:0' shape=(?, 4) dtype=float32>, <tf.Tensor 'lambda_1_1/Identity:0' shape=(?, 4) dtype=float32>]`
+
+tensor: `<tf.Tensor 'swap_layer_1_1/Identity_1:0' shape=(?, 4) dtype=float32>`
 
 
 # A GitHub issue title for this bug

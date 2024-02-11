@@ -1,58 +1,47 @@
-## Expected case 1
-### Input parameter value and type
-clocs, value: `(('A', 'a'), 'B')`, type: `tuple`
+clocs = ([('A', 'a'), 0]
+d = 
+   d  e
+0  1  2
+1  1  2
+2  1  2
+3  1  2
+4  1  2
+5  1  2
+6  1  2
+7  1  2
+data.index = MultiIndex
+data.columns = Index
 
-data, value: `            d  e
-(A, a) B C      
-a      1 3  1  2
-         4  1  2
-       2 3  1  2
-         4  1  2
-b      1 3  1  2
-         4  1  2
-       2 3  1  2
-         4  1  2`, type: `DataFrame`
-
-data.index, value: `MultiIndex([('a', 1, 3),
-            ('a', 1, 4),
-            ('a', 2, 3),
-            ('a', 2, 4),
-            ('b', 1, 3),
-            ('b', 1, 4),
-            ('b', 2, 3),
-            ('b', 2, 4)],
-           names=[('A', 'a'), 'B', 'C'])`, type: `MultiIndex`
-
-data.columns, value: `Index(['d', 'e'], dtype='object')`, type: `Index`
-
-### Expected value and type of variables right before the buggy function's return
-clocs, expected value: `[0, 1]`, type: `list`
-
-index.nlevels, expected value: `3`, type: `int`
-
-clevels, expected value: `[Index(['a', 'b'], dtype='object', name=('A', 'a')), Int64Index([1, 2], dtype='int64', name='B')]`, type: `list`
-
-ccodes, expected value: `[array([0, 0, 0, 0, 1, 1, 1, 1], dtype=int8), array([0, 0, 1, 1, 0, 0, 1, 1], dtype=int8)]`, type: `list`
-
-rlevels, expected value: `[Int64Index([3, 4], dtype='int64', name='C')]`, type: `list`
-
-rcodes, expected value: `[array([0, 1, 0, 1, 0, 1, 0, 1], dtype=int8)]`, type: `list`
-
-shape, expected value: `[2, 2]`, type: `list`
-
-unstacked, expected value: `            d           e         
-('A', 'a')  a     b     a     b   
-B           1  2  1  2  1  2  1  2
-C                                 
-3           1  1  1  1  2  2  2  2
-4           1  1  1  1  2  2  2  2`, type: `DataFrame`
-
-unstacked.columns, expected value: `MultiIndex([('d', 'a', 1),
-            ('d', 'a', 2),
-            ('d', 'b', 1),
-            ('d', 'b', 2),
-            ('e', 'a', 1),
-            ('e', 'a', 2),
-            ('e', 'b', 1),
-            ('e', 'b', 2)],
-           names=[None, ('A', 'a'), 'B'])`, type: `MultiIndex`
+# Expected variables right before the buggy function's return
+clocs = [0, 1]
+index = MultiIndex
+rlocs = [2]
+index.nlevels = 3
+clevels = [Index, Int64Index]
+index.levels = FrozenList
+ccodes = [array, array]
+index.codes = FrozenList
+cnames = [('A', 'a'), 'B']
+index.names= FrozenList
+rlevels = [Int64Index]
+rcodes = [array]
+rnames = ['C']
+shape = [2, 2]
+group_index = array
+comp_ids = array
+obs_ids = array
+recons_codes = [array, array]
+dummy_index = MultiIndex
+dummy = DataFrame
+dummy.index = MultiIndex
+unstacked = DataFrame
+new_levels = [Index, Index, Int64Index]
+new_names = [None, ('A', 'a'), 'B']
+new_codes = [array, array, array]
+unstcols = MultiIndex
+unstacked.index = Int64Index
+unstacked.columns = MultiIndex
+unstcols.levels = FrozenList
+unstcols.codes = FrozenList
+rec = array
+new_columns = MultiIndex

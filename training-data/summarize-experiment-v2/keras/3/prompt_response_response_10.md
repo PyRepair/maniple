@@ -1,40 +1,88 @@
-The issue seems to be related to the handling of multi-output layers when cloning a functional model using the `clone_model` function. The failing test case in the `test_clone_functional_model_with_multi_outputs` function demonstrates a scenario where the output tensor cannot be computed due to the model structure.
+The bug in the `_clone_functional_model` function is likely due to the computation of output masks always returning `None` when using a layer with multiple outputs without mask support, leading to the error "Could not compute output Tensor".
 
-The error message `AssertionError: Could not compute output Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)` indicates that the output tensor `swap_layer_1/Identity:0` cannot be computed during the cloning process.
+To fix this issue, we need to modify the code to handle the case where the layer does not support mask computation.
 
-Looking at the failing test case, it involves a scenario where a model has multiple outputs and uses a custom layer (`SwapLayer`) to manipulate the output tensors. This is a valid use case that needs to be handled properly when cloning the model.
+Additionally, we need to ensure that the function passes the failing test and resolves the issue identified in the GitHub post.
 
-The GitHub issue provides a similar example where the user encounters the same `AssertionError` when using the `clone_model` function with a multi-output model and a custom layer that does not support masks.
-
-The potential error location within the function is in the loop where the output tensors are computed and updated in the `tensor_map`. It seems that the function does not properly handle the cases where the output tensors have multiple outputs or when custom layers are involved.
-
-To fix this bug, the `clone_model` function should be updated to properly handle the scenario where a model has multiple outputs and custom layers with multiple outputs.
-
-Here's a possible approach for fixing the bug:
-- Modify the section of the code that computes and updates the output tensors in the `clone_model` function to properly handle multi-output layers, ensuring that the output tensors are computed and updated correctly.
-
-Here's the corrected code for the `clone_model` function:
+Here is the corrected code for the `_clone_functional_model` function:
 
 ```python
 def _clone_functional_model(model, input_tensors=None):
-    # ... existing code ...
+    if not isinstance(model, Model):
+        raise ValueError('Expected `model` argument to be a `Model` instance, got ', model)
+    if isinstance(model, Sequential):
+        raise ValueError('Expected `model` argument to be a functional `Model` instance, got a `Sequential` instance instead:', model)
+
+    layer_map = {}
+    tensor_map = {}
+    if input_tensors is None:
+        input_layers = []
+        input_tensors = []
+        for layer in model._input_layers:
+            input_tensor = Input(batch_shape=layer.batch_input_shape,
+                                 dtype=layer.dtype,
+                                 sparse=layer.sparse,
+                                 name=layer.name)
+            input_tensors.append(input_tensor)
+            newly_created_input_layer = input_tensor._keras_history[0]
+            layer_map[layer] = newly_created_input_layer
+        for _original, _cloned in zip(model._input_layers, input_tensors):
+            layer_map[_original] = _cloned
+    else:
+        input_tensors = to_list(input_tensors)
+        _input_tensors = []
+        for i, x in enumerate(input_tensors):
+            if not K.is_keras_tensor(x):
+                name = model._input_layers[i].name
+                input_tensor = Input(tensor=x,
+                                     name='input_wrapper_for_' + name)
+                _input_tensors.append(input_tensor)
+                original_input_layer = x._keras_history[0]
+                newly_created_input_layer = input_tensor._keras_history[0]
+                layer_map[original_input_layer] = newly_created_input_layer
+            else:
+                _input_tensors.append(x)
+        input_tensors = _input_tensors
 
     for x, y in zip(model.inputs, input_tensors):
-        tensor_map[x] = (y, None)  # tensor, mask
+        tensor_map[x] = (y, None)
 
-    # Iterated over every node in the reference model, in depth order.
     depth_keys = list(model._nodes_by_depth.keys())
     depth_keys.sort(reverse=True)
     for depth in depth_keys:
         nodes = model._nodes_by_depth[depth]
         for node in nodes:
-            # ... existing code ...
+            layer = node.outbound_layer
+            if layer not in layer_map:
+                new_layer = layer.__class__.from_config(layer.get_config())
+                layer_map[layer] = new_layer
+                layer = new_layer
+            else:
+                layer = layer_map[layer]
+            if isinstance(layer, InputLayer):
+                continue
+            reference_input_tensors = node.input_tensors
+            reference_output_tensors = node.output_tensors
+            computed_data = []
+            for x in reference_input_tensors:
+                if x in tensor_map:
+                    computed_data.append(tensor_map[x])
 
-    # Compute the model outputs and instantiate a new model from inputs and outputs.
-    output_tensors = [tensor_map[x][0] for x in model.outputs]
+            if len(computed_data) == len(reference_input_tensors):
+                kwargs = node.arguments if node.arguments else {}
+                computed_tensors = [x[0] for x in computed_data]
+                if 'mask' in kwargs:
+                    kwargs.pop('mask')  # Remove mask if present
+                output_tensors = to_list(layer(computed_tensors, **kwargs))
+                for x, y in zip(reference_output_tensors, output_tensors):
+                    tensor_map[x] = (y, None)
+
+    output_tensors = []
+    for x in model.outputs:
+        assert x in tensor_map, 'Could not compute output ' + str(x)
+        tensor, _ = tensor_map[x]
+        output_tensors.append(tensor)
     return Model(input_tensors, output_tensors, name=model.name)
 ```
 
-With the above correction, the `clone_model` function should now properly handle the cloning of functional models with multi-output layers and custom layers, resolving the `AssertionError` and addressing the issue reported in the GitHub thread.
-
-It's important to note that the corrected code assumes that the remaining parts of the `clone_model` function work as intended and that the issue indeed lies in the handling of multi-output layers. Additional testing and validation may be necessary to confirm the fix.
+With this corrected function, the failing test should pass, and the issue identified in the GitHub post should be resolved.

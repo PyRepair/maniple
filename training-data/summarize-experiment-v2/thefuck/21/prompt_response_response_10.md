@@ -1,16 +1,21 @@
-The bug in the `git_fix_stash` rule is caused by the assumption that the `git` command won't be the only command in the `command.script` when it actually is. This leads to an `IndexError` when trying to access the second element of the split script. 
-
-To fix this bug, you should check the length of `command.script.split()` before trying to access the second element to avoid the `IndexError`.
-
-Here's the corrected code for the `match` function:
+The problem with the buggy function is that it is trying to split the `command.script` without validating if it contains the minimal required elements for the operation.
 
 ```python
 @git_support
 def match(command):
-    script = command.script.split()
-    if len(script) > 1:
-        return (script[1] == 'stash' and 'usage:' in command.stderr)
-    return False
+    return command.script.startswith('git stash') and 'usage:' in command.stderr
 ```
 
-With this correction, the function should pass the failing test and satisfy the expected input/output variable information. This fix also resolves the issue posted on GitHub.
+By updating the function to first check if the `command.script` starts with 'git stash', we can avoid the 'IndexError' raised due to list index out of range. 
+
+Now, the corrected version of the function would be:
+
+```python
+@git_support
+def match(command):
+    return command.script.startswith('git stash') and 'usage:' in command.stderr
+```
+
+This matches the expected input/output variable information and should resolve the issue posted in GitHub.
+
+Now, the TypeError should be resolved, and the new function should pass the failed test as well.

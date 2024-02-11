@@ -1,19 +1,27 @@
-The bug in the code is happening due to the `last_active` variable being set to `None` by default, which is causing a `TypeError` when trying to add it to `config.worker_disconnect_delay`.
+The potential error in the buggy function is that it does not handle the case when the `last_active` parameter is set to `None`. This causes a `TypeError` when the `prune` method is called.
 
-To fix this bug, you should modify the `__init__` function in the `Worker` class to provide a default value for `last_active` when it's not provided.
+To fix this, we can modify the `__init__` method to handle the case when `last_active` is `None` and set it to the current time. 
 
-Here's the corrected code for the `__init__` function:
+Here is the corrected code for the `__init__` method of the `Worker` class:
 
 ```python
-def __init__(self, worker_id, last_active=None):
-    self.id = worker_id
-    self.reference = None  # reference to the worker in the real world. (Currently a dict containing just the host)
-    self.last_active = last_active if last_active is not None else time.time()  # seconds since epoch
-    self.started = time.time()  # seconds since epoch
-    self.tasks = set()  # task objects
-    self.info = {}
+class Worker(object):
+    """
+    Structure for tracking worker activity and keeping their references.
+    """
+
+    def __init__(self, worker_id, last_active=None):
+        self.id = worker_id
+        self.reference = None  # reference to the worker in the real world. (Currently a dict containing just the host)
+        if last_active is not None:
+            self.last_active = last_active  # seconds since epoch
+        else:
+            self.last_active = time.time()  # seconds since epoch
+        self.started = time.time()  # seconds since epoch
+        self.tasks = set()  # task objects
+        self.info = {}
 ```
 
-With this change, if `last_active` is not provided, the current time will be used as the default value, ensuring that it's always a valid timestamp.
+With this correction, the `last_active` parameter is properly handled, and the `prune` method should work as expected.
 
-This corrected code should fix the bug and make the failing test pass.
+The corrected code satisfies the expected input/output variable information provided and should pass the failing test.

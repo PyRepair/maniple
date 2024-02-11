@@ -1,15 +1,13 @@
-The bug in the `pivot_table` function arises from the attempt to access the `columns` attribute of a `Series` object, which does not have the `columns` attribute. This occurs when the function is called with multi-index columns.
+The issue with the buggy function `pivot_table` is that it fails to accurately handle the case when `aggfunc` is a list of aggregation functions. This leads to incorrect behavior and subsequent errors, as indicated in the failing test.
 
-To fix this bug, the code needs to be modified to handle the multi-index columns case properly.
-
-One approach to fixing this bug is to add a check to ensure that the input `columns` are in an appropriate format before attempting to access the `columns` attribute of the input. If the input `columns` are in a multi-index format, the code should handle the columns differently to avoid the AttributeError.
-
-Here is the corrected code for the `pivot_table` function:
+Here is the corrected version of the `pivot_table` function:
 
 ```python
-# this is the corrected function
-@Substitution("\ndata : DataFrame")
-@Appender(_shared_docs["pivot_table"], indents=1)
+from typing import List, Union
+from pandas import DataFrame, MultiIndex, Index, concat
+from pandas.core.groupby import Grouper
+from pandas.core.dtypes.generic import ABCDataFrame
+
 def pivot_table(
     data,
     values=None,
@@ -22,21 +20,34 @@ def pivot_table(
     margins_name="All",
     observed=False,
 ) -> "DataFrame":
-    index = _convert_by(index)
-    columns = _convert_by(columns)
+
+    # ... (unchanged preceding code)
 
     if isinstance(aggfunc, list):
-        # ... (remaining code stays the same)
+        pieces: List[DataFrame] = []
+        keys = []
 
-    # Check if columns are multi-index
-    if isinstance(columns, (list, tuple)) and any(isinstance(c, (list, tuple)) for c in columns):
-        keys = [c for c in columns if not isinstance(c, (list, tuple))]
-    else:
-        keys = columns
+        for func in aggfunc:
+            table = pivot_table(
+                data,
+                values=values,
+                index=index,
+                columns=columns,
+                fill_value=fill_value,
+                aggfunc=func,
+                margins=margins,
+                dropna=dropna,
+                margins_name=margins_name,
+                observed=observed,
+            )
+            pieces.append(table)
+            keys.append(getattr(func, "__name__", func))
 
-    # ... (remaining code for the function remains the same)
+        return concat(pieces, keys=keys, axis=1)
+
+    # ... (unchanged remaining code)
 ```
 
-With this modification, the `pivot_table` function now correctly handles the case of multi-index columns and avoids the AttributeError that was previously occurring.
+In this corrected version, the function now correctly handles the case where `aggfunc` is a list. It iterates over each function in the `aggfunc` list and performs the pivot operation for each function. The results are concatenated into a single DataFrame, which is then returned.
 
-This corrected code should resolve the issue and pass the failing test case provided.
+With this correction, the failing test case should now pass, and the AttributeError should be resolved. This correction ensures that the `pivot_table` function handles the `aggfunc` parameter correctly, allowing for accurate aggregation and pivot operations.

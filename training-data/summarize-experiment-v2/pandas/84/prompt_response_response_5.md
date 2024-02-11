@@ -1,37 +1,39 @@
-Potential Error Location:
-The error occurs at the line `clocs = [index._get_level_number(i) for i in clocs]` in the `_unstack_multiple` function. This line tries to get the level number for each item in `clocs` from the index. If a level is not found, it raises a KeyError.
+The bug in the `_unstack_multiple` function seems to be related to the way the levels of the MultiIndex are handled, particularly in the line `clocs = [index._get_level_number(i) for i in clocs]`. This line tries to get the level number for each item in `clocs` but seems to be failing when the level is specified as a tuple.
 
-Bug Cause:
-The bug is caused by the fact that the levels in `clocs` are not found in the MultiIndex object. This causes the `_get_level_number` function to raise a KeyError.
+The issue is likely caused by the way the function expects to receive the levels. The levels are currently expected to be passed as individual level names, but in some test cases, they are being passed as tuples.
 
-Approaches for Fixing the Bug:
-1. Check if the levels in `clocs` exist in the MultiIndex before using `_get_level_number`. If a level does not exist, handle it gracefully without raising a KeyError.
-2. Add proper error handling to deal with cases where the levels in `clocs` are not found in the MultiIndex.
+Possible approaches for fixing the bug include modifying how the levels are handled, changing the way the `_get_level_number` function is called, or updating the function to handle tuple names. Additionally, the function should be adapted to handle both single level names and tuple names.
 
-Corrected Code:
+Here is the corrected version of the `_unstack_multiple` function that should resolve the issue:
+
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
-    
+
+    # NOTE: This doesn't deal with hierarchical columns yet
+
     index = data.index
-    
-    existing_levels = []
-    for i in clocs:
-        try:
-            level_number = index._get_level_number(i)
-            existing_levels.append(level_number)
-        except KeyError:
-            # Handle the case where the level is not found
-            existing_levels.append(None)
 
-    if None in existing_levels:
-        # Handle the case where at least one level is not found
-        # Add necessary error handling or return an appropriate result
-        return None
+    cloc_numbers = []
+    for loc in clocs:
+        if isinstance(loc, tuple):
+            cloc_numbers.append(index._get_level_number(loc[0]))
+        else:
+            cloc_numbers.append(index._get_level_number(loc))
 
-    # Rest of the function remains unchanged
-    # ...
+    rlocs = [i for i in range(index.nlevels) if i not in cloc_numbers]
+
+    clevels = [index.levels[i] for i in cloc_numbers]
+    ccodes = [index.codes[i] for i in cloc_numbers]
+    cnames = [index.names[i] for i in cloc_numbers]
+    rlevels = [index.levels[i] for i in rlocs]
+    rcodes = [index.codes[i] for i in rlocs]
+    rnames = [index.names[i] for i in rlocs]
+
+    # rest of the function remains unchanged
 ```
 
-The corrected code checks for each level in `clocs` if it exists in the MultiIndex. If a level is not found, it handles the case gracefully. This should prevent the KeyError from occurring and resolve the issue.
+This corrected version of the function handles both single level names and tuple names and should be able to pass the failing test cases. It also takes into account the expected and actual input/output variable information provided.
+
+This fix is expected to resolve the issue and satisfy the requirements outlined in the GitHub issue.

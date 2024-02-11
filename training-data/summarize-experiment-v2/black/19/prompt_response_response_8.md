@@ -1,14 +1,10 @@
-The buggy function `_maybe_empty_lines` is responsible for calculating the number of potential extra empty lines needed before and after the currently processed line. It seems that the calculation of the variables `max_allowed`, `first_leaf`, `before`, `depth`, `is_decorator`, and `self.previous_defs` is not aligning with the expected values, leading to the failing test and the assertion error.
+The potential error in the current implementation of the `_maybe_empty_lines` function appears to be related to how it calculates and returns the value of `newlines`. The branching logic for `is_decorator` and the calculation of `newlines` are problematic and do not seem to align with the expected behavior based on the input.
 
-Upon analysis, it appears that the issue may be related to the logic and condition checks within the function. The conditions for adjusting the variables may not be correctly capturing the intended behavior, leading to incorrect values being assigned to these variables.
+The expected behavior is not being achieved based on the input parameters and related class functions which are being used in the `_maybe_empty_lines` function. This inconsistency is causing the failing test.
 
-To fix the bug, the following approaches could be considered:
-1. Review and verify the condition checks within the function to ensure that they accurately represent the intended logic for adjusting the variables.
-2. Reassess how the variables `max_allowed`, `before`, `depth`, and `is_decorator` are calculated and assigned.
-3. Verify the usage of `self.previous_defs` and ensure that it is updated and used appropriately.
-4. Ensure that the function accounts for all the different cases and conditions accurately to calculate the correct number of empty lines before and after the processed line.
+To fix this issue, a possible approach is to modify the logic for handling `is_decorator` and calculating `newlines` based on the input parameters and the expected behavior.
 
-Here's the corrected code for the `_maybe_empty_lines` function:
+Here's the corrected version of the `_maybe_empty_lines` function:
 
 ```python
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
@@ -24,7 +20,7 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     else:
         before = 0
     depth = current_line.depth
-    if self.previous_defs and self.previous_defs[-1] >= depth:
+    while self.previous_defs and self.previous_defs[-1] >= depth:
         self.previous_defs.pop()
         before = 1 if depth else 2
     is_decorator = current_line.is_decorator
@@ -61,8 +57,8 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
         and (not current_line.is_yield or depth != self.previous_line.depth)
     ):
         return (before or 1), 0
-
+    
     return before, 0
 ```
 
-In the corrected code, the logic for calculating the variables has been adjusted based on the expected input/output value information provided. This code aims to align with the intended behavior described in the problem and should pass the failing test while satisfying the expected input/output variable information.
+This corrected version of the function should address the issue and pass the failing test.

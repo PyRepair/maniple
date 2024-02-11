@@ -1,34 +1,40 @@
-The bug is caused by the `upstream_option_index` being used to try and remove the `--set-upstream` and its argument from the `command.script_parts` list. However, there is an issue with the logic used to determine the `upstream_option_index` and to subsequently remove the elements from the list, which results in an IndexError.
+The bug in the function is caused by the incorrect removal of the --set-upstream or -u arguments from the `command.script_parts`. This results in an `IndexError` when trying to pop elements that don't exist in the list.
 
-To fix this issue, we can modify the logic used to determine the `upstream_option_index` and the removal of elements from the list. We will also need to update the `push_upstream` value based on the provided `stderr`.
+To fix the bug, we need to check if the upstream options are present in the `command.script_parts` before trying to remove them. If they are present, we should remove them along with their corresponding arguments.
 
-Here's the corrected code for the `get_new_command` function:
+Here's the corrected version of the function:
 
 ```python
+from thefuck.utils import replace_argument
+from thefuck.specific.git import git_support
+
 @git_support
 def get_new_command(command):
     # If --set-upstream or -u are passed, remove it and its argument. This is
     # because the remaining arguments are concatenated onto the command suggested
     # by git, which includes --set-upstream and its argument
-    upstream_removed = False
-    script_parts = command.script_parts.copy()
-    for option in ['--set-upstream', '-u']:
+    if '--set-upstream' in command.script_parts:
+        upstream_option_index = command.script_parts.index('--set-upstream')
+    elif '-u' in command.script_parts:
+        upstream_option_index = command.script_parts.index('-u')
+    else:
+        upstream_option_index = -1
+    
+    if upstream_option_index != -1:
+        command.script_parts.pop(upstream_option_index)
         try:
-            upstream_option_index = script_parts.index(option)
-            script_parts.pop(upstream_option_index)
-            script_parts.pop(upstream_option_index)  # Remove the argument as well
-            upstream_removed = True
-            break
-        except ValueError:
+            command.script_parts.pop(upstream_option_index)
+        except IndexError:
             pass
 
-    if upstream_removed:
-        push_upstream = command.stderr.split('\n')[-3].strip().partition('git ')[2]
-        return replace_argument(" ".join(script_parts), 'push', push_upstream)
-    else:
-        return " ".join(command.script_parts)
+    push_upstream = command.stderr.split('\n')[-3].strip().partition('git ')[2]
+    return replace_argument(" ".join(command.script_parts), 'push', push_upstream)
 ```
 
-This corrected code now properly handles the removal of `--set-upstream` or `-u` and its argument from the `script_parts` list. It also correctly sets the `push_upstream` value based on the provided `stderr`.
+This corrected function checks for the presence of --set-upstream or -u in the `command.script_parts` list before trying to remove them. It also includes a try-except block to handle the case where the argument following the option doesn't exist.
 
-With these corrections, the function should now pass the failing test, satisfy the expected input/output variable information, and successfully resolve the GitHub issue.
+This corrected function should pass the failing test and satisfy the expected input/output variable information.
+
+As for the GitHub issue, this fix should resolve the problem with the git push -u origin suggestions and should also fix the issue caused by #538.
+
+I hope that helps! Let me know if you have further questions or issues!

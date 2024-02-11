@@ -1,17 +1,16 @@
-The error message seems to be related to the original source code. The error is thrown due to a mismatch in the expected and actual command list attributes. The error originates from the `luigi.contrib.spark.subprocess.Popen` method being called with different parameters than expected. The actual call is not in line with the expected list structure. 
+The failing test cases suggest that the problem occurs when processing arguments for the Spark submit command, indicating that the issue is most likely with the `_dict_arg` function which is responsible for processing the arguments.
 
-Original error message:
-```
-E       AssertionError: Lists differ: ['ss-stub', '--master', 'yarn-client', '--deploy-mode', 'client', '... != ['ss-stub', '--master', 'yarn-client', ...]
-E       
-E       First differing element <element>
-E       <line 1>
-E       <line 2>
-E       
-E       Diff is 812 characters long. Set self.maxDiff to None to see it.
-```
+The original error messages are not very descriptive, but it is clear that the failing tests are related to checking the arguments passed to the `proc` when calling the `run` function for `TestSparkSubmitTask` and `TestDefaultSparkSubmitTask`. The `assertEqual` method is used to compare the arguments passed to the `proc`.
 
-Simplified error message:
-```
-E       AssertionError: Lists differ: Expected list != Actual list, First differing element at <line number>
-```
+Simplified error messages:
+1. Original: 
+   AssertionError: Lists differ: ['ss-[240 chars]f', '"Prop=Value"', ...] != ['ss-[240 chars]f', 'Prop=Value', ...]
+   First differing element 18: '"Prop=Value"' vs 'Prop=Value'
+
+2. Original:
+   AssertionError: Lists differ: ['ss-[131 chars] '--archives', 'archive1', '--conf, ...'] != ['ss-[131 chars] '--archives', 'archive1', '--conf', 'prop1=val1', 'test.py']
+   First differing element 12: '"prop1=val1"' vs 'prop1=val1'
+
+By simplifying the messages, we can identify that the error is likely caused by the way values are being processed or formatted in the `_dict_arg` function. The "prop1=val1" appears to be the key-value switch and arguments are enclosed within quotes incorrectly which causes the comparison to fail, and provokes the error message.
+
+The fix will be to modify the `_dict_arg` function to handle the key-value switches and arguments correctly and to ensure proper formatting in the function.

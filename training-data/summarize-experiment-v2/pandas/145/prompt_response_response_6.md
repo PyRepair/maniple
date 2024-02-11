@@ -1,9 +1,4 @@
-The issue in the `dispatch_to_series` function appears to be with the handling of the multiplication operation between a DataFrame and a Series containing NaT values. The function is attempting to perform the operation directly on the underlying NumPy array, which results in the "unsupported operand type(s) for *: 'numpy.ndarray' and 'NaTType'" error.
-
-To fix this issue, the multiplication operation should be performed by broadcasting the operation over the DataFrame and the Series at the Pandas level. This will ensure that the NaT values are handled correctly.
-
-Here's the corrected code for the `dispatch_to_series` function:
-
+# The source code of the corrected function
 ```python
 def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     """
@@ -22,29 +17,31 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     -------
     DataFrame
     """
-    import pandas.core.computation.expressions as expressions
-
     right = lib.item_from_zerodim(right)
+    
     if lib.is_scalar(right) or np.ndim(right) == 0:
-        new_data = left.apply(lambda col: func(col, right))
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b) for i in range(len(a.columns))}
 
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
-        new_data = left.apply(lambda col, idx: func(col, right[col]), axis=0)
+        
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b.iloc[:, i]) for i in range(len(a.columns))}
 
-    elif isinstance(right, ABCSeries) and axis == "columns":
-        assert right.index.equals(left.columns)
-        new_data = left.apply(lambda col, idx: func(col, right), axis=0)
+    elif isinstance(right, ABCSeries) and (axis == "columns" or b.index.equals(a.columns)):
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b) for i in range(len(a.columns))}
 
     elif isinstance(right, ABCSeries):
         assert right.index.equals(left.index)
-        new_data = left.apply(lambda col, idx: func(col, right[idx]), axis=0)
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b) for i in range(len(a.columns))}
 
     else:
-        # Remaining cases have less-obvious dispatch rules
         raise NotImplementedError(right)
 
+    new_data = expressions.evaluate(column_op, str_rep, left, right)
     return new_data
 ```
-
-With this correction, the `dispatch_to_series` function should correctly handle the multiplication operation between a DataFrame and a Series containing NaT values, and it should pass the failing test case.

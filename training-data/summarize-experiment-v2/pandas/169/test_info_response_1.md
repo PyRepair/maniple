@@ -1,8 +1,4 @@
-The error message indicates a `ValueError: need at least one array to concatenate` that occurred in the `concat_compat` function, located in the `pandas/core/dtypes/concat.py` file. The error was originally triggered by a call to `df.quantile(0.5)` in the `pandas/tests/frame/test_quantile.py` file. This indicates that the issue is related to concatenation of arrays, but the exact context within the code is not clear.
-
-The error occurred during the execution of the `quantile` method, specifically at the line `result = data._data.quantile(qs=q, axis=1, interpolation=interpolation, transposed=is_transposed)` in the `quantile` function, as indicated by the stack trace.
+The error message indicates a ValueError related to needing at least one array to concatenate. The specific issue occurs at line 139 in the concat.py file, which is called from the quantile function in the frame.py file at line 8218. This error is coming from a failing test in the test_quantile_empty_no_columns function in the test_quantile.py file at line 475.
 
 Simplified error message:
-```
-ValueError: need at least one array to concatenate
-```
+ValueError: need at least one array to concatenate in concat.py at line 139, called from quantile in frame.py at line 8218. Test failing at test_quantile_empty_no_columns in test_quantile.py, line 475.

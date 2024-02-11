@@ -1,3 +1,6 @@
+Please fix the buggy function provided below and output a corrected version. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function.
+
+
 # The source code of the buggy function
 ```python
 # The relative path of the buggy file: keras/applications/imagenet_utils.py
@@ -112,29 +115,30 @@ def test_preprocess_input():
 
 Here is a summary of the test cases and error messages:
 
-The error occurred in the `_preprocess_numpy_input` method within the `keras/applications/imagenet_utils.py` module. The specific failure happened when trying to perform the `subtract` operation for the numpy array `x` at line 82. The error is a `UFuncTypeError` because it attempted to cast the output from `dtype('float64')` to `dtype('int32')` with casting rule `same_kind`. This was because it tried to perform a float64 operation on an int32 type of array.
+The failing test function `test_preprocess_input` failed in the `_preprocess_numpy_input` function located in 'keras/applications/imagenet_utils.py'. 
+The original error message was fairly technical and long, indicating that the cause was in `keras/applications/imagenet.py` and showing a complex trace at the bottom.
 
-The simplified error message can be stated as: 
-
-`UFuncTypeError: Cannot perform the subtract operations for different data types float64 and int32.`
+Simplified error message: 
+```
+Cannot cast ufunc 'subtract' output from dtype('float64') to dtype('int32') with casting rule 'same_kind'
+```
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-The issue appears to be a discrepancy in the data type between the input parameters and the variables right before the function's return. The input parameter `x` is of type `ndarray` with the value as a floating point or integer, depending on the case. However, the variable `x` right before the return is of type `dtype=float32`, which indicates a type mismatch. 
+## Expected Inputs and Outputs
+Since the focus here is to reduce the input and output pairs and to make it shorter, the input/output values and types are listed below:
 
-The mean variable remains unchanged and does not directly induce the error.
+### Input
+x (value and type): `(2, 10, 10, 3)`, `ndarray`
+mode (value and type): `'caffe'`, `str`
+data_format (value and type): `'channels_last'`, `str`
 
-## Updated input and output value pair:
+### Relevant variables right before the buggy function's return
+Output:
+mean (value and type): `[103.939, 116.779, 123.68]`, `list`
 
--  Input:
-    - x, value: `[[[8.32939097e+01, 1.58826939e+02, 7.11201740e+01] ... [1.87889982e+02, 1.53575807e+02, 3.38969476e+01]]]`, shape: `(2, 10, 10, 3)`, type: `ndarray`
-    - mode, value: `'caffe'`, type: `str`
-    - data_format, value: `'channels_last'`, type: `str`
-
-- Updated output:
-    - x, value: `[[[ -32.818832  ,   42.047935  ,  -40.386093  ] ... [ -70.04205   ,   36.796806  ,   64.209984  ]]]`, shape: `(2, 10, 10, 3)`, type: `ndarray`, dtype: float32
-    - mean, value: `[103.939, 116.779, 123.68]`, type: `list`
+We're presenting the selected input-output pair to facilitate a better understanding and analysis to correct the implementation of the buggy function.
 
 
 # Expected value and type of variables during the failing test execution

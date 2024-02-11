@@ -1,46 +1,9 @@
-Shorter version of runtime input and output value pair:
+I will take case 1 for creating the simplified test case:
 
-## Case 1
-### Runtime input
-command.script_parts: ['git', 'push']
-command.stderr: 'fatal: The current branch master has no upstream branch.'
+### Runtime value and type of the input parameters of the buggy function
+command.script_parts, value: `['git', 'push']`, type: list
+command.stderr, value: `'fatal: The current branch master has no upstream branch.`
 
-### Runtime output
-upstream_option_index: -1
-push_upstream: 'push --set-upstream origin master'
-
-## Case 2
-### Runtime input
-command.script_parts: ['git', 'push', '-u']
-command.stderr: 'fatal: The current branch master has no upstream branch.'
-
-### Runtime output
-upstream_option_index: 2
-push_upstream: 'push --set-upstream origin master'
-
-## Case 3
-### Runtime input
-command.script_parts: ['git', 'push', '-u', 'origin']
-command.stderr: 'fatal: The current branch master has no upstream branch.'
-
-### Runtime output
-upstream_option_index: 2
-push_upstream: 'push --set-upstream origin master'
-
-## Case 4
-### Runtime input
-command.script_parts: ['git', 'push', '--set-upstream', 'origin']
-command.stderr: 'fatal: The current branch master has no upstream branch.'
-
-### Runtime output
-upstream_option_index: 2
-push_upstream: 'push --set-upstream origin master'
-
-## Case 5
-### Runtime input
-command.script_parts: ['git', 'push', '--quiet']
-command.stderr: 'fatal: The current branch master has no upstream branch.'
-
-### Runtime output
-upstream_option_index: -1
-push_upstream: 'push --set-upstream origin master'
+### Runtime value and type of variables right before the buggy function's return
+upstream_option_index, value: `-1`, type: int
+push_upstream, value: `'push --set-upstream origin master'`, type: str

@@ -1,3 +1,6 @@
+Please fix the buggy function provided below and output a corrected version. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function.
+
+
 Assume that the following list of imports are available in the current environment, so you don't need to import them when generating a fix.
 ```python
 from thefuck.utils import replace_argument
@@ -97,52 +100,15 @@ thefuck/rules/git_push.py:27: IndexError
 ```
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-Shorter version of runtime input and output value pair:
+I will take case 1 for creating the simplified test case:
 
-## Case 1
-### Runtime input
-command.script_parts: ['git', 'push']
-command.stderr: 'fatal: The current branch master has no upstream branch.'
+### Runtime value and type of the input parameters of the buggy function
+command.script_parts, value: `['git', 'push']`, type: list
+command.stderr, value: `'fatal: The current branch master has no upstream branch.`
 
-### Runtime output
-upstream_option_index: -1
-push_upstream: 'push --set-upstream origin master'
-
-## Case 2
-### Runtime input
-command.script_parts: ['git', 'push', '-u']
-command.stderr: 'fatal: The current branch master has no upstream branch.'
-
-### Runtime output
-upstream_option_index: 2
-push_upstream: 'push --set-upstream origin master'
-
-## Case 3
-### Runtime input
-command.script_parts: ['git', 'push', '-u', 'origin']
-command.stderr: 'fatal: The current branch master has no upstream branch.'
-
-### Runtime output
-upstream_option_index: 2
-push_upstream: 'push --set-upstream origin master'
-
-## Case 4
-### Runtime input
-command.script_parts: ['git', 'push', '--set-upstream', 'origin']
-command.stderr: 'fatal: The current branch master has no upstream branch.'
-
-### Runtime output
-upstream_option_index: 2
-push_upstream: 'push --set-upstream origin master'
-
-## Case 5
-### Runtime input
-command.script_parts: ['git', 'push', '--quiet']
-command.stderr: 'fatal: The current branch master has no upstream branch.'
-
-### Runtime output
-upstream_option_index: -1
-push_upstream: 'push --set-upstream origin master'
+### Runtime value and type of variables right before the buggy function's return
+upstream_option_index, value: `-1`, type: int
+push_upstream, value: `'push --set-upstream origin master'`, type: str
 
 
 # Expected value and type of variables during the failing test execution

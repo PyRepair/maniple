@@ -4,8 +4,11 @@
             "bugID": 9,
             "start_line": 11,
             "file_name": "thefuck/rules/git_push.py",
-            "replace_code": "def get_new_command(command):\n    script = command.script_parts\n    try:\n        upstream_option_index = script.index('--set-upstream')\n    except ValueError:\n        upstream_option_index = -1\n    try:\n        alt_index = script.index('-u')\n        if upstream_option_index == -1 or alt_index < upstream_option_index:\n            upstream_option_index = alt_index\n    except ValueError:\n        pass\n\n    if upstream_option_index != -1:\n        script.pop(upstream_option_index)\n        try:\n            script.pop(upstream_option_index)  # Above line would shift elements left\n        except IndexError:\n            pass\n\n    push_upstream = command.stderr.split('\\n')[-3].strip().partition('git ')[2]\n    return replace_argument(\" \".join(script), 'push', push_upstream)",
-            "import_list": []
+            "replace_code": "def get_new_command(command):\n    # If --set-upstream or -u are passed, remove it and its argument. This is\n    # because the remaining arguments are concatenated onto the command suggested\n    # by git, which includes --set-upstream and its argument\n    try:\n        upstream_option_index = command.script_parts.index('--set-upstream')\n    except ValueError:\n        try:\n            upstream_option_index = command.script_parts.index('-u')\n        except ValueError:\n            upstream_option_index = -1\n    \n    if upstream_option_index is not -1:\n        command.script_parts.pop(upstream_option_index)\n        command.script_parts.pop(upstream_option_index)\n\n    push_upstream = command.stderr.split('\\n')[-3].strip().partition('git ')[2]\n    return replace_argument(\" \".join(command.script_parts), 'push', push_upstream)",
+            "import_list": [
+                "from thefuck.utils import replace_argument",
+                "from thefuck.specific.git import git_support"
+            ]
         }
     ]
 }

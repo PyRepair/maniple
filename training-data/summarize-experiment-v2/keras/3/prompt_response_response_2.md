@@ -1,46 +1,62 @@
-### 1. Analyzing the Bug
+The potential error location within the problematic function is likely in the process of computing the output for layers that have multiple outputs without mask support.
 
-The error message "AssertionError: Could not compute output Tensor" indicates that there's an issue with computing the output tensor during the model cloning process. The failing test `test_clone_functional_model_with_multi_outputs` demonstrates the problem when trying to clone a model with multiple outputs.
+The failing test code is attempting to clone a functional model with multiple outputs but is encountering an error that prevents the computation of output for a specific tensor ("swap_layer_1/Identity:0").
 
-### 2. Potential Error Location
+The corresponding error message mentions that the assertion error occurs when it tries to compute the output for the "swap_layer_1/Identity:0" tensor.
 
-The potential error location within the `_clone_functional_model` function could be around the part where it computes the output tensors, specifically when handling multiple output tensors.
+The GitHub issue further confirms that the issue arises when using a functional model with a layer that has more outputs without mask support. The issue occurs due to the Lambda layer not supporting masks, which leads to the output_masks always being None.
 
-### 3. Elucidating the Bug's Cause
+To fix the bug, the code needs to be updated to handle cases where a layer does not support masks, and the output_masks are always None.
 
-- The failing test passes a model with multiple outputs to the `clone_model` function.
-- The error message indicates that there's an issue with computing one of the output tensors during the model cloning process.
-- The failing test's input/output variable information is not directly related to the error message, but it highlights the use case of cloning models with multiple outputs.
-- The GitHub issue also indicates that when using a functional model with a layer that has more than one output without mask support, the error can appear.
-
-### 4. Possible Approaches for Fixing the Bug
-
-- The issue appears to be related to handling multiple output tensors during the model cloning process.
-- The fix might involve ensuring proper handling of multiple output tensors, especially in cases where the layer does not support masks.
-
-### 5. Corrected Code
-
-Here's the corrected code for the `_clone_functional_model` function after considering the potential issues:
+The corrected code for the problematic function is as follows:
 
 ```python
-# The relative path of the buggy file: keras/models.py
-
 def _clone_functional_model(model, input_tensors=None):
-    # ... (previous code remains unchanged)
-
-    # Check that we did compute the model outputs,
-    # then instantiate a new model from inputs and outputs.
-    output_tensors = []
-    for x in model.outputs:
-        assert x in tensor_map, 'Could not compute output ' + str(x)
-        tensor, _ = tensor_map[x]
-        output_tensors.append(tensor)
+    if not isinstance(model, Model):
+        raise ValueError('Expected `model` argument to be a `Model` instance, got ', model)
+    if isinstance(model, Sequential):
+        raise ValueError('Expected `model` argument to be a functional `Model` instance, got a `Sequential` instance instead:', model)
     
-    # Create a list of masks for the output tensors
-    output_masks = [None] * len(output_tensors)
+    # (existing code...)
 
-    # Return a new Model instance reproducing the behavior of the original model
-    return Model(input_tensors, output_tensors, name=model.name, masks=output_masks)
+    for x, y in zip(model.inputs, input_tensors):
+        tensor_map[x] = (y, None)  # tensor, mask
+
+    # Iterated over every node in the reference model, in depth order.
+    depth_keys = list(model._nodes_by_depth.keys())
+    depth_keys.sort(reverse=True)
+    for depth in depth_keys:
+        nodes = model._nodes_by_depth[depth]
+        for node in nodes:
+            # (existing code...)
+                
+                # Call layer.
+                if node.arguments:
+                    kwargs = node.arguments
+                else:
+                    kwargs = {}
+                if len(computed_data) == 1:
+                    computed_tensor, computed_mask = computed_data[0]
+                    if has_arg(layer.call, 'mask'):
+                        if 'mask' not in kwargs:
+                            kwargs['mask'] = computed_mask
+                    output_tensors = to_list(layer(computed_tensor, **kwargs))
+                    output_masks = [None] * len(output_tensors)  # Set output_masks to None
+                    computed_tensors = [computed_tensor]
+                    computed_masks = [computed_mask]
+                else:
+                    computed_tensors = [x[0] for x in computed_data]
+                    computed_masks = [x[1] for x in computed_data]
+                    if has_arg(layer.call, 'mask'):
+                        if 'mask' not in kwargs:
+                            kwargs['mask'] = computed_masks
+                    output_tensors = to_list(layer(computed_tensors, **kwargs))
+                    output_masks = [None] * len(output_tensors)  # Set output_masks to None
+
+                for x, y, mask in zip(reference_output_tensors, output_tensors, output_masks):
+                    tensor_map[x] = (y, mask)
+
+    # (existing code...)
 ```
 
-The corrected code adds a list `output_masks` with `None` values to ensure that proper masks are handled for the output tensors. This should address the issue raised in the failing test and GitHub issue.
+The updated code sets the `output_masks` to None for layers that do not support masks, addressing the issue where the `output_masks` were always None. This updated code should resolve the issue described in the GitHub report and pass the failing test case.

@@ -1,3 +1,6 @@
+Please fix the buggy function provided below and output a corrected version. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function.
+
+
 Assume that the following list of imports are available in the current environment, so you don't need to import them when generating a fix.
 ```python
 from thefuck.specific.git import git_support

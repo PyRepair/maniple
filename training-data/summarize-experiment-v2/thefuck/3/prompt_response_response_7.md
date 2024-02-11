@@ -1,21 +1,23 @@
-The issue here is that the function `info` in the Fish class is not returning the correct version of the Fish shell. The function is trying to get the version using `echo $FISH_VERSION`, which is incorrect. The function should get the version using `fish --version` instead.
+The problematic function appears to be "info(self)". The issue seems to stem from the fact that the Popen call is using ['fish', '-c', 'echo $FISH_VERSION'] instead of ['fish', '--version'], which causes the function to return the incorrect version of the Fish shell.
 
-The cause of the bug can be identified as follows:
-(a) The buggy function tries to get the version of the Fish shell using an incorrect command.
-(b) The failing test expects the version '3.5.9', but the function returns a different version.
-(c) The error message shows the assertion error between the expected and actual version.
+To fix this issue, the "info(self)" function in the Fish class needs to be updated to use the correct command to get the version of the Fish shell.
 
-To fix the bug, the function should be modified to correctly fetch the version of Fish shell using the `fish --version` command.
-
-The corrected code for the `info` function in the Fish class is as follows:
+Here is the correct and fixed version of the "info(self)" function:
 
 ```python
-def info(self):
-    """Returns the name and version of the current shell"""
-    proc = Popen(['fish', '--version'],
-                 stdout=PIPE, stderr=DEVNULL)
-    version = proc.stdout.read().decode('utf-8').strip()
-    return u'Fish Shell {}'.format(version.split(' ')[2])
+# The relative path of the buggy file: thefuck/shells/fish.py
+
+class Fish(Generic):
+
+    # this is the fixed and corrected function
+    def info(self):
+        """Returns the name and version of the current shell"""
+        proc = Popen(['fish', '--version'],
+                     stdout=PIPE, stderr=DEVNULL)
+        version = proc.stdout.read().decode('utf-8').strip()
+        return u'Fish Shell {}'.format(version)
 ```
 
-With this correction, the function will return the correct version of the Fish shell, which will satisfy the failing test and resolve the issue posted on GitHub.
+The fixed code should resolve the issue with obtaining the correct version of the Fish shell and pass the failing test case. It also aligns with the expected input/output variable information.
+
+This corrected code can then be used to replace the buggy version of the function.

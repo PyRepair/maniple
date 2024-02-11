@@ -1,3 +1,6 @@
+Please fix the buggy function provided below and output a corrected version. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function.
+
+
 # The source code of the buggy function
 ```python
 # The relative path of the buggy file: pandas/core/internals/managers.py

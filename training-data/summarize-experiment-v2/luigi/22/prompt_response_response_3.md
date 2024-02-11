@@ -1,15 +1,18 @@
-The issue in the buggy function is that the `last_active` parameter can be `None`, and when it's `None`, the code tries to perform an operation on it which causes the `TypeError`. We need to handle the case when `last_active` is `None`.
+The issue in the buggy function is that it does not handle the case when the `last_active` parameter is not provided. This causes a `NoneType` error when trying to add it to an integer in the `prune` function.
 
-To fix the bug, we can modify the `prune` method of the `Worker` class to check if `last_active` is `None` before performing the comparison. If `last_active` is `None`, we can assume a default value, for example 0, for the purpose of the comparison.
+To fix this, we can provide a default value for `last_active` in the constructor, and update the `prune` function to handle the case when `last_active` is `None`.
 
-Here's the corrected code for the `prune` method:
+Here's the corrected version of the function:
 
 ```python
+import time
+
 class Worker(object):
     """
     Structure for tracking worker activity and keeping their references.
     """
     
+    # corrected function
     def __init__(self, worker_id, last_active=None):
         self.id = worker_id
         self.reference = None  # reference to the worker in the real world. (Currently a dict containing just the host)
@@ -19,14 +22,11 @@ class Worker(object):
         self.info = {}
     
     def prune(self, config):
-        if self.last_active is None:
-            last_active = 0
-        else:
-            last_active = self.last_active
-            
-        if last_active + config.worker_disconnect_delay < time.time():
-            # perform prune operation
+        if self.last_active is not None and self.last_active + config.worker_disconnect_delay < time.time():
+            # do something with the worker
             pass
 ```
 
-With this modification, the `prune` method will handle the case when `last_active` is `None` and avoid the `TypeError` that was occurring.
+With this corrected version, the `prune` function checks if `self.last_active` is not `None` before performing any operations on it, which avoids the `NoneType` error.
+
+This corrected version should pass the failing test and satisfy the expected input/output variable information.

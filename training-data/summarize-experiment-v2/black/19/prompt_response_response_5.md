@@ -1,14 +1,10 @@
-Based on the provided information, the potential error location within the problematic function is in the logic related to the `max_allowed`, `before`, `depth`, `is_decorator`, and `self.previous_defs` variables. It seems that the current logic is not producing the expected output in certain scenarios, leading to the failing test case.
+The bug in the function `_maybe_empty_lines` is likely caused by a logical error or incorrect variable manipulation. It's attempting to calculate the number of potential extra empty lines needed before and after the currently processed line. Based on the provided information, the bug seems to cause an assertion error when comparing the expected and actual outputs of the failing test.
 
-The bug's cause may be related to the incorrect handling of conditions and variables in the `_maybe_empty_lines` function. It seems that the function is not correctly determining the number of potential extra empty lines needed before and after the currently processed line.
+To fix the bug, you might consider re-evaluating the logic used to calculate the number of empty lines. It's important to ensure that the conditions and calculations are correctly handled to produce the expected results.
 
-Possible approaches for fixing the bug include:
-1. Reviewing the logic related to determining the `max_allowed`, `before`, `depth`, `is_decorator`, and `self.previous_defs` variables and ensuring that it aligns with the expected behavior.
-2. Checking conditional statements to ensure that they are correctly considering the input parameters and previous state.
-
-Here's the corrected code for the problematic function:
-
+Here's a corrected version of the `_maybe_empty_lines` function based on the analysis:
 ```python
+# Corrected version of the buggy function
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     max_allowed = 1
     if current_line.depth == 0:
@@ -22,9 +18,19 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     else:
         before = 0
     depth = current_line.depth
-    if current_line.is_def or current_line.is_class:
-        self.previous_defs.append(depth)
+    while self.previous_defs and self.previous_defs[-1] >= depth:
+        self.previous_defs.pop()
+        before = 1 if depth else 2
+    is_decorator = current_line.is_decorator
+    if is_decorator or current_line.is_def or current_line.is_class:
+        if not is_decorator:
+            self.previous_defs.append(depth)
         if self.previous_line is None:
+            # Don't insert empty lines before the first line in the file.
+            return 0, 0
+
+        if self.previous_line and self.previous_line.is_decorator:
+            # Don't insert empty lines between decorators.
             return 0, 0
 
         newlines = 2
@@ -52,5 +58,6 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
 
     return before, 0
 ```
+This corrected version should fix the logical issues in the previous version of the function and should now produce the correct results for the given inputs.
 
-By making the above changes, the function should now produce the expected output and pass the failing test case.
+You can use this corrected function as a drop-in replacement for the buggy version.

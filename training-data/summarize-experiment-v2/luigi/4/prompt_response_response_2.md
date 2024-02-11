@@ -1,11 +1,10 @@
-The issue here is that the `columns` attribute of the `DummyS3CopyToTableKey` instance is set to `None`. This causes the `TypeError: object of type 'NoneType' has no len()` when trying to check the length of `self.columns`. The code should be modified to handle the case when `self.columns` is `None`.
+The issue is caused by the buggy function not checking for the `None` value of `self.columns` before trying to find the length. This results in a `TypeError` when trying to find the length of `None`.
 
-To fix this issue, you can modify the `copy` function in the `S3CopyToTable` class to check if `self.columns` is not None before checking its length. If it is None, then the `colnames` variable should also be set to an empty string.
+To fix this issue, we need to modify the condition to check if `self.columns` is not `None` before checking its length.
 
-Here's the corrected code for the `copy` function:
+Here's the corrected code for the buggy function:
 
 ```python
-# Inside the S3CopyToTable class
 def copy(self, cursor, f):
     """
     Defines copying from s3 into redshift.
@@ -14,7 +13,7 @@ def copy(self, cursor, f):
     """
     logger.info("Inserting file: %s", f)
     colnames = ''
-    if self.columns is not None:  # Check if self.columns is not None
+    if self.columns and len(self.columns) > 0:
         colnames = ",".join([x[0] for x in self.columns])
         colnames = '({})'.format(colnames)
 
@@ -31,6 +30,6 @@ def copy(self, cursor, f):
     )
 ```
 
-With this modification, the `copy` function will now handle the case where `self.columns` is `None` and will not throw a `TypeError`. This modification should resolve the issue and pass the failing test. It also aligns with the suggestion on the GitHub issue.
+With this fix, the function will first check if `self.columns` is not `None` before trying to find its length.
 
-After making this change, the Redshift COPY should work correctly even when `columns` are not provided, and the TypeError should no longer occur.
+This corrected function will pass the failing test and resolve the issue posted in the GitHub report.

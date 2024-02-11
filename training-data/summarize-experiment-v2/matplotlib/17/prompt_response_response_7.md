@@ -1,19 +1,38 @@
-Based on the given information, the potential error in the buggy function appears to be related to the calculation of absolute values and potential overflows. The function `nonsingular` aims to modify endpoints of a range to avoid singularities, and it seems that for certain input values, the absolute value calculation and subsequent operations are leading to overflow errors.
-
-To fix the bug, you can consider the following approaches:
-1. Use floating-point arithmetic for absolute value calculations and comparisons to avoid overflow errors.
-2. Implement checks for extreme input values to prevent overflow situations.
-3. Handle the case of extreme input values such as `-inf` and `inf` appropriately to avoid runtime warnings and overflows.
-
-Here is the corrected code for the `nonsingular` function considering the above approaches:
-
 ```python
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
-    if not np.isfinite(vmin) or not np.isfinite(vmax):
+    """
+    Modify the endpoints of a range as needed to avoid singularities.
+
+    Parameters
+    ----------
+    vmin, vmax : float
+        The initial endpoints.
+    expander : float, default: 0.001
+        Fractional amount by which *vmin* and *vmax* are expanded if
+        the original interval is too small, based on *tiny*.
+    tiny : float, default: 1e-15
+        Threshold for the ratio of the interval to the maximum absolute
+        value of its endpoints.  If the interval is smaller than
+        this, it will be expanded.  This value should be around
+        1e-15 or larger; otherwise the interval will be approaching
+        the double precision resolution limit.
+    increasing : bool, default: True
+        If True, swap *vmin*, *vmax* if *vmin* > *vmax*.
+
+    Returns
+    -------
+    vmin, vmax : float
+        Endpoints, expanded and/or swapped if necessary.
+        If either input is inf or NaN, or if both inputs are 0 or very
+        close to zero, it returns -*expander*, *expander*.
+    """
+    import numpy as np
+
+    if (not np.isfinite(vmin)) or (not np.isfinite(vmax)):
         return -expander, expander
 
     swapped = False
-    if vmax < vmin:
+    if increasing and vmax < vmin:
         vmin, vmax = vmax, vmin
         swapped = True
 
@@ -23,16 +42,14 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         vmax = expander
 
     elif vmax - vmin <= maxabsvalue * tiny:
-        if abs(vmax) < tiny and abs(vmin) < tiny:
+        if vmax == 0 and vmin == 0:
             vmin = -expander
             vmax = expander
         else:
-            vmin -= expander * abs(vmin)
-            vmax += expander * abs(vmax)
+            vmin -= expander*abs(vmin)
+            vmax += expander*abs(vmax)
 
-    if swapped and not increasing:
+    if (not increasing) and swapped:
         vmin, vmax = vmax, vmin
     return vmin, vmax
 ```
-
-This corrected function applies the suggested approaches to handle extreme input values and prevent overflow errors. It should now satisfy the expected input/output variable information provided.

@@ -1,10 +1,10 @@
-The bug in the function `_preprocess_numpy_input` is due to the incorrect data type of the input parameter `x`. The function is trying to perform operations that are only valid for floating point data types, but in some cases, the input `x` may be of type `int32`.
+The bug in the `_preprocess_numpy_input` function seems to be related to the data type conversion when the mode is set to 'tf'. The error message "Cannot cast ufunc 'subtract' output from dtype('float64') to dtype('int32') with casting rule 'same_kind'" indicates that there is a mismatch in data types during the subtraction operation.
 
-To fix this bug, we can ensure that the input `x` is always cast to a floating point data type before performing any operations on it. This can be achieved by adding a line of code to convert `x` to a floating point data type if it is not already of that type.
-
-Here's the corrected code for the `_preprocess_numpy_input` function:
+To fix this bug, you can explicitly convert the input array `x` to a float type before performing the arithmetic operations. Here is the corrected version of the function:
 
 ```python
+import numpy as np
+
 def _preprocess_numpy_input(x, data_format, mode):
     """Preprocesses a Numpy array encoding a batch of images.
 
@@ -25,12 +25,12 @@ def _preprocess_numpy_input(x, data_format, mode):
     # Returns
         Preprocessed Numpy array.
     """
-    x = x.astype('float32')  # Convert x to float32 if it's not already in that format
+    x = np.asarray(x, dtype=np.float32)  # convert input array to float type
 
     if mode == 'tf':
         x /= 127.5
         x -= 1.
-        return x
+        return x.astype(np.float32)  # explicitly cast the output to float32
 
     if mode == 'torch':
         x /= 255.
@@ -78,4 +78,4 @@ def _preprocess_numpy_input(x, data_format, mode):
     return x
 ```
 
-With this correction, the function should now handle both floating point and integer input arrays correctly and pass the failing test case provided.
+This corrected version ensures that the input array `x` is explicitly converted to a float type before any arithmetic operations, and also explicitly casts the output to float32 when the mode is 'tf'. This should fix the data type mismatch issue and make the function work as expected.

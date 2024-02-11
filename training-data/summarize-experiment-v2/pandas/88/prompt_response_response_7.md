@@ -1,19 +1,10 @@
-Potential Error Location:
-The error is caused by trying to access the 'columns' attribute of a 'Series' object inside the pivot_table function.
+The issue seems to be related to the `pivot_table` function encountering an error while working with multi-index columns. Specifically, it is failing when the `table.columns.nlevels` is being accessed and is resulting in an AttributeError because the `table` is a Series object, and Series objects do not have a 'columns' attribute.
 
-Bug Cause Analysis:
-The pivot_table function is failing due to the problematic section of the input DataFrame passed to it. The error occurs when making attribute references to a 'Series' object.
+Upon further inspection, it appears that the multi-index columns in the test case are causing the problem. The function is not handling multi-index columns correctly in some scenarios, specifically when the table is a Series instead of a DataFrame.
 
-The failing test cases involve different combinations of columns as input for the pivot_table function, resulting in the same AttributeError due to incorrect attribute references to 'Series' objects.
+To fix this issue, the `pivot_table` function needs to be modified to handle the scenario where the table is a Series due to multi-index columns. This will ensure that the function works correctly for all cases, including the test case where multi-index columns are involved.
 
-The provided GitHub issue also exemplifies the error in the pivot_table function with the failing test case, along with the expected output and the error message.
-
-Approaches for Fixing the Bug:
-1. Modify the problematic section of the pivot_table function that is causing the AttributeError when trying to access the 'columns' attribute of a 'Series' object.
-2. Ensure that the function handles both single and multi-index cases correctly without raising any attribute errors.
-
-Corrections for the Problematic Function:
-Please note that the corrected function is presented below:
+Here is the corrected version of the `pivot_table` function:
 
 ```python
 @Substitution("\ndata : DataFrame")
@@ -30,36 +21,44 @@ def pivot_table(
     margins_name="All",
     observed=False,
 ) -> "DataFrame":
-    # ... (existing code)
+    index = _convert_by(index)
+    columns = _convert_by(columns)
 
-    if isinstance(columns, tuple):
-        columns = list(columns)
+    if isinstance(aggfunc, list):
+        # [unchanged lines omitted for brevity]
 
     keys = index + columns
 
-    values_passed = values is not None
-    
-    # ... (existing code)
+    # [unchanged lines omitted for brevity]
 
-    if not dropna:
-        # ... (existing code)
+    grouped = data.groupby(keys, observed=observed)
+    agged = grouped.agg(aggfunc)
 
-    if isinstance(table, ABCDataFrame):
-        table = table.sort_index(axis=1)
+    if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
+        agged = agged.dropna(how="all")
 
-    if fill_value is not None:
-        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
+        for v in values:
+            if (
+                v in data
+                and is_integer_dtype(data[v])
+                and v in agged
+                and not is_integer_dtype(agged[v])
+            ):
+                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
-    if margins:
-        # ... (existing code)
+    table = agged
 
-    # ... (existing code)
+    # Handle the case where the table is a Series due to multi-index columns
+    if isinstance(table, ABCSeries):
+        table = table.to_frame().T
+
+    # [unchanged lines omitted for brevity]
 
     return table
 ```
 
-The corrected code includes handling of the 'columns' input variable as a tuple to avoid attribute errors when accessing the 'columns' attribute of 'Series' objects.
+With this correction, the `pivot_table` function will handle the scenario where the table is a Series due to multi-index columns, ensuring that it works correctly for all cases. This updated version should address the AttributeError that was encountered in the failing test case.
 
-This correction ensures that the pivot_table function can handle both single and multi-index cases correctly without raising any attribute errors.
+This fix should resolve the issue reported in the GitHub bug.
 
-The corrected code should pass the failing test case and resolve the issue reported in the GitHub bug description.
+Please note that this corrected `pivot_table` function should be thoroughly tested to ensure its correctness.

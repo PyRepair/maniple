@@ -1,6 +1,8 @@
-The issue in the buggy function is that the `last_active` parameter is being set to `None`, and then later the code tries to perform addition using this `None` value. We need to update the `__init__` function to handle the case where `last_active` is `None`.
+The buggy function is failing because it is trying to add an integer to a NoneType, resulting in a TypeError. The issue is with the last_active variable being assigned a default value of None, and then used in a comparison without checking for None.
 
-Here's the corrected code for the problematic function:
+To fix this issue, we can modify the __init__ function to ensure that last_active is set to the current time if no value is provided. This will prevent it from being None when it is used in the prune function.
+
+Here's the corrected version of the function:
 
 ```python
 class Worker(object):
@@ -11,18 +13,16 @@ class Worker(object):
     def __init__(self, worker_id, last_active=None):
         self.id = worker_id
         self.reference = None  # reference to the worker in the real world. (Currently a dict containing just the host)
-        self.last_active = last_active  # seconds since epoch
+        self.last_active = last_active if last_active is not None else time.time()  # seconds since epoch
         self.started = time.time()  # seconds since epoch
         self.tasks = set()  # task objects
         self.info = {}
 
     def prune(self, config):
         # Delete workers that haven't said anything for a while (probably killed)
-        if self.last_active is not None and self.last_active + config.worker_disconnect_delay < time.time():
-            # perform the pruning operation
+        if self.last_active + config.worker_disconnect_delay < time.time():
+            # perform pruning here
             pass
 ```
 
-With this correction, the `prune` function will now check if `self.last_active` is not `None` before performing the addition operation, eliminating the TypeError that was occurring before.
-
-Now, the function should pass the failing test and satisfy the expected input/output variable information provided.
+This corrected version of the function should now pass the failing test and satisfy the input/output variable information provided.

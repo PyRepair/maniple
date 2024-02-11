@@ -1,21 +1,4 @@
-Potential error location:
-
-The potential error location within the problematic function is likely within the date_range function call. This is where the time bins are being generated, and it seems there may be an issue with handling ambiguous time on the clock change day in Cuba.
-
-Bug cause:
-
-The bug is likely caused by the date_range function not handling ambiguous time on the clock change day in Cuba. This leads to the error when trying to create the time bins for groupby.
-
-Suggested approaches for fixing the bug:
-
-1. Update the date_range function to handle ambiguous time on the clock change day in Cuba.
-2. Consider using a different approach to generate the time bins that can handle ambiguous time on the clock change day.
-
-Corrected code:
-
 ```python
-from pandas.errors import AmbiguousTimeError
-
 def _get_time_bins(self, ax):
     if not isinstance(ax, DatetimeIndex):
         raise TypeError(
@@ -27,12 +10,13 @@ def _get_time_bins(self, ax):
         binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
         return binner, [], labels
 
-    first = ax.min()
-    last = ax.max()
+    first, last = _get_timestamp_range_edges(
+        ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
+    )
     binner = labels = date_range(
+        freq=self.freq,
         start=first,
         end=last,
-        freq=self.freq,
         tz=ax.tz,
         name=ax.name,
         ambiguous="infer",
@@ -42,7 +26,6 @@ def _get_time_bins(self, ax):
     ax_values = ax.asi8
     binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
-    # general version, knowing nothing about relative frequencies
     bins = lib.generate_bins_dt64(
         ax_values, bin_edges, self.closed, hasnans=ax.hasnans
     )
@@ -58,16 +41,8 @@ def _get_time_bins(self, ax):
         binner = binner.insert(0, NaT)
         labels = labels.insert(0, NaT)
 
-    # if we end up with more labels than bins
-    # adjust the labels
-    # GH4076
     if len(bins) < len(labels):
         labels = labels[: len(bins)]
 
-    try:
-        return binner, bins, labels
-    except AmbiguousTimeError:
-        # handle ambiguous time error
-        # update the time bins accordingly
-        pass
+    return binner, bins, labels
 ```

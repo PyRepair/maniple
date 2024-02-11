@@ -1,25 +1,36 @@
-The issue in the `convert_image` function lies in the section that handles images in RGBA format. In the first part of the conditional statement, when the format is PNG and the mode is RGBA, the function creates a new image with a white background and pastes the original image on top of it, then converts the image to RGB. This process removes the transparency from the image, which is why the tests are failing.
+The bug in the `convert_image` function is that it incorrectly converts RGBA images to RGB. To fix this, we need to change the way RGBA images are converted to RGB.
 
-To fix the function, a check for transparency should be added before converting the image to RGB. If the image has an alpha channel, it should be converted to an RGBA image with a white background to preserve the transparency.
-
-Here's the corrected code for the `convert_image` function:
+Here's the corrected version of the function:
 
 ```python
-def convert_image(self, image, size=None):
-    if image.mode == 'RGBA':
-        background = Image.new('RGBA', image.size, (255, 255, 255, 255))
-        background.paste(image, image)
-        image = background
-    elif image.mode != 'RGB':
-        image = image.convert('RGB')
+# The relative path of the buggy file: scrapy/pipelines/images.py
 
-    if size:
-        image = image.copy()
-        image.thumbnail(size, Image.ANTIALIAS)
+from PIL import Image
+from cStringIO import StringIO as BytesIO
 
-    buf = BytesIO()
-    image.save(buf, 'JPEG')
-    return image, buf
+class ImagesPipeline(FilesPipeline):
+    """
+    Abstract pipeline that implement the image thumbnail generation logic
+    """
+
+    def convert_image(self, image, size=None):
+        if image.format == 'PNG' and image.mode == 'RGBA':
+            # Create a new RGBA image with a white background
+            background = Image.new('RGBA', image.size, (255, 255, 255))
+            background.paste(image, (0, 0), image)
+            # Convert the RGBA image with the white background to RGB
+            image = background.convert('RGB')
+        elif image.mode != 'RGB':
+            # Convert other modes to RGB
+            image = image.convert('RGB')
+
+        if size:
+            image = image.copy()
+            image.thumbnail(size, Image.ANTIALIAS)
+
+        buf = BytesIO()
+        image.save(buf, 'JPEG')
+        return image, buf
 ```
 
-With this correction, the function will handle RGBA images correctly, preserving the transparency and preventing the tests from failing.
+With this corrected version, the function should now correctly convert RGBA images to RGB and pass the failing test cases.

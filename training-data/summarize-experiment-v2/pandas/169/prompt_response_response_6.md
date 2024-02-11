@@ -1,12 +1,8 @@
-Based on the input parameters and the resulting variable values, it seems that when the `quantile` function is called with a DataFrame containing datetime data, the `data._data.quantile` operation is returning an `Empty DataFrame`, which then causes an issue with array concatenation in the `_concat_compat` function.
+The issue in the `quantile` function is that when `self` is a DataFrame with datetimes, the code is not correctly handling the computations to return the quantile for datetime data. This is causing the `ValueError: need at least one array to concatenate` when attempting to concatenate the results.
 
-The `data._data.quantile` operation with datetime data might not be returning the expected values, which then leads to the concatenation issue. This could be due to how the datetime data is being processed internally in the `quantile` function.
+To fix this, we need to make sure that when datetime data is present, the quantile calculations are performed correctly. We should also ensure that the result is a Series when `q` is a float and a DataFrame when `q` is an array.
 
-To resolve this issue, the `quantile` function should handle datetime data correctly, ensuring that the `data._data.quantile` operation returns the expected value for datetime data.
-
-One approach to fixing the bug would be to integrate specific handling for datetime data within the `quantile` function, ensuring that the `data._data.quantile` operation correctly computes the quantile for datetime data.
-
-Below is the corrected code for the `quantile` function:
+Here's the corrected version of the `quantile` function:
 
 ```python
 def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
@@ -19,19 +15,16 @@ def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
     if is_transposed:
         data = data.T
 
-    # Handle datetime data
-    if data._is_view and data._is_only_mixed_type:
-        # Convert datetime data to numeric for quantile computation
-        data = data.astype('int64')
+    if not is_numeric_dtype(data.dtypes):
+        # Convert data to numeric if it includes non-numeric types, like datetime
+        data = data.apply(pd.to_numeric, errors='coerce')
 
-    result = data._data.quantile(
-        qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
-    )
+    result = data.quantile(q=q, axis=1, interpolation=interpolation)
 
-    if result.ndim == 2:
-        result = self._constructor(result)
+    if np.isscalar(q):
+        result = pd.Series(result, index=self.columns)
     else:
-        result = self._constructor_sliced(result, name=q)
+        result = pd.DataFrame(result, index=q, columns=self.columns)
 
     if is_transposed:
         result = result.T
@@ -39,6 +32,6 @@ def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
     return result
 ```
 
-This corrected code handles datetime data by checking if the data is of mixed type and then converting the datetime data to numeric type before performing the quantile computation. This should ensure that the `data._data.quantile` operation returns the expected result for datetime data.
+This corrected version ensures that datetime data is correctly handled and that the result is a Series when `q` is a float and a DataFrame when `q` is an array.
 
-With these changes, the `quantile` function should now correctly handle datetime data and resolve the array concatenation issue, passing the failing test and fixing the bug.
+With this corrected version, the `DataFrame.quantile` function should now pass the failing test and resolve the issue posted in the GitHub report.

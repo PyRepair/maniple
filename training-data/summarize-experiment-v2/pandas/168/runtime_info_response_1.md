@@ -1,33 +1,71 @@
-Short version of runtime input and output value pair for the buggy function:
+Pair 1:
+Input: 
+- obj, type: `DataFrame`
+- axis, type: `int`
+- key, type: `str`
+Output: 
+- group_axis, type: `Int64Index`
+- i, type: `int`
 
-## Case 1
-- Input: obj, axis, key, obj.index, obj.columns
-- Output: group_axis
+Pair 2:
+Input: 
+- obj, type: `DataFrame`
+- axis, type: `int`
+- key, type: `str`
+Output: 
+- group_axis, type: `Int64Index`
+- i, type: `int`
 
-## Case 2
-- Input: obj, axis, key, obj.index, obj.columns
-- Output: group_axis
+Pair 3:
+Input: 
+- obj, type: `DataFrame`
+- axis, type: `int`
+- key, type: `str`
+Output: 
+- group_axis, type: `MultiIndex`
+- i, type: `int`
+  
+Pair 4:
+Input: 
+- obj, type: `DataFrame`
+- axis, type: `int`
+- key, type: `str`
+Output: 
+- group_axis, type: `MultiIndex`
+- i, type: `int`
 
-## Case 3
-- Input: obj, axis, key, obj.index, obj.columns
-- Output: group_axis
+Pair 5:
+Input: 
+- obj, type: `DataFrame`
+- axis, type: `int`
+- key, type: `list`
+Output: 
+- group_axis, type: `Int64Index`
+- i, type: `int`
 
-## Case 4
-- Input: obj, axis, key, obj.index, obj.columns
-- Output: group_axis
+Pair 6:
+Input: 
+- obj, type: `DataFrame`
+- axis, type: `int`
+- key, type: `list`
+Output: 
+- group_axis, type: `Int64Index`
+- i, type: `int`
 
-## Case 5
-- Input: obj, axis, key, obj.index, obj.columns
-- Output: group_axis
+Pair 7:
+Input: 
+- obj, type: `DataFrame`
+- axis, type: `int`
+- key, type: `list`
+Output: 
+- group_axis, type: `MultiIndex`
+- i, type: `int`
 
-## Case 6
-- Input: obj, axis, key, obj.index, obj.columns
-- Output: group_axis
-
-## Case 7
-- Input: obj, axis, key, obj.index, obj.columns
-- Output: group_axis
-
-## Case 8
-- Input: obj, axis, key, obj.index, obj.columns
-- Output: group_axis
+Pair 8:
+Input: 
+- obj, type: `DataFrame`
+- axis, type: `int`
+- key, type: `list`
+Output:
+- group_axis, type: `MultiIndex`
+- i, type: `int`

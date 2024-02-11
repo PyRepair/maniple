@@ -10,7 +10,7 @@ from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_re
 from utils import print_in_red, print_in_yellow, iter_bugid_folders, divide_list, print_in_green
 
 total_usage = 0
-n_partitions = 5
+n_partitions = 10
 database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v2"
 
 LOG_MODE = n_partitions == 1
@@ -87,7 +87,8 @@ def count_tokens(prompt: str) -> int:
 
 
 def construct_prompt(processor: Processor) -> str:
-    prompt = processor.facts_in_prompt["1"]
+    prompt = "Please fix the buggy function provided below and output a corrected version. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function.\n\n\n"
+    prompt += processor.facts_in_prompt["1"]
     prompt += processor.facts_in_prompt["2"]
     prompt += processor.facts_in_prompt["3"]
     prompt += processor.facts_in_prompt["4"]
@@ -287,10 +288,17 @@ def main():
         for bugid, project_folder, bugid_folder in folders:
             process_each_bug(bugid, project_folder, bugid_folder)
 
+    threads = []  # List to keep track of the threads
+
     for partition in partitions:
         # create and start threads
         thread = threading.Thread(target=thread_func, args=(partition,))
         thread.start()
+        threads.append(thread)  # Add the thread to the list of threads
+
+    # Wait for all threads to complete
+    for thread in threads:
+        thread.join()
 
     print_in_yellow(f"Total token usage: {total_usage}, estimate ${total_usage / 1000_000}")
 

@@ -4,8 +4,11 @@
             "bugID": 101,
             "start_line": 792,
             "file_name": "pandas/core/dtypes/cast.py",
-            "replace_code": "def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):\n    if arr.dtype.name == 'category' and np.isnan(arr).any():\n        raise ValueError(\"Cannot convert categorical values with NaNs to an integer dtype\")",
-            "import_list": []
+            "replace_code": "def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):\n    if is_object_dtype(arr):\n        if np.issubdtype(dtype.type, np.integer):\n            msg = \"Cannot convert NaT values to integer\"\n            if skipna and isna(arr).any():\n                raise ValueError(msg)\n            return lib.astype_intsafe(arr, dtype)\n        elif is_datetime64_dtype(dtype):\n            from pandas import to_datetime\n            return astype_nansafe(to_datetime(arr).values, dtype, skipna=skipna)\n        elif is_timedelta64_dtype(dtype):\n            from pandas import to_timedelta\n            return astype_nansafe(to_timedelta(arr).values, dtype, skipna=skipna)\n    return arr.astype(dtype, copy=copy)",
+            "import_list": [
+                "from pandas import to_datetime",
+                "from pandas import to_timedelta"
+            ]
         }
     ]
 }

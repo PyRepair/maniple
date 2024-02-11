@@ -1,26 +1,72 @@
-The bug in the `astype_nansafe` function is causing it to fail to raise a `ValueError` as expected in the failing test. The error message indicates that the function is not correctly handling the conversion of `NaT` values to integer datatype.
+The cause of the bug in the `astype_nansafe` function is that it does not properly handle missing values (NaN) when converting data to integers or floats. This leads to unexpected behavior when NaN values are present in the input array.
 
-After analyzing the function and the failing test, it seems that the potential error location within the function is the block of code where it checks for NaT values and tries to convert them to an integer datatype. It appears that the function is not handling this conversion correctly, leading to the failing test and the GitHub issue.
+The potential error location within the problematic function is the block of code handling the conversion of object type to integer or float. It does not handle NaN values correctly.
 
-The cause of the bug is likely related to the improper handling of NaN values and the incorrect conversion of NaT values to integer datatype. This is further supported by the failing test and the detailed description provided in the GitHub issue. The function is not ensuring that the proper handling of NaN and NaT values is occurring during the dtype conversion process.
+To fix the bug, we need to update the logic for handling NaN values when converting to integer or float types. Specifically, we need to ensure that NaN values are properly converted to NaN in the output rather than being converted to unexpected integer values.
 
-To fix the bug, the function needs to be updated to handle NaN and NaT values more effectively when converting to integer datatype. Specifically, it needs to ensure that NaN and NaT values are handled appropriately as part of the integer datatype conversion process.
-
-The corrected code for the `astype_nansafe` function should address the NaN and NaT value conversion issue, pass the failing test, and satisfy the expected input/output variable information provided. This will resolve the issue mentioned in the GitHub report.
-
-The corrected code for the `astype_nansafe` function:
+Here's the corrected version of the `astype_nansafe` function:
 
 ```python
 def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
-    # Existing code ...
+    if is_extension_array_dtype(dtype):
+        return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
 
-    # New code to handle NaN and NaT values
-    if not np.any(np.isnat(arr)):  # Check for NaT values
-        if dtype == np.int64:  # Convert NaT to NaN for integer datatype
-            arr[np.isnat(arr)] = np.nan
-            return arr.astype(dtype, copy=copy)
+    if not isinstance(dtype, np.dtype):
+        dtype = pandas_dtype(dtype)
 
-    # Existing code ...
+    if issubclass(dtype.type, str):
+        return lib.astype_str(arr.ravel(), skipna=skipna).reshape(arr.shape)
+
+    elif is_datetime64_dtype(arr):
+        if is_object_dtype(dtype):
+            return tslib.ints_to_pydatetime(arr.view(np.int64))
+        elif dtype == np.int64:
+            return arr.view(dtype)
+
+        if dtype.kind == "M":
+            return arr.astype(dtype)
+
+        raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
+
+    elif is_timedelta64_dtype(arr):
+        if is_object_dtype(dtype):
+            return tslibs.ints_to_pytimedelta(arr.view(np.int64))
+        elif dtype == np.int64:
+            return arr.view(dtype)
+
+        if dtype.kind == "m":
+            result = arr.astype(dtype)
+            result[isna(arr)] = np.nan
+            return result
+
+        elif dtype == _TD_DTYPE:
+            return arr.astype(_TD_DTYPE, copy=copy)
+
+        raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
+
+    elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
+        if not np.isfinite(arr).all():
+            raise ValueError("Cannot convert non-finite values (NA or inf) to integer")
+
+    elif is_object_dtype(arr):
+        if np.issubdtype(dtype.type, np.integer):
+            return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+        elif is_datetime64_dtype(dtype):
+            return to_datetime(arr).values.astype(dtype, copy=copy)
+        elif is_timedelta64_dtype(dtype):
+            return to_timedelta(arr).values.astype(dtype, copy=copy)
+
+    if dtype.name in ("datetime64", "timedelta64"):
+        msg = (
+            f"The '{dtype.name}' dtype has no unit. Please pass in "
+            f"'{dtype.name}[ns]' instead."
+        )
+        raise ValueError(msg)
+
+    if copy or is_object_dtype(arr) or is_object_dtype(dtype):
+        return arr.astype(dtype, copy=True)
+
+    return arr.view(dtype)
 ```
 
-With this updated code, the `astype_nansafe` function should handle NaN and NaT values more effectively, ensuring that they are converted to the appropriate datatype without raising a `ValueError`. This fix should address the failing test and the GitHub issue, resolving the bug.
+This corrected version of the function should handle NaN values appropriately when converting to integer or float types, resolving the issue reported in the GitHub post and passing the failing test.

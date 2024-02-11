@@ -1,10 +1,6 @@
-The original error message shows an issue with the time bins while running the failing test case.
-
-The functions identified in this error message are several frames, and only the most closely related ones are selected.
-
-The function `_get_time_bins` is called from `pandas/core/resample.py` and raises a TypeError for datetime index checks.
+The error message indicates an ambiguous time error that occurs when the code attempts to infer the daylight saving time from a specific date and time. The error occurs in the `_get_time_bins` method within resample.py. The failing test is from the file `test_datetime_index.py` and the error occurs when trying to group data based on a frequency.
 
 Simplified error message:
 ```
-TypeError: 'axis' must be a DatetimeIndex, but got an instance of which is not a DatetimeIndex
+AmbiguousTimeError: Cannot infer dst time as there are no repeated times
 ```

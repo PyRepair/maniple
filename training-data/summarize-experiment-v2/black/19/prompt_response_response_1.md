@@ -1,14 +1,12 @@
-Based on the information provided, the potential error location within the _maybe_empty_lines function seems to be the logic for adjusting the variables max_allowed, first_leaf, before, depth, is_decorator, and self.previous_defs. These variables are used to determine the number of potential extra empty lines needed before and after the currently processed line. 
+The bug in the `_maybe_empty_lines` function is causing an assertion error in the test_comment_in_decorator test case. This assertion error is triggered when comparing the expected output with the actual output. The error message indicates a difference in the number of newlines produced in the output.
 
-The failing test is asserting the format equality between the expected and actual output, and the error message indicates a mismatch in the number of empty lines in the output. This suggests that the logic for determining the number of empty lines is not functioning as expected.
+The expected output contains empty lines at specific locations, but the actual output does not. This suggests that the logic for adding empty lines in `_maybe_empty_lines` is not functioning as intended.
 
-The bug's cause could be due to incorrect handling of certain conditions or incorrect calculations of the variables that determine the number of empty lines.
+The cause of this bug could be a miscalculation or inconsistency in the computation of the number of empty lines to be added before and after the current line.
 
-Possible approaches for fixing the bug could include:
-1. Reviewing the logic for determining the number of empty lines and ensuring that it correctly accounts for different conditions such as decorators, imports, flow control, etc.
-2. Check the logic for adjusting the variables max_allowed, before, and depth in different scenarios to ensure that the correct number of empty lines is returned.
+One of the possible approaches for fixing this bug is to thoroughly review the logic for adding empty lines in different scenarios within the `_maybe_empty_lines` function. Carefully check the conditions, comparisons, and assignments to ensure that the correct number of empty lines is being calculated and added in each case.
 
-Here's the corrected code for the _maybe_empty_lines function:
+After analyzing the logic and making the necessary corrections, here is a corrected version of the `_maybe_empty_lines` function:
 
 ```python
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
@@ -23,43 +21,46 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
         first_leaf.prefix = ""
     else:
         before = 0
+    
     depth = current_line.depth
+    newlines_before = 0
+    newlines_after = 0
 
-    if current_line.is_decorator or current_line.is_def or current_line.is_class:
-        if not current_line.is_decorator:
+    while self.previous_defs and self.previous_defs[-1] >= depth:
+        self.previous_defs.pop()
+        if depth == 0:
+            newlines_before = max(1, newlines_before)
+        else:
+            newlines_before = max(0, newlines_before-1)
+    
+    is_decorator = current_line.is_decorator
+    if is_decorator or current_line.is_def or current_line.is_class:
+        if not is_decorator:
             self.previous_defs.append(depth)
         if self.previous_line is None:
             # Don't insert empty lines before the first line in the file.
-            return 0, 0
+            return newlines_before, newlines_after
 
         if self.previous_line.is_decorator:
             # Don't insert empty lines between decorators.
-            return 0, 0
-
-        newlines = 2
+            return newlines_before, newlines_after
+        
         if depth:
-            newlines -= 1
-        return newlines, 0
-
+            newlines_before = max(0, newlines_before-1)
+    
     if current_line.is_flow_control:
-        return before, 1
+        newlines_before = max(before, 1)
+        return newlines_before, 1
 
-    if (
-        self.previous_line
-        and self.previous_line.is_import
-        and not current_line.is_import
-        and depth == self.previous_line.depth
-    ):
-        return (before or 1), 0
+    if self.previous_line and self.previous_line.is_import and not current_line.is_import and depth == self.previous_line.depth:
+        newlines_before = max(before or 1, newlines_before)
+        return newlines_before, newlines_after
 
-    if (
-        self.previous_line
-        and self.previous_line.is_yield
-        and (not current_line.is_yield or depth != self.previous_line.depth)
-    ):
-        return (before or 1), 0
+    if self.previous_line and self.previous_line.is_yield and (not current_line.is_yield or depth != self.previous_line.depth):
+        newlines_before = max(before or 1, newlines_before)
+        return newlines_before, newlines_after
 
-    return before, 0
+    return newlines_before, newlines_after
 ```
 
-The corrected code should now handle various scenarios and conditions to correctly determine the number of empty lines. This should address the issue identified in the failing test and ensure that the function returns the expected output.
+Please use this corrected version of the function as a drop-in replacement for the buggy version. This should address the issue and ensure that the failing test case `test_comment_in_decorator` passes without triggering the assertion error.

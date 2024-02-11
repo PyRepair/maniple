@@ -1,31 +1,21 @@
-The bug in the `pivot_table` function is causing an AttributeError when the input DataFrame has a multi-index for the columns. This is leading to the error message "AttributeError: 'Series' object has no attribute 'columns'."
-
-The root cause of the error is that the code is treating a Series object as if it were a DataFrame, leading to attribute errors when accessing columns that do not exist in the Series.
-
-Looking at the input/output variable information, it seems that the `pivot_table` function is incorrectly handling cases where multi-index columns are passed, causing the error.
-
-To fix this bug, the `pivot_table` function needs to correctly handle cases where multi-index columns are passed, ensuring that it works with both single and multi-level columns without causing attribute errors.
-
-Here's a suggested approach to fix the bug:
-1. Modify the `pivot_table` function to correctly handle multi-index columns by checking the type of the column input and performing the necessary operations for single or multi-level columns.
-
-2. Ensure that the function handles both single and multi-level columns gracefully, without causing attribute errors.
-
-Here's the corrected code for the `pivot_table` function:
-
 ```python
-from pandas import DataFrame
-from pandas.core.frame import DataFrame
-from pandas.core.indexes.api import Index, MultiIndex
+# The corrected version of the function
+from typing import TYPE_CHECKING, Callable, Dict, List, Tuple, Union
+from pandas.util._decorators import Appender, Substitution
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.frame import _shared_docs
+from pandas.core.groupby import Grouper
+from pandas.core.indexes.api import Index, MultiIndex, get_objs_combined_axis
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.util import cartesian_product
-from pandas.core.groupby import Grouper
-from pandas.core.dtypes.common import is_list_like, is_scalar
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
-from pandas.core.dtypes.generic import ABCDataFrame
+from pandas import DataFrame
 
+@Substitution("\ndata : DataFrame")
+@Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
-    data,
+    data: DataFrame,
     values=None,
     index=None,
     columns=None,
@@ -36,24 +26,141 @@ def pivot_table(
     margins_name="All",
     observed=False,
 ) -> "DataFrame":
-    # existing code...
+    index = _convert_by(index)
+    columns = _convert_by(columns)
 
-    if columns is not None and isinstance(columns, (tuple, list)):
-        # Handle multi-level columns
-        keys = columns
+    if isinstance(aggfunc, list):
+        pieces: List[DataFrame] = []
+        keys = []
+        for func in aggfunc:
+            table = pivot_table(
+                data,
+                values=values,
+                index=index,
+                columns=columns,
+                fill_value=fill_value,
+                aggfunc=func,
+                margins=margins,
+                dropna=dropna,
+                margins_name=margins_name,
+                observed=observed,
+            )
+            pieces.append(table)
+            keys.append(getattr(func, "__name__", func))
+
+        return concat(pieces, keys=keys, axis=1)
+
+    keys = index + columns
+
+    values_passed = values is not None
+    if values_passed:
+        if is_list_like(values):
+            values_multi = True
+            values = list(values)
+        else:
+            values_multi = False
+            values = [values]
+
+        # Make sure value labels are in data
+        for i in values:
+            if i not in data:
+                raise KeyError(i)
+
+        to_filter = []
+        for x in keys + values:
+            if isinstance(x, Grouper):
+                x = x.key
+            try:
+                if x in data:
+                    to_filter.append(x)
+            except TypeError:
+                pass
+        if len(to_filter) < len(data.columns):
+            data = data[to_filter]
+
     else:
-        keys = [columns]
+        values = data.columns
+        for key in keys:
+            try:
+                values = values.drop(key)
+            except (TypeError, ValueError, KeyError):
+                pass
+        values = list(values)
 
-    # existing code...
-    
-    if table.columns.nlevels > 1:  # Check for multi-level columns
-        table = table.droplevel(0, axis=1)  # Drop the top level to handle multi-level columns
+    grouped = data.groupby(keys, observed=observed)
+    agged = grouped.agg(aggfunc)
+    if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
+        agged = agged.dropna(how="all")
 
-    # existing code...
+        for v in values:
+            if (
+                v in data
+                and is_integer_dtype(data[v])
+                and v in agged
+                and not is_integer_dtype(agged[v])
+            ):
+                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
+
+    table = agged
+    if table.index.nlevels > 1:
+        index_names = agged.index.names[: len(index)]
+        to_unstack = []
+        for i in range(len(index), len(keys)):
+            name = agged.index.names[i]
+            if name is None or name in index_names:
+                to_unstack.append(i)
+            else:
+                to_unstack.append(name)
+        table = agged.unstack(to_unstack)
+
+    if not dropna:
+        if table.index.nlevels > 1:
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.index.levels), names=table.index.names
+            )
+            table = table.reindex(m, axis=0)
+
+        if table.columns.nlevels > 1:
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.columns.levels), names=table.columns.names
+            )
+            table = table.reindex(m, axis=1)
+
+    if isinstance(table, ABCDataFrame):
+        table = table.sort_index(axis=1)
+
+    if fill_value is not None:
+        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
+
+    if margins:
+        if dropna:
+            data = data[data.notna().all(axis=1)]
+        table = _add_margins(
+            table,
+            data,
+            values,
+            rows=index,
+            cols=columns,
+            aggfunc=aggfunc,
+            observed=dropna,
+            margins_name=margins_name,
+            fill_value=fill_value,
+        )
+
+    # discard the top level
+    if (
+        values_passed
+        and not values_multi
+        and not table.empty
+        and (table.columns.nlevels > 1)
+    ):
+        table = table[values[0]]
+
+    if len(index) == 0 and len(columns) > 0:
+        table = table.T
+
+    if isinstance(table, ABCDataFrame) and dropna:
+        table = table.dropna(how="all", axis=1)
 
     return table
 ```
-
-In the corrected code, we add a check for multi-level columns and handle them by dropping the top level if necessary. This should address the issue with attribute errors when dealing with multi-index columns.
-
-By making these changes, the `pivot_table` function should be able to handle both single and multi-level columns without causing attribute errors, passing the failing test and resolving the issue posted on GitHub.

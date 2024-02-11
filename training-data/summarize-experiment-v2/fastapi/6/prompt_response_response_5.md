@@ -1,31 +1,40 @@
-The bug is caused by the incorrect handling of repeated keys in the FormData when using FastAPI. The current implementation does not handle repeated keys properly and only considers the last value for validation.
+After analyzing the buggy function and the failing test cases, as well as the provided GitHub issue, we have identified the potential error location within the problematic function. The issue seems to be related to how FastAPI handles repeated keys in form data.
 
-To fix the bug, the function should be updated to handle repeated keys and assign those values to a list before validation. This will ensure that all the values for repeated keys are considered in the validation process.
+The problematic function seems to be incorrectly handling the case when the same key is used multiple times in form data. In the failing tests, we observe that the function is not properly converting the form data into lists, sets, or tuples as expected.
 
-A possible approach for fixing the bug would be to modify the `request_body_to_args` function to handle repeated keys and create a list of values for each key before validation.
+To fix the bug, we need to modify the function to correctly handle repeated keys in form data and convert them into the appropriate data structures for validation.
 
-Here's the corrected code for the `request_body_to_args` function:
+Here's the corrected code for the problematic function:
 
 ```python
+# The corrected version of the function
+
 async def request_body_to_args(
     required_params: List[ModelField],
     received_body: Optional[Union[Dict[str, Any], FormData]],
 ) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:
     values = {}
     errors = []
-    if received_body is not None:
+    if required_params:
         for field in required_params:
-            value = None
-            if isinstance(received_body, FormData):
-                value = received_body.getlist(field.alias)  # Use getlist to get all values for a key
-            if value is None:
-                if field.required:
-                    errors.append(
-                        ErrorWrapper(MissingError(), loc=("body", field.alias))
-                    )
+            value: Any = None
+            if received_body is not None:
+                if field.shape in sequence_shapes and isinstance(
+                    received_body, FormData
+                ):
+                    value = received_body.getlist(field.alias)
                 else:
-                    values[field.name] = deepcopy(field.default)
+                    value = received_body.getlist(field.alias) if isinstance(received_body, FormData) else received_body.get(field.alias)
+            if value is None and field.required:
+                errors.append(ErrorWrapper(MissingError(), loc=("body", field.alias)))
             else:
+                for i in range(len(value)):
+                    if (
+                        isinstance(field_info, params.File)
+                        and lenient_issubclass(field.type_, bytes)
+                        and isinstance(value[i], UploadFile)
+                    ):
+                        value[i] = await value[i].read()
                 v_, errors_ = field.validate(value, values, loc=("body", field.alias))
                 if isinstance(errors_, ErrorWrapper):
                     errors.append(errors_)
@@ -36,6 +45,4 @@ async def request_body_to_args(
     return values, errors
 ```
 
-With this modification, the function will correctly handle repeated keys in the FormData and create a list of values for each key. This should address the issue reported in the failing tests and the GitHub issue.
-
-The corrected code satisfies the expected input/output variable information provided and should pass the failing tests. It also resolves the issue posted in the GitHub report by properly handling repeated keys in FormData.
+This code should fix the bug and handle repeated keys in form data properly. It should now satisfy the failing test cases and the expected input/output variable information provided. Additionally, this fix should resolve the issue posted in the GitHub repository regarding support for repeated keys in form data.

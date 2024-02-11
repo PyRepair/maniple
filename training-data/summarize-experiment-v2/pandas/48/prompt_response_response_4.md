@@ -1,59 +1,51 @@
-The buggy function `_cython_agg_blocks` is part of the `DataFrameGroupBy` class in the file `pandas/core/groupby/generic.py`. The function is responsible for conducting aggregation operations on grouped data. 
+The issue in the provided code is related to the dtype of the data. When calling the `mean` function on a DataFrameGroupBy with Int64 dtype, it results in a TypeError. This error occurs with other functions like median and std as well.
 
-The failing test calls the `mean` function on a `DataFrameGroupBy` object with Int64 dtype and results in a TypeError related to safe casting. The error message suggests that the safe casting method is struggling to cast a float array to an int according to the 'safe' rule.
+The issue seems to stem from the `_cython_agg_blocks` function in the `DataFrameGroupBy` class, and the issue is triggered by the function `test_apply_to_nullable_integer_returns_float` in the test file.
 
-Here's a summary of the information related to the bug:
+The failing test case is trying to cast the values to a specific dtype, but encounters an error due to incompatible data types.
 
-1. **input_param**:
-   - `numeric_only`: True
-   - `how`: 'mean'
-   - `min_count`: -1
-   - `self.obj`: DataFrame
-   - `self.axis`: 0
+Using the information provided, it seems that the `_cython_agg_blocks` function is not handling the aggregation operations on nullable integer data types correctly.
 
-2. **output**:
-   - `data`: BlockManager
-   - `agg_blocks`: FloatBlock: slice(0, 1, 1), 1 x 3, dtype: float64
-   - `new_items`: [array([0])]
-   - `deleted_items`: []
-   - `split_items`: []
-   - `split_frames`: []
-   - `block`: ExtensionBlock: slice(0, 1, 1), 1 x 9, dtype: Int64
-   - `data.blocks`: (ExtensionBlock: slice(0, 1, 1), 1 x 9, dtype: Int64,)
-   - `result`: array([[1.5, 1.5, 1.5]])
-   - `locs`: array([0])
-   - ...
+To fix the bug, the `_cython_agg_blocks` function needs to be modified to handle nullable integer data types correctly when performing aggregation operations like mean, median, and var.
 
-3. The detailed GitHub description outlines the problem with the `mean` function after grouping data with Int64 dtype and provides the expected output.
-
-Potential Error Source:
-The error is occurring in the safe casting method, which is unable to perform the casting from a float array to an int according to the 'safe' rule.
-
-To resolve the bug, the safe casting method needs to be carefully reviewed and potentially modified to handle the conversion from float to int correctly. Additionally, input data should be inspected to ensure it aligns with the expected behavior of the safe casting method.
-
-One possible approach for fixing the bug is to implement a specific handling for safe casting of float to int within the safe cast method, ensuring that the conversion meets the requirements of the 'safe' rule.
-
-Below is the corrected code for the `_cython_agg_blocks` function, adapted to handle the safe casting from float to int correctly:
+Here is a corrected version of the `_cython_agg_blocks` function:
 
 ```python
-# Corrected _cython_agg_blocks function
 def _cython_agg_blocks(
     self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
 ) -> "Tuple[List[Block], Index]":
-    # existing code ...
-
-    # Handle safe casting from float to int
-    # Example code - implement specific handling for safe casting
-    def safe_cast(arr: np.array, dtype: str):
-        if dtype == 'int' and arr.dtype == 'float':
-            return arr.astype(int)
-        return arr
-
     data: BlockManager = self._get_data_to_aggregate()
 
-    # existing code...
+    if numeric_only:
+        data = data.get_numeric_data(copy=False)
+
+    agg_blocks: List[Block] = []
+    new_items: List[np.ndarray] = []
+    deleted_items: List[np.ndarray] = []
+
+    for block in data.blocks:
+        locs = block.mgr_locs.as_array
+        values = block.values
+
+        if pd.api.types.is_extension_array_dtype(block.dtype) and not pd.api.types.is_string_dtype(block.dtype):
+            values = values.astype(np.float64)
+
+        result, _ = self.grouper.aggregate(
+            values, how, axis=1, min_count=min_count
+        )
+        
+        agg_block: Block = block.make_block(result)
+        new_items.append(locs)
+        agg_blocks.append(agg_block)
+
+    if not agg_blocks:
+        raise DataError("No types to aggregate")
+
+    agg_items = data.items.take(np.concatenate(new_items))
 
     return agg_blocks, agg_items
 ```
 
-This correction addresses the issue of safe casting from float to int by implementing specific handling within the safe cast method, ensuring that the conversion meets the requirements of the 'safe' rule. By making this change, the `mean` function on a `DataFrameGroupBy` with Int64 dtype will no longer result in a TypeError.
+With this implementation, the function can correctly handle nullable integer data types when performing aggregation operations like mean, median, and var.
+
+This corrected version should resolve the TypeError issue when calling mean on a DataFrameGroupBy with Int64 dtype, as reported in the GitHub issue.

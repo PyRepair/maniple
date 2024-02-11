@@ -1,49 +1,33 @@
-## Issue Analysis
-The error message indicates a `ValueError: need at least one array to concatenate` that occurred when using the `quantile` method on a DataFrame with datetime data. This error occurs during the concatenation of arrays, which suggests that the issue may be related to the handling of datetime data in the quantile method.
+The issue in the buggy function is related to the way it handles datetime data when computing the quantile. The issue is causing a ValueError that specifies the need for at least one array to concatenate, which is related to the computation of quantile on datetime data.
 
-Analyzing the input parameters and the variables within the function reveals that the `data` being operated on is an empty DataFrame after transposition, and the data types are not being handled correctly. This causes issues with concatenation, leading to the ValueError.
+The cause of this issue can be traced to the way the function handles the input data and computes the quantile. It seems that the function fails to handle datetime data properly when computing the quantile, leading to the error when concatenation is attempted.
 
-The GitHub issue details this problem and provides an example where the `pd.Series` works correctly, but the equivalent method with a DataFrame raises a ValueError. The expected output is that the DataFrame should return just as Series does.
+To fix this issue, the function `quantile` needs to be updated to handle datetime data correctly and compute the quantile accordingly.
 
-## Bug Cause
-The bug is caused by incorrect handling of datetime data in the `quantile` function of the DataFrame class. When operating with datetime data, transposing the DataFrame and performing operations on it leads to an empty DataFrame, causing issues with concatenation and resulting in a ValueError.
+Here is the corrected version of the function:
 
-## Possible Approaches
-1. Update the handling of datetime data to ensure that the quantile method can correctly operate on datetime values.
-2. Validate the transposition and ensure that it is not causing the DataFrame to become empty when dealing with datetime data.
-3. Check the concatenation processes and ensure they are handling datetime data correctly.
-
-## Corrected Code
 ```python
-def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation='linear'):
-    """
-    Return values at the given quantile over requested axis.
-    Updated to handle datetime data correctly.
-    """
-
+def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
     self._check_percentile(q)
 
-    data = self._get_numeric_data() if numeric_only else self
-    axis = self._get_axis_number(axis)
-    is_transposed = axis == 1
+    if not numeric_only:
+        data = self
+    else:
+        try:
+            data = self._get_numeric_data()
+        except Exception:
+            data = self
 
-    if is_transposed:
-        # Don't transpose datetime data
-        data = data.T if data.select_dtypes(include=['datetime64']).empty else data
-
-    result = data._data.quantile(
-        qs=q, axis=1, interpolation=interpolation, transposed=is_transposed
-    )
+    result = data._data.quantile(q, axis=axis, interpolation=interpolation)
 
     if result.ndim == 2:
         result = self._constructor(result)
     else:
         result = self._constructor_sliced(result, name=q)
 
-    if is_transposed and not data.select_dtypes(include=['datetime64']).empty:
-        result = result.T
-
     return result
 ```
 
-This corrected code introduces a check to handle datetime data differently when transposing the DataFrame in the quantile function. This ensures that datetime data is not mistakenly transposed, leading to an empty DataFrame. With this correction, the quantile method should handle datetime data correctly and avoid the ValueError.
+This corrected version of the function handles the `numeric_only` parameter correctly and computes the quantile based on the input data. It avoids the concatenation issue related to datetime data and should resolve the problem with computing quantiles on datetime data.
+
+With this corrected version of the function, it should pass the failing test and successfully resolve the issue reported in the GitHub post.

@@ -1,26 +1,8 @@
-### Analysis
+The issue with the `request_body_to_args` function seems to stem from its inability to handle repeated keys in form data, resulting in only the last key-value pair being considered. This causes issues with parsing Python lists, sets, and tuples in the form data, leading to a 422 status code instead of the expected 200.
 
-The buggy function `request_body_to_args` is responsible for parsing the request body and populating the values and errors accordingly. The failing tests are encountering assertion errors due to unexpected status codes returned by the client post responses.
+To fix this issue, the `request_body_to_args` function needs to be updated to properly handle repeated keys in form data. By collecting repeated keys and assigning their values to a list before validation, the function can ensure that all values are accounted for.
 
-The expected behavior is for the function to properly handle repeated keys in form data and validate each value against the specified required parameters.
-
-The GitHub issue titled "Support repeated key=value in form data" suggests that FastAPI should collect repeated keys in a 2-tuple list from `request.form()` and assign those values as a list to the same key before validation happens. This aligns with the observed behavior of the failing tests.
-
-### Bug Cause
-
-The bug in the `request_body_to_args` function appears to be related to the handling of repeated keys in form data and the validation against the required parameters. The function fails to properly handle repeated keys and only captures the last value, leading to incorrect validation and error reporting.
-
-The function seems to be incorrectly processing the received body, resulting in the unexpected behavior observed in the failing tests.
-
-### Possible Approaches for Fixing the Bug
-
-1. Modify the function to properly handle repeated keys in form data and collect them into a list before validation.
-2. Ensure that the function processes all values for repeated keys and validates them against the required parameters.
-3. Update the function to report errors correctly for each value being validated against the required parameters.
-
-### Corrected Code
-
-Based on the analysis, the corrected code for the `request_body_to_args` function is provided below:
+Here's the corrected version of the `request_body_to_args` function that addresses this issue:
 
 ```python
 async def request_body_to_args(
@@ -29,34 +11,29 @@ async def request_body_to_args(
 ) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:
     values = {}
     errors = []
-    
-    if received_body is not None:
-        received_data = dict(received_body)
-        
+    if required_params:
         for field in required_params:
-            field_values = received_data.get(field.name)
-            
-            if field_values is not None:
-                if not isinstance(field_values, list):
-                    field_values = [field_values]
-                
-                # Validate each value against the required parameter
-                for value in field_values:
-                    v_, errors_ = field.validate(value, values, loc=("body", field.name))
-                    if isinstance(errors_, ErrorWrapper):
-                        errors.append(errors_)
-                    elif isinstance(errors_, list):
-                        errors.extend(errors_)
-                    else:
-                        values[field.name] = v_
-
+            value: Any = None
+            if received_body is not None:
+                if field.shape in sequence_shapes and isinstance(
+                    received_body, FormData
+                ):
+                    values[field.name] = received_body.getlist(field.alias)
+                else:
+                    values[field.name] = received_body.get(field.alias)
+            if values[field.name] is None and field.required:
+                errors.append(ErrorWrapper(MissingError(), loc=("body", field.alias)))
+            else:
+                v_, errors_ = field.validate(values[field.name], values, loc=("body", field.alias))
+                if isinstance(errors_, ErrorWrapper):
+                    errors.append(errors_)
+                elif isinstance(errors_, list):
+                    errors.extend(errors_)
+                else:
+                    values[field.name] = v_
     return values, errors
 ```
 
-In the corrected code:
-- The `received_body` is converted to a dictionary to handle repeated keys.
-- For each required parameter, the function collects all values for the parameter, validates them individually, and populates the `values` and `errors` accordingly.
+With this update, the function should properly handle repeated keys in the form data and parse Python lists, sets, and tuples accordingly.
 
-With this corrected code, the `request_body_to_args` function should properly handle repeated keys in form data and validate each value against the required parameters.
-
-This corrected code should satisfy the expected input/output variable information and resolve the issue posted in the GitHub discussion.
+This fix should resolve the issues raised in the failing tests and the GitHub issue related to supporting repeated key-value pairs in form data.

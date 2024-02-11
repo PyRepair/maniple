@@ -1,37 +1,85 @@
-Potential error location within the problematic function:
-The potential error lies in the comparison of the block data in the `equals` function. It is not properly handling the comparison of blocks with different locations.
-
-Bug's cause:
-The `equals` function in the `BlockManager` class tries to compare the blocks contained in the `self` and `other` BlockManagers. In the failing test scenario, the blocks have the same data but different locations (due to slicing), causing the comparison to fail.
-
-Suggested approaches for fixing the bug:
-1. When comparing blocks, the equality should also account for the block locations.
-2. The comparison logic should check the block data and their locations to determine equality.
-3. The `canonicalize` function takes care of sorting the blocks based on their data and locations, so this logic can be utilized in the equality check.
-
-The corrected code for the problematic function:
 ```python
-def equals(self, other):
-    self_axes, other_axes = self.axes, other.axes
-    if len(self_axes) != len(other_axes):
-        return False
-    if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
-        return False
-    self._consolidate_inplace()
-    other._consolidate_inplace()
-    if len(self.blocks) != len(other.blocks):
-        return False
+# The corrected version of the buggy function
+class BlockManager(PandasObject):
+    """
+    Core internal data structure to implement DataFrame, Series, etc.
+    
+    Manage a bunch of labeled 2D mixed-type ndarrays. Essentially it's a
+    lightweight blocked set of labeled data to be manipulated by the DataFrame
+    public API class
+    
+    Attributes
+    ----------
+    shape
+    ndim
+    axes
+    values
+    items
+    
+    Methods
+    -------
+    set_axis(axis, new_labels)
+    copy(deep=True)
+    
+    get_dtype_counts
+    get_ftype_counts
+    get_dtypes
+    get_ftypes
+    
+    apply(func, axes, block_filter_fn)
+    
+    get_bool_data
+    get_numeric_data
+    
+    get_slice(slice_like, axis)
+    get(label)
+    iget(loc)
+    
+    take(indexer, axis)
+    reindex_axis(new_labels, axis)
+    reindex_indexer(new_labels, indexer, axis)
+    
+    delete(label)
+    insert(loc, label, value)
+    set(label, value)
+    
+    Parameters
+    ----------
+    
+    
+    Notes
+    -----
+    This is *not* a public API class
+    """
 
-    def canonicalize(block):
-        return (block.values, block.mgr_locs.as_array.tolist())
+    def equals(self, other):
+        self_axes, other_axes = self.axes, other.axes
+        if len(self_axes) != len(other_axes):
+            return False
+        if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
+            return False
+        self._consolidate_inplace()
+        other._consolidate_inplace()
+        if len(self.blocks) != len(other.blocks):
+            return False
+        
+        # canonicalize block order, using a tuple combining the type
+        # name and then mgr_locs because there might be unconsolidated
+        # blocks (say, Categorical) which can only be distinguished by
+        # the iteration order
+        def canonicalize(block):
+            return (block.dtype.name, block.mgr_locs.as_array.tolist())
+        
+        self_blocks = sorted(self.blocks, key=canonicalize)
+        other_blocks = sorted(other.blocks, key=canonicalize)
+        return all(
+            block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
+        )
 
-    self_blocks = sorted(self.blocks, key=canonicalize)
-    other_blocks = sorted(other.blocks, key=canonicalize)
-
-    return all(
-        block.equals(oblock) and canonicalize(block) == canonicalize(oblock) 
-        for block, oblock in zip(self_blocks, other_blocks)
-    )
+# The failing test for the buggy function
+def test_dataframe_not_equal():
+    # see GH28839
+    df1 = pd.DataFrame({"a": [1, 2], "b": ["s", "d"]})
+    df2 = pd.DataFrame({"a": ["s", "d"], "b": [1, 2]})
+    assert df1.equals(df2) is False
 ```
-
-This corrected code now incorporates the `canonicalize` function in the equality check to account for block locations when comparing blocks. It also compares the computed canonical form of the blocks to ensure that they have the same data and locations. This approach resolves the issue and would satisfy the failing test and the GitHub issue.

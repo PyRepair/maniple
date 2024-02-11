@@ -1,35 +1,47 @@
-Based on the provided information, the bug seems to be occurring in the `clone_model` function of `keras/models.py`. The error message "AssertionError: Could not compute output Tensor" indicates that there is an issue with computing the output tensor during the model cloning process. The failing test case `test_clone_functional_model_with_multi_outputs` also provides an example that triggers the bug by using multiple input and output tensors.
+The potential error location within the problematic function appears to be in the section where it computes the output tensors for a given node. It seems that the `layer.compute_mask` function is always returning `None`, leading to an assertion error when attempting to compute the output for a specific tensor.
 
-The GitHub issue title could be: "Error when using clone_model in multi_gpu_model with cpu_relocation=True"
+The failing test case is using a functional model with a layer that has multiple outputs without mask support, which may be triggering the error.
 
-The GitHub issue's detailed description should include the specific code snippet that triggers the issue, the relevant environment details, and a clear explanation of the observed error. It's also important to provide details about the potential cause of the bug, which in this case seems to be related to output masks not being set correctly for layers without mask support.
+The corresponding GitHub issue also mentions a similar scenario, where a Lambda layer without mask support triggers the error.
 
-To fix the bug, it's necessary to modify the `clone_model` function to properly handle layers without mask support when cloning the model. This may involve checking for mask support in the layers and appropriately setting the output masks during the cloning process.
+To fix the bug, we can modify the code to handle cases where the layer does not support masks. Specifically, we can update the logic for computing output masks when calling the layer.
 
-Here's the corrected code for the `clone_model` function in `keras/models.py`:
+Here is the corrected code for the problematic function:
 
 ```python
 def _clone_functional_model(model, input_tensors=None):
-    # ... (existing code)
+    # ... (other parts of the function remain the same)
 
     for x, y in zip(model.inputs, input_tensors):
         tensor_map[x] = (y, None)  # tensor, mask
 
     # Iterated over every node in the reference model, in depth order.
-    # ... (existing code)
+    depth_keys = list(model._nodes_by_depth.keys())
+    depth_keys.sort(reverse=True)
+    for depth in depth_keys:
+        nodes = model._nodes_by_depth[depth]
+        for node in nodes:
+            # (remaining code for traversing the nodes remains the same)
+
+            # Call layer.
+            if node.arguments:
+                kwargs = node.arguments
+            else:
+                kwargs = {}
+
+            computed_tensors = [x[0] for x in computed_data]
+            if has_arg(layer.call, 'mask'):  # Check for mask support
+                kwargs['mask'] = [x[1] for x in computed_data]  # Pass masks to layer call
+
+            output_tensors = to_list(layer(computed_tensors, **kwargs))
+            tensor_map.update(zip(reference_output_tensors, output_tensors))  # Update tensor_map
 
     # Check that we did compute the model outputs,
     # then instantiate a new model from inputs and outputs.
-    output_tensors = []
-    output_masks = []  # New list to store output masks
-    for x in model.outputs:
-        assert x in tensor_map, 'Could not compute output ' + str(x)
-        tensor, mask = tensor_map[x]
-        output_tensors.append(tensor)
-        output_masks.append(mask)  # Add output masks to the list
-    return Model(input_tensors, output_tensors, name=model.name, output_masks=output_masks)  # Return output_masks as well
+    output_tensors = [tensor_map[x][0] for x in model.outputs]  # Use updated tensor_map
+    return Model(input_tensors, output_tensors, name=model.name)
 ```
 
-With these modifications, the corrected `clone_model` function should be able to properly compute the output tensors and masks during the cloning process, addressing the issue reported in the GitHub bug.
+With these updates, we handle the case where the layer does not support masks by not passing masks to the layer call, and then updating the `tensor_map` with the output tensors.
 
-By implementing these changes, the failing test case `test_clone_functional_model_with_multi_outputs` should now pass without encountering the "Could not compute output Tensor" error. Additionally, the specific use case mentioned in the GitHub issue, where `clone_model` is used in `multi_gpu_model` with `cpu_relocation=True`, should also be resolved.
+The corrected function should now pass the failing test and resolve the issue reported in the GitHub post. This fix ensures that the problematic function can compute the output tensors correctly, even in scenarios where certain layers do not support masks.

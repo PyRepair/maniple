@@ -1,14 +1,11 @@
-Potential error location: The issue is likely occurring due to case sensitivity when comparing the table name in the `table_exists` function. This is causing the function to return an unexpected output, leading to test failures.
+The buggy function `table_exists` in `luigi/contrib/hive.py` is failing due to a case sensitivity issue when comparing table names. The function is not taking into account that Hive is case insensitive and returns table names as lowercase. This leads to false positives or false negatives when testing for table existence.
 
-Bug cause:
-- The buggy function is not case insensitive when comparing the table name with the output from the `run_hive_cmd` function, leading to false test results.
-- The failing tests are asserting `self.assertTrue(returned)`, expecting the function to return `True` in specific cases, but it's failing due to the case sensitivity issue.
+To fix the bug, we need to modify the function to be case insensitive when comparing table names. We can achieve this by converting both the table name and the stdout to lowercase before comparison.
 
-Approaches for fixing the bug:
-- Modify the `table_exists` function to make the comparison case insensitive by converting both the table name and the output from `run_hive_cmd` to lowercase before comparison.
+Below is the corrected version of the `table_exists` function:
 
-Corrected code for the `table_exists` function:
 ```python
+# The corrected version of the buggy function
 def table_exists(self, table, database='default', partition=None):
     if partition is None:
         stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
@@ -24,11 +21,9 @@ def table_exists(self, table, database='default', partition=None):
             return False
 ```
 
-This corrected code should satisfy the failing tests and the expected input/output variable information provided.
+With this corrected version, the function will now correctly compare table names in a case insensitive manner and pass the failing test.
 
-GitHub Issue Information:
-- The issue title "hive table_exists should be case insensitive?" highlights the problem of case sensitivity in table existence checks.
-- The detailed description of the issue emphasizes the need for making the comparison case insensitive to avoid test failures when dealing with capitalized table names.
-- The proposed solution aligns with the suggested approach for fixing the bug.
+Additionally, a GitHub issue related to this bug can be titled "Fix #896: make table_exists case insensitive". The detailed description for the issue can state:
+"Check stdout against table.lower() to avoid case issues."
 
-By addressing the case sensitivity issue in the `table_exists` function, the bug should be resolved, and the corrected code will align with the expectations outlined in the failing tests and the GitHub issue.
+This fix will address the case sensitivity issue and ensure that the function works as expected in a case insensitive environment.

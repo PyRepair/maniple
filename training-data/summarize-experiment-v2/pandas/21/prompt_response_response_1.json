@@ -4,7 +4,7 @@
             "bugID": 21,
             "start_line": 915,
             "file_name": "pandas/core/series.py",
-            "replace_code": "def _get_with(self, key):\n    if isinstance(key, list):\n        # handle list indexers consistently with other array-like indexers\n        return self.loc[key]",
+            "replace_code": "def _get_with(self, key):\n    if isinstance(key, slice):\n        slobj = self.index._convert_slice_indexer(key, kind=\"getitem\")\n        return self._slice(slobj)\n    elif isinstance(key, ABCDataFrame):\n        raise TypeError(\n            \"Indexing a Series with DataFrame is not \"\n            \"supported, use the appropriate DataFrame column\"\n        )\n    elif isinstance(key, tuple):\n        return self._get_values_tuple(key)\n\n    if isinstance(key, pd.Index) or is_list_like(key):\n        key = list(key)\n\n    key_type = lib.infer_dtype(key, skipna=False)\n\n    if key_type == \"integer\":\n        if not self.index._should_fallback_to_positional():\n            return self.loc[key]\n        else:\n            return self.iloc[key]\n\n    return self.reindex(key)",
             "import_list": []
         }
     ]

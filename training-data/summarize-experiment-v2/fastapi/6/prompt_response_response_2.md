@@ -1,8 +1,6 @@
-The bug is likely caused by the fact that the `FormData` object is not being handled correctly when it contains repeated keys. As a result, the validation of the input parameters does not accurately reflect the data provided in the form.
+The issue with the `request_body_to_args` function seems to be related to parsing form data with repeated keys. To fix this issue, we should modify the function to handle repeated keys in FormData and collect their values as lists before validation occurs.
 
-To fix the bug, the `request_body_to_args` function needs to properly handle repeated keys in the `FormData` object. Specifically, it should collect repeated keys and assign those values as a list to the same key before validation happens.
-
-Here is the corrected code for the `request_body_to_args` function:
+Here's the corrected version of the function:
 
 ```python
 async def request_body_to_args(
@@ -11,29 +9,32 @@ async def request_body_to_args(
 ) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:
     values = {}
     errors = []
-    
-    if received_body is not None:
-        if isinstance(received_body, FormData):
-            received_body = dict(received_body)
-            
     if required_params:
         for field in required_params:
-            value = received_body.get(field.alias)
-            if value is not None:
-                values[field.name] = value
-            else:
+            value: Any = None
+            if received_body is not None:
+                value = received_body.getlist(field.alias) if isinstance(received_body, FormData) else received_body.get(field.alias)
+            if value is None or (isinstance(field_info, params.Form) and value == ""):
                 if field.required:
-                    errors.append(
-                        ErrorWrapper(MissingError(), loc=("body", field.alias))
-                    )
+                    if PYDANTIC_1:
+                        errors.append(ErrorWrapper(MissingError(), loc=("body", field.alias)))
+                    else:
+                        errors.append(ErrorWrapper(MissingError(), loc=("body", field.alias), config=BaseConfig))
                 else:
                     values[field.name] = deepcopy(field.default)
-
+                continue
+            v_, errors_ = field.validate(value, values, loc=("body", field.alias))
+            if isinstance(errors_, ErrorWrapper):
+                errors.append(errors_)
+            elif isinstance(errors_, list):
+                errors.extend(errors_)
+            else:
+                values[field.name] = v_
     return values, errors
 ```
 
-With this corrected code, the function should be able to handle repeated keys in the `FormData` object and properly validate the input parameters. This should address the issue reported in the GitHub issue as well.
+With this fix, the function should be able to handle repeated keys in form data and collect their values as lists, which will resolve the issue reported in the GitHub thread.
 
-This corrected code should pass the failing tests and satisfy the expected input/output variable information provided. Additionally, it should successfully resolve the issue posted in the GitHub report.
+This corrected function should pass the failing test cases and satisfy the expected input/output variable information provided.
 
-I have also addressed the GitHub issue with a detailed description of the problem and the proposed solution.
+Let us know if further assistance is needed!

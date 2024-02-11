@@ -1,15 +1,21 @@
-The bug seems to be with the line `command.script.split()[1] == 'stash'` in the `match` function. The error message indicates that an `IndexError` occurs, which suggests that `command.script.split()` returns a list with only one element, and hence trying to access the second element via index 1 causes an error.
+The issue arises because the buggy function is assuming that the split command will always produce a list containing at least two elements. If the script contains only the command name (`git` in this case), then it will cause the `IndexError: list index out of range`.
 
-This bug occurs because the function assumes that the `command.script` will always have at least 2 elements when split using whitespace. To fix this, we need to handle the case where the split doesn't result in at least 2 elements.
+To fix this, we can check the length of the split command and ensure that it contains at least two elements before accessing the second element to compare with 'stash'. If not, we can return False.
 
-Here's the corrected code for the `match` function:
+Additionally, the buggy function should also check for the presence of 'usage:' in the stderr. If both conditions are met, then the function should return True.
+
+Here is the corrected version of the function:
 
 ```python
+# The relative path of the buggy file: thefuck/rules/git_fix_stash.py
+
+# this is the buggy function you need to fix
 @git_support
 def match(command):
     script_parts = command.script.split()
-    return (len(script_parts) > 1 and script_parts[1] == 'stash'
-            and 'usage:' in command.stderr)
+    if len(script_parts) < 2 or 'usage:' not in command.stderr:
+        return False
+    return script_parts[1] == 'stash'
 ```
 
-This code first splits the `command.script` and stores the result in `script_parts`. Then it checks if there are more than 1 elements in the list (to avoid the `IndexError`), and then checks if the second element is `'stash'`. This should handle the case where the script doesn't contain at least 2 elements after splitting.
+This fix will ensure that the function handles the case where the script contains only the command name and prevents the `IndexError` from occurring. Additionally, it checks for the presence of 'usage:' in the stderr before returning True. This should resolve the issue and pass the failing test.

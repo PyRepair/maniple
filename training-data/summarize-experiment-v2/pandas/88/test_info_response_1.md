@@ -1,10 +1,6 @@
-The error message originates from a failing test for a pivot_table function, which is written for a DataFrame in a pandas library.
+The original error message relates to a `Series` object that has no attribute 'columns' at line 6101 in the file `pandas/core/frame.py`, which was initiated by one of the calls to `pivot_table` in the file `pandas/core/reshape/pivot.py`. The error occurred while the `pivot_table` method was invoked in the `test_pivot_table_multiindex_only` test method in `pandas/tests/reshape/test_pivot.py`. The pivot table values are derived using the dataframe `df2` from this test file.
 
-An AttributeError is being raised due to a 'Series' object's columns being accessed, which does not actually have the 'columns' attribute.
-
-The source of the error comes from the problematic section of the input DataFrame passed to the pivot_table function. It arises due to attempting to access the columns attribute of the 'Series' object passed as the column argument, which is the root cause of the failure in all test cases.
-
-The input variable 'cols' sets a MultiIndex for the columns of the DataFrame inside the pivot_table function, causing an error when making attribute references to a Series object.
-
-Simplified error message:
-"AttributeError: 'Series' object has no attribute 'columns'."
+Simplified Error Message:
+```
+During the execution of the test_pivot_table_multiindex_only test in pandas/tests/reshape/test_pivot.py, the pivot_table method encountered an error in the pivot.py file at line 173, and subsequently, the Series object called this method which resulted in an AttributeError.
+```

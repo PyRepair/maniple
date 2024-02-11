@@ -1,53 +1,38 @@
-### Bug in the Buggy Function
+The buggy function `_maybe_empty_lines` seems to be misinterpreting or miscalculating the number of empty lines to be added before and after the current line based on certain conditions and the state of the `EmptyLineTracker` class. These miscalculations are leading to an incorrect number of empty lines being added, causing the failing test.
 
-Based on the provided information, the potential error in the `_maybe_empty_lines` function seems to be related to the computation of the variables `max_allowed`, `before`, and the handling of `self.previous_defs`.
+The cause of the bug seems to be related to the incorrect computation of the `before` variable and its utilization in determining the number of extra empty lines to be added. The conditionals and calculations in the function seem to be leading to incorrect results.
 
-The expected behavior and the actual behavior do not match for the given input, and the function is not producing the correct output. This discrepancy is leading to the failed test case.
+A possible approach to fixing the bug would involve revisiting the conditions that determine the number of empty lines to be added. Ensuring that the correct number of empty lines is being calculated and returned based on these conditions can resolve the issue.
 
-### Bug Cause
-
-The potential cause of the bug is an incorrect computation of the variables `max_allowed` and `before`, as well as the handling of `self.previous_defs`. These incorrect computations are leading to the discrepancy between expected and actual output values.
-
-### Possible Approaches for Fixing the Bug
-
-1. Initialize `max_allowed` and `before` with proper default values before the conditional checks.
-2. Adjust the computation logic for `max_allowed` and `before` based on the conditions and input parameters.
-3. Ensure that the handling of `self.previous_defs` is correctly updating and accessing the depth values.
-
-### Corrected Code
-
-Based on the analysis, here is the corrected code for the `_maybe_empty_lines` function:
+The corrected version of the buggy function `_maybe_empty_lines` is provided below:
 
 ```python
 def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     max_allowed = 1
-    before = 0
-
     if current_line.depth == 0:
         max_allowed = 2
 
+    before = 0
     if current_line.leaves:
         first_leaf = current_line.leaves[0]
-        before = first_leaf.prefix.count("\n")
-        before = min(before, max_allowed)
-        first_leaf.prefix = ""
-    else:
-        before = 0
-
+        before = min(first_leaf.prefix.count("\n"), max_allowed)
+        first_leaf.prefix = ""  # Consume the first leaf's extra newlines
+        
     depth = current_line.depth
-
-    if depth in self.previous_defs:
+    while self.previous_defs and self.previous_defs[-1] >= depth:
+        self.previous_defs.pop()
         before = 1 if depth else 2
-    else:
-        self.previous_defs.append(depth)
-
+    
     is_decorator = current_line.is_decorator
-
     if is_decorator or current_line.is_def or current_line.is_class:
+        if not is_decorator:
+            self.previous_defs.append(depth)
         if self.previous_line is None:
+            # Don't insert empty lines before the first line in the file.
             return 0, 0
 
-        if self.previous_line.is_decorator:
+        if self.previous_line and self.previous_line.is_decorator:
+            # Don't insert empty lines between decorators.
             return 0, 0
 
         newlines = 2
@@ -58,17 +43,13 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     if current_line.is_flow_control:
         return before, 1
 
-    if (
-        self.previous_line
-        and self.previous_line.is_import
+    if (self.previous_line and self.previous_line.is_import
         and not current_line.is_import
         and depth == self.previous_line.depth
     ):
         return (before or 1), 0
 
-    if (
-        self.previous_line
-        and self.previous_line.is_yield
+    if (self.previous_line and self.previous_line.is_yield
         and (not current_line.is_yield or depth != self.previous_line.depth)
     ):
         return (before or 1), 0
@@ -76,4 +57,4 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
     return before, 0
 ```
 
-By making these adjustments, the corrected function should produce the expected output and pass the failing test case.
+The corrected function should now handle the conditions correctly and output the expected number of empty lines before and after the current line. This corrected function can be used as a drop-in replacement for the buggy version.

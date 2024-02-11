@@ -1,13 +1,12 @@
-The issue arises when using the new nullable integer data type, where calling mean after grouping results in a TypeError. The error occurs due to the safe_cast method, which is expected to safely cast a values array to a specified data type by using the values.astype() method. The error message indicates that the array cannot be cast from dtype('float64') to dtype('int64') according to the rule 'safe'.
+The bug in the function `_cython_agg_blocks` is that when `how` is `'mean'` or `'median'`, a TypeError occurs when trying to cast the result to the original dtype. This leads to an exception when using nullable integer data type.
 
-The problematic function, _cython_agg_blocks, processes the data to be aggregated and then attempts to cast the calculated result back to the original data type. The issue likely lies in the casting process when dealing with nullable integer data types.
+The possible location of the bug in the function is when trying to cast the resulting array back to the original dtype. This happens after the result is obtained from the grouping operation and before it is appended to the `agg_blocks` list.
 
-To address the bug, the safe_cast method should be analyzed to identify why it's returning the error. Additionally, the input data needs to be inspected to understand the discrepancy in the dtype casting. There may be a need to modify the safe_cast method logic and potentially the input data to handle the conversion correctly.
+The cause of the bug is that the function does not handle the nullable integer data type properly, leading to a TypeError when trying to cast the result to the original dtype.
 
-A potential approach for fixing the bug could involve refining the safe_cast method to handle nullable integer data types appropriately and adjusting the casting process to account for such data types.
+To fix the bug, the function needs to handle the nullable integer data type and ensure that the result can be successfully cast back to the original dtype.
 
-Here's the corrected code for the problematic function:
-
+Here's the corrected version of the function `_cython_agg_blocks`:
 ```python
 def _cython_agg_blocks(
     self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1
@@ -23,36 +22,70 @@ def _cython_agg_blocks(
     agg_blocks: List[Block] = []
     new_items: List[np.ndarray] = []
     deleted_items: List[np.ndarray] = []
-    # Some object-dtype blocks might be split into List[Block[T], Block[U]]
     split_items: List[np.ndarray] = []
     split_frames: List[DataFrame] = []
 
     no_result = object()
     for block in data.blocks:
-        # rest of the code remains unchanged
+        # Avoid inheriting result from earlier in the loop
+        result = no_result
+        locs = block.mgr_locs.as_array
+        try:
+            result, _ = self.grouper.aggregate(
+                block.values, how, axis=1, min_count=min_count
+            )
+        except NotImplementedError:
+            if alt is None:
+                assert how == "ohlc"
+                deleted_items.append(locs)
+                continue
+
+            obj = self.obj[data.items[locs]]
+            if obj.shape[1] == 1:
+                obj = obj.iloc[:, 0]
+
+            s = get_groupby(obj, self.grouper)
+            try:
+                result = s.aggregate(lambda x: alt(x, axis=self.axis))
+            except TypeError:
+                deleted_items.append(locs)
+                continue
+            else:
+                result = cast(DataFrame, result)
+
+                if len(result._data.blocks) != 1:
+                    split_items.append(locs)
+                    split_frames.append(result)
+                    continue
+
+                assert len(result._data.blocks) == 1
+                result = result._data.blocks[0].values
+                if isinstance(result, np.ndarray) and result.ndim == 1:
+                    result = result.reshape(1, -1)
+
+        assert not isinstance(result, DataFrame)
+
+        if result is not no_result:
+            result = maybe_downcast_numeric(result, block.dtype)
+            agg_block: Block = block.make_block(result)
+
+        new_items.append(locs)
+        agg_blocks.append(agg_block)
 
     if not (agg_blocks or split_frames):
         raise DataError("No numeric types to aggregate")
 
     if split_items:
-        # Clean up the mess left over from split blocks.
         for locs, result in zip(split_items, split_frames):
             assert len(locs) == result.shape[1]
             for i, loc in enumerate(locs):
                 new_items.append(np.array([loc], dtype=locs.dtype))
                 agg_blocks.append(result.iloc[:, [i]]._data.blocks[0])
 
-    # reset the locs in the blocks to correspond to our
-    # current ordering
     indexer = np.concatenate(new_items)
     agg_items = data.items.take(np.sort(indexer))
 
     if deleted_items:
-
-        # we need to adjust the indexer to account for the
-        # items we have removed
-        # really should be done in internals :<
-
         deleted = np.concatenate(deleted_items)
         ai = np.arange(len(data))
         mask = np.zeros(len(data))
@@ -67,5 +100,3 @@ def _cython_agg_blocks(
 
     return agg_blocks, agg_items
 ```
-
-This corrected code aims to resolve the error reported in the failing test and the associated GitHub issue.

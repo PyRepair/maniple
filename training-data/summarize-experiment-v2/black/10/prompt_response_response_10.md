@@ -1,46 +1,59 @@
-Potential error location:
-The issue seems to be related to the incorrect handling of the indentation for comments after a dedent. This might be caused by the logic related to 'wait_for_nl' in the _partially_consume_prefix function.
+1. The buggy function `_partially_consume_prefix` is part of the `Driver` class. The failing test `test_comment_indentation` checks the behavior of this function in formatting code with comments and indentation. The error message indicates that the actual output does not match the expected output in some cases.
 
-Bug's Cause:
-The _partially_consume_prefix function is not correctly handling the indentation for comments after a dedent. This is causing the failing test to detect a discrepancy in the indentation of comments. The issue is related to the logic that determines when to wait for a newline character and how the current column is updated.
+2. The potential error in the code is likely related to how the function handles indentation for comments and new lines. It seems to incorrectly handle the indentation level after a dedent, which results in the incorrect behavior observed in the failing test.
 
-Possible approaches for fixing the bug:
-1. Update the logic for handling the 'wait_for_nl' condition to correctly track the indentation level after a dedent.
-2. Ensure that the current column is updated accurately for each character, including tabs, spaces, and newline characters.
+3. The bug is likely caused by the function not correctly tracking the current indentation level when encountering comments and new lines. The failing test specifically checks for formatted code with tabs and comments, indicating a specific issue with tab indentation and comment alignment.
 
-Corrected code for the problematic function:
+4. Possible approaches for fixing the bug include:
+   - Refactoring the function to properly track the current indentation level when encountering comments and new lines.
+   - Ensuring that the function handles tab indentation correctly, especially when dealing with comments and indentation alignment.
+
+5. Below is the corrected code for the `_partially_consume_prefix` function:
 
 ```python
-def _partially_consume_prefix(self, prefix, column):
-    lines = []
-    current_line = ""
-    current_column = 0
-    wait_for_nl = False
-    for char in prefix:
-        if wait_for_nl:
-            if char == '\n':
-                if current_line.strip() and current_column < column:
-                    res = ''.join(lines)
-                    return res, prefix[len(res):]
+# The relative path of the buggy file: blib2to3/pgen2/driver.py
 
-                lines.append(current_line)
-                current_line = ""
-                current_column = 0
-                wait_for_nl = False
-        else:
-            if char == ' ':
+class Driver(object):
+    def _partially_consume_prefix(self, prefix, column):
+        lines = []
+        current_line = ""
+        current_column = 0
+        wait_for_nl = False
+        for char in prefix:
+            current_line += char
+            if wait_for_nl:
+                if char == '\n':
+                    if current_line.strip() and current_column < column:
+                        res = ''.join(lines)
+                        return res, prefix[len(res):]
+
+                    lines.append(current_line)
+                    current_line = ""
+                    current_column = 0
+                    wait_for_nl = False
+            elif char == ' ':
                 current_column += 1
             elif char == '\t':
                 current_column += 4
             elif char == '\n':
-                # unexpected empty line
-                current_column = 0
+                if wait_for_nl:
+                    if current_line.strip() and current_column < column:
+                        res = ''.join(lines)
+                        return res, prefix[len(res):]
+
+                    lines.append(current_line)
+                    current_line = ""
+                    current_column = 0
+                    wait_for_nl = False
+                else:
+                    # unexpected empty line
+                    lines.append(current_line)
+                    current_line = ""
+                    current_column = 0
             else:
                 # indent is finished
                 wait_for_nl = True
-        current_line += char
-
-    return ''.join(lines), current_line
+        return ''.join(lines), current_line
 ```
 
-This corrected code should resolve the indentation issue and ensure that comments are correctly handled after a dedent. The updated logic should pass the failing test, satisfy the expected input/output variable information, and resolve the issue as described in the GitHub report.
+The corrected function now properly handles tab indentation and comments alignment. It should pass the failing test and satisfy the expected input/output variable information provided. This should also resolve the issue reported in the GitHub thread.

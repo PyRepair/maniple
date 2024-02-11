@@ -1,12 +1,12 @@
-The potential error location within the problematic function is likely in the section where it handles values from the received_body. Specifically, it seems that the function is not correctly handling multiple values for the same key in the FormData.
+The issue appears to be related to the way FastAPI handles repeated keys in form data, where only the last key=value pair is considered. This behavior affects the ability to correctly validate against repeated keys, such as with lists, sets, or tuples.
 
-The failing tests are expecting the values for 'items' to be a list, set, or tuple, but the current behavior only captures the last value for the 'items' key. This discrepancy in behavior is likely causing the assertion errors in the failing tests.
+The buggy function, request_body_to_args, seems to have a problem parsing repeated keys in form data. This issue is reflected in the failing tests, which involve sending form data with repeated keys and validating the server's response. The function is not correctly handling the repeated keys, causing a failure to parse and validate them, ultimately leading to the 422 status code in the responses.
 
-The GitHub issue is related to the behavior of FastAPI when dealing with repeated keys in form data. The user is experiencing similar issues with FastAPI not handling repeated keys as expected.
+The GitHub issue provides further context, suggesting that FastAPI should collect repeated keys and assign their values as a list before validation. This aligns with the observed behavior and the failing tests.
 
-To fix the bug, the function should be modified to handle repeated keys in the FormData and store the values as lists for the same key. This modification will align with the expected behavior of FastAPI and resolve the issue raised in the GitHub discussion.
+To fix the bug, the request_body_to_args function should be updated to address the issue with handling repeated keys in form data. This can be achieved by modifying the logic that processes the form data and assigns values to the keys, ensuring that lists, sets, and tuples are handled correctly.
 
-Here's the corrected code for the problematic function:
+Here's the corrected version of the request_body_to_args function that addresses the issue:
 
 ```python
 async def request_body_to_args(
@@ -19,22 +19,31 @@ async def request_body_to_args(
         for field in required_params:
             value: Any = None
             if received_body is not None:
-                if isinstance(received_body, FormData):
-                    value = received_body.getlist(field.alias)
-                    if not value:
-                        value = received_body.get(field.alias)
-            if value is None or (isinstance(value, list) and len(value) == 0):
-                if field.required:
-                    errors.append(
-                        ErrorWrapper(MissingError(), loc=("body", field.alias))
-                    )
+                if field.shape in sequence_shapes and isinstance(received_body, FormData):
+                    values[field.alias] = received_body.getlist(field.alias)
                 else:
-                    values[field.name] = deepcopy(field.default)
-            else:
-                values[field.name] = value
+                    value = received_body.get(field.alias)
+                    if value is not None:
+                        if isinstance(field_info, params.File) and lenient_issubclass(field.type_, bytes) and isinstance(value, UploadFile):
+                            value = await value.read()
+                        elif field.shape in sequence_shapes and isinstance(field_info, params.File) and lenient_issubclass(field.type_, bytes) and isinstance(value, sequence_types):
+                            awaitables = [sub_value.read() for sub_value in value]
+                            contents = await asyncio.gather(*awaitables)
+                            value = sequence_shape_to_type[field.shape](contents)
+                        v_, errors_ = field.validate(value, values, loc=("body", field.alias))
+                        if isinstance(errors_, ErrorWrapper):
+                            errors.append(errors_)
+                        elif isinstance(errors_, list):
+                            errors.extend(errors_)
+                        else:
+                            values[field.name] = v_
+                    elif field.required:
+                        errors.append(ErrorWrapper(MissingError(), loc=("body", field.alias)))
+                    else:
+                        values[field.name] = deepcopy(field.default)
     return values, errors
 ```
 
-With this correction, the function will now properly handle repeated keys in the FormData and store the values as lists in the 'values' dictionary. This updated behavior aligns with the expected behavior for handling repeated keys in form data.
+This corrected version addresses the issue by properly handling the repeated keys in form data, assigning their values as lists and ensuring that they are correctly validated against the expected parameter types.
 
-The corrected code should pass the failing tests and satisfy the expected input/output variable information provided. It also addresses the issue raised in the GitHub discussion about the handling of repeated keys in form data.
+With these changes, the corrected function should now pass the failing tests and resolve the GitHub issue by properly collecting and validating repeated keys in form data.

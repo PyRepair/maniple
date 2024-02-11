@@ -1,3 +1,6 @@
+Please fix the buggy function provided below and output a corrected version. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function.
+
+
 Assume that the following list of imports are available in the current environment, so you don't need to import them when generating a fix.
 ```python
 from pandas.util._decorators import Appender, Substitution
@@ -51,19 +54,11 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
 
 Here is a summary of the test cases and error messages:
 
-The original error message is:
-```
-KeyError: None
-```
+The bug in the source code causes the "KeyError: None" error when running the failing test `test_pivot_columns_none_raise_error`. You will get the error when the `columns` argument is `None` in the `df.pivot(index="col1", values="col3")`. Therefore, the related stack frames are: 
 
-Stack frames where the error occurred:
-- File "pandas/core/reshape/pivot.py", line 441 in pivot
-- File "pandas/core/frame.py", line 2793 in __getitem__
-- File "pandas/core/indexes/base.py", line 2903 in get_loc
-- File "pandas/_libs/index.pyx", line 109 in get_loc
-- File "pandas/_libs/index.pyx", line 136 in get_loc
-- File "pandas/_libs/hashtable_class_helper.pxi", line 1614 in get_item
-- File "pandas/_libs/hashtable_class_helper.pxi", line 1622 in get_item
+- `pandas/core/reshape/pivot.py` on line 441, which is the pivot function
+- `pandas/tests/reshape/test_pivot.py` on line 791, where the test case is calling the pivot function
+- Multiple frames in the "During handling of the above exception" section where the error from the failing test is traced indirectly to the `KeyError: None`
 
 Simplified error message:
 ```

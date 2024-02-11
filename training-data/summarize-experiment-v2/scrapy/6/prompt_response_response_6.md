@@ -1,36 +1,32 @@
-Based on the failing test and the provided input/output variable information, it appears that the bug in the `convert_image` function is related to the conditional logic for handling PNG images with RGBA mode. The failing tests indicate that the conversion of RGBA mode images to RGB mode is not resulting in the expected colors.
+The issue with the original function is that the conversion of RGBA images to RGB is not working as intended, leading to failing test cases. The image mode is not being handled correctly, and the conversion to RGB is problematic. To fix this, the `convert` method should be used to handle the conversion more accurately. Additionally, the check for the image mode should be updated to ensure the correct behavior for different image modes. 
 
-The cause of the bug appears to be the conditional block that converts RGBA mode images to RGB mode. The use of the `background.paste(image, image)` line inside the conditional block seems to be incorrect, which is leading to unexpected colors in the converted image.
-
-To fix the bug, consider the following approach:
-
-1. Instead of using `background.paste(image, image)`, simply create a new instance of the `Image` class without pasting.
-
-2. Use the `background` image as a reference to create a new instance of the `Image` class and then convert it to RGB mode.
-
-3. Update the logic to handle RGBA to RGB conversion in a way that preserves the transparency correctly.
-
-Here's the corrected code for the `convert_image` function:
+Here is the corrected version of the function:
 
 ```python
-def convert_image(self, image, size=None):
-    if image.format == 'PNG' and image.mode == 'RGBA':
-        # Create a new image with RGB mode and white background
-        background = Image.new('RGB', image.size, (255, 255, 255))
-        # Composite the input image onto the new background
-        background.paste(image, (0, 0), image)
-        # Convert the background to RGB mode
-        image = background.convert('RGB')
-    elif image.mode != 'RGB':
-        image = image.convert('RGB')
+from PIL import Image
+from cStringIO import StringIO as BytesIO
 
-    if size:
-        image = image.copy()
-        image.thumbnail(size, Image.ANTIALIAS)
+class ImagesPipeline(FilesPipeline):
+    """
+    Abstract pipeline that implement the image thumbnail generation logic
+    """
 
-    buf = BytesIO()
-    image.save(buf, 'JPEG')
-    return image, buf
+    def convert_image(self, image, size=None):
+        if image.mode == 'RGBA' or (image.mode == 'P' and 'transparency' in image.info):
+            image = image.convert('RGBA')
+            background = Image.new('RGBA', image.size, (255, 255, 255))
+            background.paste(image, image)
+            image = background.convert('RGB')
+        elif image.mode != 'RGB':
+            image = image.convert('RGB')
+
+        if size:
+            image = image.copy()
+            image.thumbnail(size, Image.ANTIALIAS)
+
+        buf = BytesIO()
+        image.save(buf, 'JPEG')
+        return image, buf
 ```
 
-With this corrected code, the `convert_image` function should now pass the failing test cases and satisfy the expected input/output variable information.
+This corrected version should handle different image modes and their conversions more accurately, passing the failing test cases and satisfying the expected input/output variable information provided.

@@ -1,11 +1,3 @@
-The issue originates from the `_try_convert_to_date` method, which is attempting to convert boolean values into datetime. This is causing the TypeError: `<class 'bool'> is not convertible to datetime`.
-
-The problem with the function lies in the logic that checks if the dtype of the input data is "object", and then attempts to convert it to "int64". This logic is incorrect as it does not handle boolean data.
-
-To fix this issue, the function should be modified to handle boolean data separately and not attempt to convert it to datetime.
-
-Here's the corrected code for the `_try_convert_to_date` method:
-
 ```python
     def _try_convert_to_date(self, data):
         """
@@ -17,34 +9,35 @@ Here's the corrected code for the `_try_convert_to_date` method:
         # no conversion on empty
         if not len(data):
             return data, False
-    
-        if data.dtype == "object":
+
+        if isinstance(data, Series):
+            new_data = data
+            new_data = new_data.astype('datetime64[ns]', errors='ignore')
+            return new_data, True
+
+        new_data = data
+        if new_data.dtype == "object":
             try:
                 new_data = data.astype("int64")
             except (TypeError, ValueError, OverflowError):
                 pass
-        elif data.dtype == "bool":
-            # Handle boolean data separately
-            return data, False
-        else:
-            # ignore numbers that are out of range
-            if issubclass(data.dtype.type, np.number):
-                in_range = (
-                    isna(data._values)
-                    | (data > self.min_stamp)
-                    | (data._values == iNaT)
-                )
-                if not in_range.all():
-                    return data, False
-    
-            date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
-            for date_unit in date_units:
-                try:
-                    data = to_datetime(data, errors="raise", unit=date_unit)
-                except (ValueError, OverflowError):
-                    continue
-                return data, True
+
+        # ignore numbers that are out of range
+        if issubclass(new_data.dtype.type, np.number):
+            in_range = (
+                isna(new_data._values)
+                | (new_data > self.min_stamp)
+                | (new_data._values == iNaT)
+            )
+            if not in_range.all():
+                return data, False
+
+        date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
+        for date_unit in date_units:
+            try:
+                new_data = to_datetime(new_data, errors="raise", unit=date_unit)
+            except (ValueError, OverflowError):
+                continue
+            return new_data, True
         return data, False
 ```
-
-This fix handles boolean data separately and prevents the unnecessary attempt to convert it to datetime, resolving the issue reported in the failing test and the GitHub issue.

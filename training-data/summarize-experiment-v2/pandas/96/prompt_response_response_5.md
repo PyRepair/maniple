@@ -1,37 +1,79 @@
-The issue seems to be related to the calculation of dates when using custom business hours and holidays in the `pd.date_range` function from the `pandas` library. The failing test `test_date_range_with_custom_holidays` in the `pandas/tests/indexes/datetimes/test_date_range.py` file is attempting to call the `pd.date_range` function with a custom business hour frequency, resulting in an error due to the inferred frequency being `None`.
+The issue with the `apply` function seems to be related to how it handles the input `other`. It then adjusts it based on the value of `n`, which results in the incorrect output frequency.
 
-The GitHub issue describes a similar problem, where using `pd.date_range` with custom business hours and holidays results in unexpected behavior, producing more periods than expected.
+To fix this issue, I would suggest modifying the logic for adjusting the input `other` based on the value of `n`. Additionally, the condition for handling holidays and adjusting the dates needs to be revised.
 
-Upon analysis of the provided source code and error message, it appears that the root cause of the issue lies in the `apply` function of the `BusinessHourMixin` class in the `pandas/tseries/offsets.py` file. The `apply` function is responsible for adjusting the datetime based on business hours, and it seems that the adjustment logic may not be correctly accounting for holidays, leading to unexpected behavior in `pd.date_range`.
-
-To fix this issue, the adjustment logic in the `apply` function of the `BusinessHourMixin` class needs to be reviewed and potentially updated to properly handle holidays while calculating the adjusted datetime based on business hours.
-
-One possible approach to fixing the bug is to enhance the logic within the `apply` function to check for holidays and adjust the datetime accordingly. This may involve incorporating the logic to skip holidays and adjust the datetime based on business hours and holidays.
-
-Below is the corrected code for the `apply` function in the `BusinessHourMixin` class, updated to handle holidays properly:
+Here is the corrected version of the `apply` function:
 
 ```python
 @apply_wraps
 def apply(self, other):
     if isinstance(other, datetime):
-        # Check for holidays
-        if other.date() in self.holidays:
-            # Adjust the datetime to the next business day
-            other = self.next_bday._next_opening_time(other)
-
-        # Rest of the logic for adjusting based on business hours remains unchanged
+        n = self.n
+        businesshours = sum(self._get_business_hours_by_sec(st, en) for st, en in zip(self.start, self.end))
         
-        # ... (existing logic for adjusting based on business hours)
-
+        # Adjust the input business day based on the value of n
+        if n >= 0:
+            if other.time() in self.end or not self._is_on_offset(other):
+                other = self._next_opening_time(other)
+        else:
+            if other.time() in self.start:
+                other = other - timedelta(seconds=1)
+            if not self._is_on_offset(other):
+                other = self._next_opening_time(other)
+                other = self._get_closing_time(other)
+        
+        # Handle holidays
+        if isinstance(self, CustomBusinessHour) and self.holidays:
+            while other in self.holidays:
+                if n >= 0:
+                    other = self._next_opening_time(other)
+                else:
+                    other = self._prev_opening_time(other)
+        
+        bd, r = divmod(abs(n * 60), businesshours // 60)
+        if n < 0:
+            bd, r = -bd, -r
+        
+        # Adjust by business days first
+        if bd != 0:
+            skip_bd = BusinessDay(n=bd)
+            if not self._is_on_offset(other):
+                prev_open = self._prev_opening_time(other)
+                remain = other - prev_open
+                other = prev_open + skip_bd + remain
+            else:
+                other = other + skip_bd
+        
+        # Remaining business hours to adjust
+        bhour_remain = timedelta(minutes=r)
+        
+        # Handle adjustments based on business hours
+        if n >= 0:
+            while bhour_remain != timedelta(0):
+                bhour = self._get_closing_time(self._prev_opening_time(other)) - other
+                if bhour_remain < bhour:
+                    other += bhour_remain
+                    bhour_remain = timedelta(0)
+                else:
+                    bhour_remain -= bhour
+                    other = self._next_opening_time(other + bhour)
+        else:
+            while bhour_remain != timedelta(0):
+                bhour = self._next_opening_time(other) - other
+                if bhour_remain > bhour:
+                    other += bhour_remain
+                    bhour_remain = timedelta(0)
+                else:
+                    bhour_remain -= bhour
+                    other = self._get_closing_time(self._next_opening_time(other + bhour - timedelta(seconds=1)))
+        
         return other
     else:
         raise ApplyTypeError("Only know how to combine business hour with datetime")
 ```
 
-In this correction, we have added a check for holidays in the `apply` function, and if the date falls on a holiday, the logic has been updated to adjust the datetime to the next business day.
+With this corrected version, the `apply` function should now handle the input `other` correctly and produce the expected frequency when used in the failing test case.
 
-This correction should address the issue and ensure that `pd.date_range` works as expected when using custom business hours and holidays.
+This fix also takes into account the handling of holidays when adjusting the dates based on the value of `n`, ensuring that the output frequency conforms to the specified frequency.
 
-Additionally, it's important to ensure that the `BusinessHourMixin` class has the necessary logic to handle holidays and adjust the datetime accordingly.
-
-By incorporating the suggested correction in the `apply` function, the issue mentioned in the GitHub report should also be resolved, as the correction accounts for holidays and adjusts the datetime based on business hours, preventing the unexpected behavior observed in the failing test.
+Please use this corrected version as a drop-in replacement for the buggy version of the function.

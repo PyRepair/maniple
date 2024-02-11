@@ -1,6 +1,8 @@
-The error message indicates an `AssertionError` in the `clone_model` function of the `keras/models.py` file where it's unable to compute an output tensor. The stack trace provides details of the failing line in the failing test file and the internal function call path, which ultimately leads to the `AssertionError`.
+The error occurs in the `clone_model` function of `keras.models.py` at line 166. The error is raised when attempting to compute the outputs of the model. It fails at the assertion check where it cannot compute the output for the specified tensor.
 
-Simplified Error:
+The error message in the failing test script points to the `clone_model` function and identifies a specific tensor for which the output cannot be computed.
+
+Simplified Error Message:
 ```
-AssertionError: Could not compute output Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)
+Assert Error: Could not compute output for tensor "swap_layer_1/Identity:0"
 ```

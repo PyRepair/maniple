@@ -1,29 +1,43 @@
-## Analysis
-
-The issue seems to be related to the calculation of `maxabsvalue` and the subsequent logic depending on it. When calculating `maxabsvalue`, the function is not correctly taking into account the negative values of `vmin` and `vmax`. This causes incorrect decisions to be made based on the absolute value of these variables.
-
-## Bug Cause
-
-The bug is caused by not correctly considering the negative values when calculating `maxabsvalue`, leading to incorrect decisions in the subsequent logic.
-
-## Possible Approaches for Fixing the Bug
-
-1. Update the calculation of `maxabsvalue` to correctly consider the negative values of `vmin` and `vmax`.
-2. Adjust the subsequent logic in the function to reflect the correct calculation of `maxabsvalue`.
-
-## Corrected Code
-
 ```python
+import numpy as np
+
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
+    """
+    Modify the endpoints of a range as needed to avoid singularities.
+
+    Parameters
+    ----------
+    vmin, vmax : float
+        The initial endpoints.
+    expander : float, default: 0.001
+        Fractional amount by which *vmin* and *vmax* are expanded if
+        the original interval is too small, based on *tiny*.
+    tiny : float, default: 1e-15
+        Threshold for the ratio of the interval to the maximum absolute
+        value of its endpoints.  If the interval is smaller than
+        this, it will be expanded.  This value should be around
+        1e-15 or larger; otherwise the interval will be approaching
+        the double precision resolution limit.
+    increasing : bool, default: True
+        If True, swap *vmin*, *vmax* if *vmin* > *vmax*.
+
+    Returns
+    -------
+    vmin, vmax : float
+        Endpoints, expanded and/or swapped if necessary.
+        If either input is inf or NaN, or if both inputs are 0 or very
+        close to zero, it returns -*expander*, *expander*.
+    """
+
     if (not np.isfinite(vmin)) or (not np.isfinite(vmax)):
         return -expander, expander
 
     swapped = False
-    if vmax < vmin:
+    if increasing and vmin > vmax:
         vmin, vmax = vmax, vmin
         swapped = True
 
-    maxabsvalue = max(abs(vmin), abs(vmax))  # Update calculation to correctly consider negative values
+    maxabsvalue = max(abs(vmin), abs(vmax))
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
         vmin = -expander
         vmax = expander
@@ -33,12 +47,10 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
             vmin = -expander
             vmax = expander
         else:
-            vmin -= expander * abs(vmin)
-            vmax += expander * abs(vmax)
+            vmin -= expander*abs(vmin)
+            vmax += expander*abs(vmax)
 
-    if swapped and not increasing:
+    if not increasing and swapped:
         vmin, vmax = vmax, vmin
     return vmin, vmax
 ```
-
-The corrected code includes the updated calculation of `maxabsvalue` to correctly consider the negative values of `vmin` and `vmax, addressing the root cause of the bug. This should fix the overflow issues and ensure the correct behavior of the function.

@@ -1,49 +1,82 @@
-### Bug Analysis
-
-The buggy function `_unstack_multiple` is intended to handle unstacking multi-indexed data in pandas. The failing test cases are related to unstacking multi-indexed data, and the error message indicates a KeyError related to a level not being found. The failing test cases and error message suggest that the issue is related to missing levels in the MultiIndex object.
-
-Based on the provided information, the problem is likely occurring in the portion of the code that deals with MultiIndex objects and their levels.
-
-The input parameters for the failing test cases and expected output variable values have been outlined in detail.
-
-The GitHub issue title and detailed description provide additional context about the bug and its impact.
-
-### Potential Error Location
-
-The potential error location is likely in the section of the code that deals with processing MultiIndex objects, particularly when extracting level numbers and handling missing levels.
-
-### Bug Cause
-
-The bug is likely caused by the code not properly handling the MultiIndex levels, resulting in missing levels and triggering a KeyError.
-
-### Possible Approaches for Fixing the Bug
-
-1. Review the logic for extracting level numbers and handling MultiIndex levels to ensure that all levels are properly accounted for.
-2. Add checks to handle cases where specific levels are missing from the MultiIndex.
-3. Refactor the code related to MultiIndex handling to improve robustness.
-
-### Corrected Code
-
-Below is the corrected code for the `_unstack_multiple` function:
-
 ```python
-# Corrected version of the _unstack_multiple function
-
+# The corrected version of the buggy function
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
+    # NOTE: This doesn't deal with hierarchical columns yet
+
     index = data.index
 
-    clocs = [index._get_level_number(i) if isinstance(i, tuple) else i for i in clocs]
+    clocs = [index._get_level_number(i) if isinstance(i, tuple) else index._get_level_number([i]) for i in clocs]
 
-    # Rest of the code remains the same...
+    rlocs = [i for i in range(index.nlevels) if i not in clocs]
+
+    clevels = [index.levels[i] for i in clocs]
+    ccodes = [index.codes[i] for i in clocs]
+    cnames = [index.names[i] for i in clocs]
+    rlevels = [index.levels[i] for i in rlocs]
+    rcodes = [index.codes[i] for i in rlocs]
+    rnames = [index.names[i] for i in rlocs]
+
+    shape = [len(x) for x in clevels]
+    group_index = get_group_index(ccodes, shape, sort=False, xnull=False)
+
+    comp_ids, obs_ids = compress_group_index(group_index, sort=False)
+    recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
+
+    if rlocs == []:
+        # Everything is in clocs, so the dummy df has a regular index
+        dummy_index = Index(obs_ids, name="__placeholder__")
+    else:
+        dummy_index = MultiIndex(
+            levels=rlevels + [obs_ids],
+            codes=rcodes + [comp_ids],
+            names=rnames + ["__placeholder__"],
+            verify_integrity=False,
+        )
+
+    if isinstance(data, Series):
+        dummy = data.copy()
+        dummy.index = dummy_index
+
+        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
+        new_levels = clevels
+        new_names = cnames
+        new_codes = recons_codes
+    else:
+        if isinstance(data.columns, MultiIndex):
+            result = data
+            for i in range(len(clocs)):
+                val = clocs[i]
+                result = result.unstack(val, fill_value=fill_value)
+                clocs = [v if i > v else v - 1 for v in clocs]
+
+            return result
+
+        dummy = data.copy()
+        dummy.index = dummy_index
+
+        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
+        if isinstance(unstacked, Series):
+            unstcols = unstacked.index
+        else:
+            unstcols = unstacked.columns
+        new_levels = [unstcols.levels[0] if isinstance(unstcols, MultiIndex) else unstcols.levels] + clevels
+        new_names = [data.columns.name] + cnames
+
+        new_codes = [unstcols.codes[0]] if isinstance(unstcols, MultiIndex) else [unstcols.codes]
+        for rec in recons_codes:
+            new_codes.append(rec.take(unstcols.codes[-1] if isinstance(unstcols, MultiIndex) else unstcols.codes))
+
+    new_columns = MultiIndex(
+        levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
+    )
+
+    if isinstance(unstacked, Series):
+        unstacked.index = new_columns
+    else:
+        unstacked.columns = new_columns
 
     return unstacked
 ```
-
-The corrected code includes a modification to properly handle cases where `clocs` may contain tuples, and ensures that level numbers are extracted appropriately for MultiIndex processing.
-
-The corrected code should address the issue and ensure that the failing test cases pass successfully.
-
-This approach aligns with the expected input/output variable information and is intended to resolve the issue reported in the GitHub bug.

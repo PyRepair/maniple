@@ -1,27 +1,70 @@
-### Bug Analysis
-The buggy function `initialize` is checking if an IOLoop.current instance is already present before calling `self.make_current()`. If `make_current` is True and an IOLoop.current instance already exists, it raises a `RuntimeError`. However, if `make_current` is None, it calls `self.make_current()` even if an IOLoop.current instance already exists.
-
-The failing test `test_force_current` instantiates an IOLoop with `make_current=True` and then attempts to instantiate another IOLoop with `make_current=True`. This triggers the `RuntimeError` in the buggy function, indicating that `make_current` is not being properly handled when it is None.
-
-The GitHub issue indicates a discrepancy between the check for a current IOLoop instance and the subsequent raising of the error.
-
-### Bug Cause
-The `initialize` function in the `IOLoop` class does not properly handle the case when `make_current` is None and there is already a current IOLoop instance.
-
-### Possible Approaches
-1. Update the `initialize` function to handle the case when `make_current` is None and there is already a current IOLoop instance.
-2. Modify the check for a current IOLoop instance to be more explicit and account for all the possible scenarios.
-
-### Corrected Code
 ```python
-def initialize(self, make_current=None):
-    current_instance = IOLoop.current(instance=False)
-    if make_current is None:
-        if current_instance is None:
+# The corrected version of the function
+class IOLoop(Configurable):
+    """
+    A level-triggered I/O loop.
+    
+    We use ``epoll`` (Linux) or ``kqueue`` (BSD and Mac OS X) if they
+    are available, or else we fall back on select(). If you are
+    implementing a system that needs to handle thousands of
+    simultaneous connections, you should use a system that supports
+    either ``epoll`` or ``kqueue``.
+    
+    Example usage for a simple TCP server:
+    
+    .. testcode::
+    
+        import errno
+        import functools
+        import tornado.ioloop
+        import socket
+    
+        def connection_ready(sock, fd, events):
+            while True:
+                try:
+                    connection, address = sock.accept()
+                except socket.error as e:
+                    if e.args[0] not in (errno.EWOULDBLOCK, errno.EAGAIN):
+                        raise
+                    return
+                connection.setblocking(0)
+                handle_connection(connection, address)
+    
+        if __name__ == '__main__':
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.setblocking(0)
+            sock.bind(("", port))
+            sock.listen(128)
+    
+            io_loop = IOLoop.current()
+            callback = functools.partial(connection_ready, sock)
+            io_loop.add_handler(sock.fileno(), callback, io_loop.READ)
+            io_loop.start()
+    
+    .. testoutput::
+       :hide:
+    
+    By default, a newly-constructed `IOLoop` becomes the thread's current
+    `IOLoop`, unless there already is a current `IOLoop`. This behavior
+    can be controlled with the ``make_current`` argument to the `IOLoop`
+    constructor: if ``make_current=True``, the new `IOLoop` will always
+    try to become current and it raises an error if there is already a
+    current instance. If ``make_current=False``, the new `IOLoop` will
+    not try to become current.
+    
+    .. versionchanged:: 4.2
+       Added the ``make_current`` keyword argument to the `IOLoop`
+       constructor.
+    """
+
+    # corrected version of the buggy function
+    def initialize(self, make_current=None):
+        if make_current is None:
+            if IOLoop.current(instance=False) is None:  
+                self.make_current()
+        elif make_current:
+            if IOLoop.current(instance=False) is not None:  
+                raise RuntimeError("current IOLoop already exists")
             self.make_current()
-    elif make_current:
-        if current_instance is not None:
-            raise RuntimeError("current IOLoop already exists")
-        self.make_current()
 ```
-With this corrected code, the `initialize` function now correctly handles the scenario when `make_current` is None and there is already a current IOLoop instance. This should resolve the issue and the failing test case.

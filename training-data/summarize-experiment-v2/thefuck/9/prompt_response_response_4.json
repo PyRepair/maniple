@@ -4,7 +4,7 @@
             "bugID": 9,
             "start_line": 11,
             "file_name": "thefuck/rules/git_push.py",
-            "replace_code": "def get_new_command(command):\n    # If --set-upstream or -u are passed, remove it and its argument. This is\n    # because the remaining arguments are concatenated onto the command suggested\n    # by git, which includes --set-upstream and its argument\n    try:\n        upstream_option_index = command.script_parts.index('--set-upstream')\n        command.script_parts.pop(upstream_option_index)  # Remove the option\n        command.script_parts.pop(upstream_option_index)  # Remove its argument\n    except ValueError:\n        pass\n    try:\n        upstream_option_index = command.script_parts.index('-u')\n        command.script_parts.pop(upstream_option_index)  # Remove the option\n        command.script_parts.pop(upstream_option_index)  # Remove its argument\n    except ValueError:\n        pass\n\n    push_upstream = command.stderr.split('\\n')[-3].strip().partition('git ')[2]\n    return replace_argument(\" \".join(command.script_parts), 'push', push_upstream)",
+            "replace_code": "def get_new_command(command):\n    has_upstream_option = False\n    for i in range(len(command.script_parts)):\n        if command.script_parts[i] in ['--set-upstream', '-u']:\n            has_upstream_option = True\n            command.script_parts.pop(i)\n            break\n\n    if has_upstream_option:\n        push_upstream = command.stderr.split('\\n')[-3].strip().partition('git ')[2]\n        return replace_argument(\" \".join(command.script_parts), 'push', push_upstream)\n    else:\n        return \" \".join(command.script_parts)",
             "import_list": []
         }
     ]

@@ -1,14 +1,10 @@
-Potential error location within the problematic function:
-The error is likely occurring in the section of code where the time bins are being generated, specifically in the part where the time bins are adjusted to handle nanosecond precision and closed intervals. 
+The potential error location within the problematic function is in the `date_range` method, where the `ambiguous` parameter is set to "infer". This causes an AmbiguousTimeError when trying to infer daylight saving time from a specific date and time.
 
-Bug's cause:
-The bug seems to be related to the handling of ambiguous time stamps, particularly on a clock-change day in Cuba. The code does not handle ambiguous timestamps correctly, leading to an error. The issue is highlighted in the GitHub report, and the error message also points to a problem with the datetime index checks.
+The bug's cause is that the `date_range` method is not handling ambiguous time properly, leading to the AmbiguousTimeError. The input values and the failing test both indicate the same issue of handling ambiguous time on clock change day in Cuba.
 
-Approaches for fixing the bug:
-1. Update the code to handle ambiguous time stamps correctly, possibly by using the `ambiguous` and `nonexistent` parameters in the `date_range` function to account for ambiguous and non-existent times during the clock change.
-2. Include additional checks for ambiguous times and adjust the time bins accordingly to avoid errors related to ambiguous timestamps.
+To fix the bug, the `ambiguous` parameter in the `date_range` method should be set to "NaT", which means the ambiguous times will be returned as Not-A-Time. This will prevent the AmbiguousTimeError and handle ambiguous times correctly.
 
-Here's a possible fix for the problematic function, which takes into account handling of ambiguous time stamps:
+The corrected version of the function is as follows:
 
 ```python
 def _get_time_bins(self, ax):
@@ -25,15 +21,18 @@ def _get_time_bins(self, ax):
     first, last = _get_timestamp_range_edges(
         ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
     )
-    
-    # Adjust for ambiguous and non-existent times
+    # GH #12037
+    # use first/last directly instead of call replace() on them
+    # because replace() will swallow the nanosecond part
+    # thus last bin maybe slightly before the end if the end contains
+    # nanosecond part and lead to `Values falls after last bin` error
     binner = labels = date_range(
         freq=self.freq,
         start=first,
         end=last,
         tz=ax.tz,
         name=ax.name,
-        ambiguous="infer",
+        ambiguous="NaT",  # Change ambiguous parameter to "NaT"
         nonexistent="shift_forward",
     )
 
@@ -65,4 +64,4 @@ def _get_time_bins(self, ax):
     return binner, bins, labels
 ```
 
-This updated function should handle ambiguous time stamps correctly and resolve the error reported in the GitHub issue.
+This corrected version of the function sets the ambiguous parameter to "NaT" when calling the `date_range` method and should resolve the issue reported in the failing test and the corresponding GitHub issue.

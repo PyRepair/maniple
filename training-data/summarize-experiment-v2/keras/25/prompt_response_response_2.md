@@ -1,10 +1,12 @@
-The bug in the `_preprocess_numpy_input` function is caused by a discrepancy in the data type between the input parameter `x` and the variable `x` right before the return. The function attempts to perform a float64 operation on an int32 type of array, leading to a `UFuncTypeError`.
+The bug in the function `_preprocess_numpy_input` is due to improper handling of data types when performing arithmetic operations on the input array `x`. The error message "Cannot cast ufunc 'subtract' output from dtype('float64') to dtype('int32') with casting rule 'same_kind'" indicates that the function is trying to subtract floating-point values from integer values, which is not allowed.
 
-To fix the bug, we can explicitly cast the input parameter `x` to float32 at the beginning of the function to ensure that all subsequent operations are performed consistently with the same data type.
+To fix this bug, we need to ensure that the data types are handled correctly throughout the function to prevent such type casting issues.
 
-Here's the corrected code for the `_preprocess_numpy_input` function:
+Here's the corrected function:
 
 ```python
+import numpy as np
+
 def _preprocess_numpy_input(x, data_format, mode):
     """Preprocesses a Numpy array encoding a batch of images.
 
@@ -25,7 +27,8 @@ def _preprocess_numpy_input(x, data_format, mode):
     # Returns
         Preprocessed Numpy array.
     """
-    x = x.astype('float32')  # Ensure x is cast to float32
+    x = x.astype('float64')  # ensure x is of type float64
+
     if mode == 'tf':
         x /= 127.5
         x -= 1.
@@ -77,4 +80,6 @@ def _preprocess_numpy_input(x, data_format, mode):
     return x
 ```
 
-With this correction, the function should now pass the failing test and satisfy the expected input and output variable information provided.
+This corrected function ensures that the input array `x` is explicitly converted to type `float64` to avoid type casting issues during arithmetic operations. This should resolve the error encountered in the failing test.
+
+With this corrected function, it should pass the failing test case and provide the expected output as described.
