@@ -113,8 +113,6 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_fi
         }
 
 
-
-
 class GPTConnection:
     def __init__(self):
         self.max_generation_count = 3

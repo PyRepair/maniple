@@ -101,6 +101,7 @@ class PromptGenerator:
         self.strata_7_content = ""
         self.strata_8_content = ""
         self.strata_9_content = ""
+        self.strata_1_3_3_content = ""
 
         self.generate_prompt()
 
@@ -121,6 +122,10 @@ class PromptGenerator:
         return actual_strata_bitvector
 
     def append_template(self, content: str, strata: int):
+        if strata == 133:
+            self.strata_1_3_3_content += content
+            return
+
         self.prompt += content
         if strata == 1:
             self.strata_1_content += content
@@ -314,6 +319,11 @@ class PromptGenerator:
             self.append_template(self.facts["used_imports"], 1)
             self.append_template("\n```\n\n", 1)
 
+            self.append_template(self.template["1.3.3"], 133)
+            self.append_template("```python\n", 133)
+            self.append_template(self.facts["used_imports"], 133)
+            self.append_template("\n```\n\n", 133)
+
         self.append_template(self.template["1.1.1"], 1)
 
         self.append_template("```python\n", 1)
@@ -408,7 +418,8 @@ class PromptGenerator:
                 "6": self.strata_6_content,
                 "7": self.strata_7_content,
                 "8": self.strata_8_content,
-                "9": self.strata_9_content
+                "9": self.strata_9_content,
+                "1.3.3": self.strata_1_3_3_content
             }
 
             json.dump(facts_content_strata, prompt_facts_file, indent=4)
