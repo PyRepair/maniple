@@ -15,7 +15,7 @@ else:
 
     for project in bug_list.keys():
         for bid in bug_list[project]:
-            bug_data_source = os.path.join("..", "experiment-initialization-resources", "bug-data", project, str(bid))
+            bug_data_source = os.path.join("..", "training-data", "temp-code-test-16-16-dataset", project, str(bid))
             if not os.path.exists(bug_data_source):
                 print_in_red(f"no bug data for {project}:{bid}")
                 continue
@@ -27,3 +27,8 @@ else:
                 shutil.rmtree(bug_destination)
 
             shutil.copytree(bug_data_source, os.path.join(project_destination, os.path.basename(bug_data_source)))
+
+            for root, dirs, files in os.walk(bug_destination):
+                for file in files:
+                    if "prompt.md" in file:
+                        os.remove(os.path.join(root, file))
