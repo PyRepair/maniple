@@ -109,10 +109,10 @@ def main(path: str):
 
 
 if __name__ == "__main__":
-    # args_parser = argparse.ArgumentParser()
-    # args_parser.add_argument("path", help="Path to be taken")
-    #
-    # args = args_parser.parse_args()
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument("path", help="Path to be taken")
+    
+    args = args_parser.parse_args()
 
-    main("/Users/jerry/Documents/GitHub/LPPR/training-data/summarize-experiment")
+    main(args.path)
     all_one_bitvector_bench()
