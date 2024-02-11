@@ -1,4 +1,5 @@
 import pickle
+import json
 from pathlib import Path
 from typing import Any, List, Dict
 
@@ -13,6 +14,25 @@ total_usage = 0
 class Processor:
     def __init__(self, bug_folder: Path):
         self.bug_folder = bug_folder
+        with open(bug_folder / "facts_in_prompt.json") as f:
+            self.facts_in_prompt = json.load(f)
+        prompt_instruction_folder = Path.cwd() / "prompt-instructions"
+        self._stacktrace_instruction = (prompt_instruction_folder / "stacktrace.txt").read_text()
+        self._issue_description_instruction = (prompt_instruction_folder / "issue_description.txt").read_text()
+        self._runtime_value_instruction = (prompt_instruction_folder / "runtime_value.txt").read_text()
+        self._angelic_value_instruction = (prompt_instruction_folder / "angelic_value.txt").read_text()
+
+    @property
+    def stack_trace_summary_prompt(self):
+        prompt = self._stacktrace_instruction
+        prompt += "\n\n\n"
+        prompt += self.facts_in_prompt["1"].strip()
+        prompt += "\n\n\n"
+        prompt += self.facts_in_prompt["3"].strip()
+
+
+
+        return prompt
 
 
 
