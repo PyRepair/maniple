@@ -15,7 +15,7 @@ else:
 
     for project in bug_list.keys():
         for bid in bug_list[project]:
-            bug_data_source = os.path.join("..", "training-data", "temp-code-test-16-16-dataset", project, str(bid))
+            bug_data_source = os.path.join("..", "experiment-initialization-resources", "bug-data", project, str(bid))
             if not os.path.exists(bug_data_source):
                 print_in_red(f"no bug data for {project}:{bid}")
                 continue
