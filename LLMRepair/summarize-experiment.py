@@ -1,22 +1,42 @@
-import pickle
 import json
+import pickle
+import threading
 from pathlib import Path
-from typing import Any, List, Dict
+from typing import Any, List
 
 import tiktoken
 
 from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_response_with_fix_path
-from utils import print_in_red, print_in_yellow, iter_bugid_folders
+from utils import print_in_red, print_in_yellow, iter_bugid_folders, divide_list, print_in_green
 
 total_usage = 0
+n_partitions = 5
+database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v2"
+
+LOG_MODE = n_partitions == 1
+
+
+def log_red(message: str):
+    if LOG_MODE:
+        print_in_red(message)
+
+
+def log_yellow(message: str):
+    if LOG_MODE:
+        log_yellow(message)
+
+
+def log(*args, sep=' ', end='\n', file=None):
+    if LOG_MODE:
+        print(*args, sep=sep, end=end, file=file)
 
 
 class Processor:
     def __init__(self, bug_folder: Path):
         self.bug_folder = bug_folder
-        with open(bug_folder / "facts_in_prompt.json") as f:
+        with open(bug_folder / "facts-in-prompt.json") as f:
             self.facts_in_prompt = json.load(f)
-        prompt_instruction_folder = Path.cwd() / "prompt-instructions"
+        prompt_instruction_folder = Path.cwd() / "prompt_instructions"
         self._stacktrace_instruction = (prompt_instruction_folder / "stacktrace.txt").read_text()
         self._issue_description_instruction = (prompt_instruction_folder / "issue_description.txt").read_text()
         self._runtime_value_instruction = (prompt_instruction_folder / "runtime_value.txt").read_text()
@@ -26,14 +46,39 @@ class Processor:
     def stack_trace_summary_prompt(self):
         prompt = self._stacktrace_instruction
         prompt += "\n\n\n"
-        prompt += self.facts_in_prompt["1"].strip()
+        prompt += self.facts_in_prompt["source_code_section"].strip()
         prompt += "\n\n\n"
-        prompt += self.facts_in_prompt["3"].strip()
-
-
-
+        prompt += self.facts_in_prompt["4"].strip()
+        prompt += "\n\n\n"
+        prompt += self.facts_in_prompt["5"].strip()
         return prompt
 
+    @property
+    def issue_description_prompt(self):
+        if self.facts_in_prompt["8"] == "":
+            return ""
+        prompt = self._issue_description_instruction
+        prompt += "\n\n\n"
+        prompt += self.facts_in_prompt["8"].strip()
+        return prompt
+
+    @property
+    def runtime_value_prompt(self):
+        if self.facts_in_prompt["6"] == "":
+            return ""
+        prompt = self._runtime_value_instruction
+        prompt += "\n\n\n"
+        prompt += self.facts_in_prompt["6"].strip()
+        return prompt
+
+    @property
+    def angelic_value_prompt(self):
+        if self.facts_in_prompt["7"] == "":
+            return ""
+        prompt = self._angelic_value_instruction
+        prompt += "\n\n\n"
+        prompt += self.facts_in_prompt["7"].strip()
+        return prompt
 
 
 def count_tokens(prompt: str) -> int:
@@ -41,162 +86,133 @@ def count_tokens(prompt: str) -> int:
     return len(encoding.encode(prompt))
 
 
-def construct_prompt(facts_in_prompt: Dict[str, str]):
-    prompt = "Please correct the malfunctioning function provided below by using the relevant information listed to address this bug. Then, produce a revised version of the function that resolves the issue. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function."
-    prompt += "\n\n"
-
-    used_imports = processor.facts["used_imports"]
-    if bool(used_imports):
-        prompt += f"Assume that the following list of imports are available in the current environment, so you don't need to import them when generating a fix.\n```python\n{used_imports}\n```"
-
-    prompt += "\n\n"
-    prompt += f"The following is the buggy function that you need to fix:\n```python\n{processor.buggy_function_code}```"
-
-    used_functions = processor.facts_in_prompt["2"]
-    if used_functions != "":
-        print("Preserving used functions. Tokens:", count_tokens(used_functions))
-        prompt += "\n\n\n\n"
-        prompt += f"## Functions Used in the Buggy Function\n```python{used_functions}```"
-    else:
-        print_in_red("No used functions")
-
-    prompt = resolve_test_case(processor, prompt)
-
-    prompt = resolve_runtime_value(processor, prompt)
-
-    prompt = resolve_angelic_value(processor, prompt)
-
-    prompt = resolve_github_issue(processor, prompt)
-
-    cot_technique_instruction = processor.facts_in_prompt["7"]
-    prompt += "\n\n\n\n"
-    prompt += cot_technique_instruction
-
+def construct_prompt(processor: Processor) -> str:
+    prompt = processor.facts_in_prompt["1"]
+    prompt += processor.facts_in_prompt["2"]
+    prompt += processor.facts_in_prompt["3"]
+    prompt += processor.facts_in_prompt["4"]
+    prompt += resolve_stacktrace(processor)
+    prompt += resolve_runtime_value(processor)
+    prompt += resolve_angelic_value(processor)
+    prompt += resolve_github_issue(processor)
+    prompt += processor.facts_in_prompt["9"]
     return prompt
 
 
-def resolve_test_case(processor, prompt):
-    if test_info_prompt == "":
-        print_in_red("No test info")
-        return prompt
+def resolve_stacktrace(processor: Processor):
+    stacktrace_summary_prompt = processor.stack_trace_summary_prompt
 
-    num_tokens = count_tokens(test_info_prompt)
+    num_tokens = count_tokens(stacktrace_summary_prompt)
     if num_tokens > 16_000:
-        print_in_red(f"Test info summary is too long. Tokens: {num_tokens}")
-        return prompt
+        log_red(f"Test info summary is too long. Tokens: {num_tokens}")
+        return ""
 
     if num_tokens < 1000:
-        print("Preserving test info. Tokens:", num_tokens)
-        prompt += "\n\n"
-        prompt += test_info_prompt
-        return prompt
+        log("Preserving test info. Tokens:", num_tokens)
+        return processor.facts_in_prompt["5"]
 
-    instruction = Path()
+    log("Generating test info. Tokens:", count_tokens(stacktrace_summary_prompt), end=" ")
+    error_message_summary = get_response_and_store_results(prompt=stacktrace_summary_prompt,
+                                                           prompt_file=processor.bug_folder / "test_info_prompt.md",
+                                                           response_file=processor.bug_folder / "test_info_response.md",
+                                                           pkl_file=processor.bug_folder / "test_info_response.pkl")[0]
+    log("->", count_tokens(error_message_summary))
 
-    print("Generating test info. Tokens:", count_tokens(test_info_prompt), end=" ")
-    error_message_summary = get_response_and_store_results(prompt=test_info_prompt,
-                                                           prompt_file=processor.get_bugid_folder() / "test_info_prompt.md",
-                                                           response_file=processor.get_bugid_folder() / "test_info_response.md",
-                                                           pkl_file=processor.get_bugid_folder() / "test_info_response.pkl")[0]
-    print("->", count_tokens(error_message_summary))
-    prompt += "\n\n\n\n"
-    prompt += f"""
-## Test Functions and Error Messages Summary
-{processor.get_test_code_text()}
+    result = "Here is a summary of the test cases and error messages:\n\n"
+    result += error_message_summary
+    result += "\n\n\n"
 
-Here is a summary of the test cases and error messages:
-{error_message_summary}""".strip()
-
-    return prompt
+    return result
 
 
-def resolve_runtime_value(processor, prompt):
-    runtime_value_prompt = processor.get_dynamic_values_prompt()
+def resolve_runtime_value(processor: Processor):
+    runtime_value_prompt = processor.runtime_value_prompt
+
     if runtime_value_prompt == "":
-        print_in_red("No runtime value")
-        return prompt
+        log_red("No runtime value")
+        return ""
 
     num_tokens = count_tokens(runtime_value_prompt)
     if num_tokens > 16_000:
-        print_in_red(f"Runtime value summary is too long. Tokens: {num_tokens}")
-        return prompt
+        log_red(f"Runtime value summary is too long. Tokens: {num_tokens}")
+        return ""
 
     if num_tokens < 1000:
-        print("Preserving runtime value. Tokens:", num_tokens)
-        prompt += "\n\n\n\n"
-        prompt += processor.get_dynamic_values_section()
-        return prompt
+        log("Preserving runtime value. Tokens:", num_tokens)
+        return processor.facts_in_prompt["6"]
 
-    print("Generating runtime value summary. Tokens:", num_tokens, end=" ")
+    log("Generating runtime value summary. Tokens:", num_tokens, end=" ")
     runtime_value_summary = get_response_and_store_results(prompt=runtime_value_prompt,
-                                                           prompt_file=processor.get_bugid_folder() / "runtime_info_prompt.md",
-                                                           response_file=processor.get_bugid_folder() / "runtime_info_response.md",
-                                                           pkl_file=processor.get_bugid_folder() / "runtime_info_response.pkl")[0]
-    print("->", count_tokens(runtime_value_summary))
-    prompt += "\n\n\n\n"
-    prompt += "## Summary of Runtime Variables and Types in the Buggy Function\n\n"
-    prompt += runtime_value_summary
+                                                           prompt_file=processor.bug_folder / "runtime_info_prompt.md",
+                                                           response_file=processor.bug_folder / "runtime_info_response.md",
+                                                           pkl_file=processor.bug_folder / "runtime_info_response.pkl")[0]
+    log("->", count_tokens(runtime_value_summary))
 
-    return prompt
+    result = "## Summary of Runtime Variables and Types in the Buggy Function\n\n"
+    result += runtime_value_summary
+    result += "\n\n\n"
+
+    return result
 
 
-def resolve_angelic_value(processor, prompt):
-    angelic_value_prompt = processor.get_angelic_values_prompt()
+def resolve_angelic_value(processor: Processor):
+    angelic_value_prompt = processor.angelic_value_prompt
+
     if angelic_value_prompt == "":
-        print_in_red("No angelic value")
-        return prompt
+        log_red("No angelic value")
+        return ""
 
     num_tokens = count_tokens(angelic_value_prompt)
     if num_tokens > 16_000:
-        print_in_red(f"Angelic value summary is too long. Tokens: {num_tokens}")
-        return prompt
+        log_red(f"Angelic value summary is too long. Tokens: {num_tokens}")
+        return ""
 
     if num_tokens < 1000:
-        print("Preserving angelic value. Tokens:", num_tokens)
-        prompt += "\n\n\n\n"
-        prompt += processor.get_angelic_values_section()
-        return prompt
+        log("Preserving angelic value. Tokens:", num_tokens)
+        return processor.facts_in_prompt["7"]
 
-    print("Generating angelic value summary. Tokens:", num_tokens, end=" ")
+    log("Generating angelic value summary. Tokens:", num_tokens, end=" ")
     angelic_value_summary = get_response_and_store_results(prompt=angelic_value_prompt,
-                                                           prompt_file=processor.get_bugid_folder() / "angelic_info_prompt.md",
-                                                           response_file=processor.get_bugid_folder() / "angelic_info_response.md",
-                                                           pkl_file=processor.get_bugid_folder() / "angelic_info_response.pkl")[0]
-    print("->", count_tokens(angelic_value_summary))
-    prompt += "\n\n\n\n"
-    prompt += "## Summary of Expected Parameters and Return Values in the Buggy Function\n\n"
-    prompt += angelic_value_summary
+                                                           prompt_file=processor.bug_folder / "angelic_info_prompt.md",
+                                                           response_file=processor.bug_folder / "angelic_info_response.md",
+                                                           pkl_file=processor.bug_folder / "angelic_info_response.pkl")[0]
+    log("->", count_tokens(angelic_value_summary))
 
-    return prompt
+    result = "## Summary of Expected Parameters and Return Values in the Buggy Function\n\n"
+    result += angelic_value_summary
+    result += "\n\n\n"
+
+    return result
 
 
-def resolve_github_issue(processor, prompt):
-    github_issue_prompt = processor.get_github_issue_prompt()
+def resolve_github_issue(processor: Processor):
+    github_issue_prompt = processor.issue_description_prompt
+
     if github_issue_prompt == "":
-        print_in_red("No GitHub issue")
-        return prompt
+        log_red("No GitHub issue")
+        return ""
 
     num_tokens = count_tokens(github_issue_prompt)
     if num_tokens > 16_000:
-        print_in_red(f"GitHub issue summary is too long. Tokens: {num_tokens}")
+        log_red(f"GitHub issue summary is too long. Tokens: {num_tokens}")
+        return ""
 
     if num_tokens < 1000:
-        print("Preserving GitHub issue. Tokens:", num_tokens)
-        prompt += "\n\n\n\n"
-        prompt += processor.facts_in_prompt["6"]
-        return prompt
+        log("Preserving GitHub issue. Tokens:", num_tokens)
+        return processor.facts_in_prompt["8"]
 
-    print("Generating GitHub issue summary. Tokens:", num_tokens, end=" ")
+    log("Generating GitHub issue summary. Tokens:", num_tokens, end=" ")
     github_issue_summary = get_response_and_store_results(prompt=github_issue_prompt,
-                                                          prompt_file=processor.get_bugid_folder() / "github_issue_prompt.md",
-                                                          response_file=processor.get_bugid_folder() / "github_issue_response.md",
-                                                          pkl_file=processor.get_bugid_folder() / "github_issue_response.pkl")[0]
-    print("->", count_tokens(github_issue_summary))
-    prompt += "\n\n\n\n"
-    prompt += "## Summary of the GitHub Issue Related to the Bug\n\n"
-    prompt += github_issue_summary
+                                                          prompt_file=processor.bug_folder / "github_issue_prompt.md",
+                                                          response_file=processor.bug_folder / "github_issue_response.md",
+                                                          pkl_file=processor.bug_folder / "github_issue_response.pkl")[0]
+    log("->", count_tokens(github_issue_summary))
 
-    return prompt
+    result = "## Summary of the GitHub Issue Related to the Bug\n\n"
+    result += github_issue_summary
+    result += "\n\n\n"
+
+    return result
 
 
 def get_response_and_store_results(prompt: str, prompt_file: Path, response_file: Path, pkl_file: Path, trials=1) -> List[str]:
@@ -235,31 +251,48 @@ def get_response_and_store_results(prompt: str, prompt_file: Path, response_file
     return responses
 
 
-def main():
+def process_each_bug(bugid: str, project_folder: Path, bugid_folder: Path):
     global total_usage
+    global database_folder_path
 
-    database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment"
+    print_in_green(f"Processing {bugid}...")
+    facts_proc = Processor(bug_folder=bugid_folder)
 
-    for bugid, project_folder, bugid_folder in iter_bugid_folders(database_folder_path):
-        print_in_yellow(f"Processing {bugid}...")
+    prompt = construct_prompt(facts_proc)
+    with open(bugid_folder / "prompt.md", "w") as f:
+        f.write(prompt)
 
-        facts_proc = CustomFactProcessor(bugid=bugid, bug_working_directory=bugid_folder)
+    log("Generating patch response. Prompt tokens:", count_tokens(prompt))
+    token_usage: Any = get_and_save_response_with_fix_path(prompt=prompt,
+                                                           gpt_model="gpt-3.5-turbo-1106",
+                                                           response_file_name_prefix="prompt_response",
+                                                           database_dir=database_folder_path,
+                                                           project_name=project_folder.name,
+                                                           bug_id=bugid_folder.name,
+                                                           trial=10)
 
-        prompt = construct_prompt(facts_proc)
-        with open(bugid_folder / "prompt.md", "w") as f:
-            f.write(prompt)
-
-        print("Generating patch response. Prompt tokens:", count_tokens(prompt))
-        token_usage: Any = get_and_save_response_with_fix_path(prompt=prompt,
-                                                               gpt_model="gpt-3.5-turbo-1106",
-                                                               response_file_name_prefix="prompt_response",
-                                                               database_dir=database_folder_path,
-                                                               project_name=project_folder.name,
-                                                               bug_id=bugid_folder.name,
-                                                               trial=10)
+    if type(token_usage) is dict:
+        total_usage += token_usage["total_tokens"]
+    else:
         total_usage += token_usage.total_tokens
 
-    print_in_yellow(f"Total token usage: {total_usage}, estimate {total_usage / 1000_000} dollars")
+
+def main():
+    global database_folder_path
+    global n_partitions
+
+    partitions = divide_list(iter_bugid_folders(database_folder_path), n_partitions)
+
+    def thread_func(folders):
+        for bugid, project_folder, bugid_folder in folders:
+            process_each_bug(bugid, project_folder, bugid_folder)
+
+    for partition in partitions:
+        # create and start threads
+        thread = threading.Thread(target=thread_func, args=(partition,))
+        thread.start()
+
+    print_in_yellow(f"Total token usage: {total_usage}, estimate ${total_usage / 1000_000}")
 
 
 if __name__ == "__main__":

@@ -71,8 +71,6 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_fi
                 }
                 json.dump(test_input_data, json_file, indent=4)
 
-            print(f"write response to {response_md_file_path}")
-
         else:
             with open(response_md_file_path, "w", encoding='utf-8') as md_file:
                 md_file.write(error_str)

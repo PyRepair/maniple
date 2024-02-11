@@ -1,0 +1,5 @@
+From the error messages, it can be deduced that each failing test experiences an assertion error. Specifically, each of the failing tests are expecting a "response.status_code" of 200 from the client post but are instead receiving 422 as the response status code according to the error messages in the command line, denoted by "E assert 422 == 200". This means that the actual status code returned by the call is 422, while the assertion is expecting 200.
+
+To simplify the original error message, the failing tests are encountering assertion errors that are comparing the actual response status code of 422 with the expected response status code of 200.
+
+In summary, the tests are failing due to the unexpected status code returned by the client post responses, and not due to a fault in the test code, since the error is regarding a discrepancy in the response status codes.
