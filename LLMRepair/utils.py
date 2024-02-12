@@ -199,7 +199,7 @@ def _extract_function_and_imports_from_code_block_impl(
     function_node = None
     import_statements = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == func_name:
+        if isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef) and node.name == func_name:
             function_node = node
         elif isinstance(node, (ast.Import, ast.ImportFrom)):
             import_statements.append(node)
