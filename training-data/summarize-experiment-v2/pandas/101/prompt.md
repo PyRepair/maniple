@@ -154,12 +154,9 @@ def test_astype_nansafe(val, typ):
 
 Here is a summary of the test cases and error messages:
 
-The original error message is "E Failed: DID NOT RAISE <class 'ValueError'>". This error message occurs in the failing test file in the "test_astype_nansafe" test function. It indicates that the test failed because the "astype_nansafe" function did not raise a ValueError as expected.
+The error messages are indicating that the `astype_nansafe` function is not raising a `ValueError` as expected. This occurs at lines 723 and 723 in the file `pandas/tests/dtypes/test_common.py`. The test is checking for the specific case when the input array contains "NaT" (Not a Time) values and should raise a `ValueError` with the message "Cannot convert NaT values to integer". However, the function is not raising the expected error, resulting in the test failure.
 
-The failing test case provides the error message "Cannot convert NaT values to integer", which helps to understand the specific error condition that the test is checking for.
-
-To simplify the original error message:
-- The "astype_nansafe" function did not raise a ValueError as expected in the test_astype_nansafe test function.
+To simplify the original error message, we can summarize it as: "Failed to raise a ValueError when attempting to convert NaT values to integer".
 
 
 # Expected value and type of variables during the failing test execution
@@ -203,110 +200,21 @@ dtype.kind, expected value: `'i'`, type: `str`
 
 dtype.name, expected value: `'int64'`, type: `str`
 
-# A GitHub issue title for this bug
-```text
-BUG: Don't cast categorical nan to int
-```
+## Summary of the GitHub Issue Related to the Bug
 
-## The GitHub issue's detailed description
-```text
- closes Converting from categorical to int ignores NaNs #28406
- passes black pandas
- tests added / passed
- whatsnew entry
-This raises an error when attempting to cast a Categorical or CategoricalIndex containing nans to an integer dtype. Also had to remove the casting within get_indexer_non_unique since this won't always be possible.
-```
+# GitHub Issue: Categorical NaN Not Converted to Int Correctly
 
-# A GitHub issue title for this bug
-```text
-Converting from categorical to int ignores NaNs
-```
+## Description:
+When converting categorical series back into an Int column, NaN is unexpectedly converted to a negative integer value. This behavior is not as expected and can cause issues.
 
-## The GitHub issue's detailed description
-```text
-Code Sample, a copy-pastable example if possible
-In [6]: s = pd.Series([1, 0, None], dtype='category')                                                                                                                                                                                            
+### Expected Output:
+NaN in the category should convert to NaN in IntX (nullable integer) or float.
 
-In [7]: s                                                                                                                                                                                                                                      
-Out[7]: 
-0      1
-1      0
-2    NaN
-dtype: category
-Categories (2, int64): [0, 1]
+### Versions: 
+- Python: 3.7.4.final.0
+- Pandas: 0.25.1
+- Numpy: 1.17.2
 
-In [8]: s.astype(int)                                                                                                                                                                                                                          
-Out[8]: 
-0                      1
-1                      0
-2   -9223372036854775808  # <- this is unexpected
-dtype: int64
-Problem description
-When converting categorical series back into Int column, it converts NaN to incorect integer negative value.
-
-Expected Output
-I would expect that NaN in category converts to NaN in IntX(nullable integer) or float.
-
-When trying to use d.astype('Int8'), I get an error dtype not understood
-
-Output of pd.show_versions()
-In [147]: pd.show_versions()                                                                                                                                                                                                                   
-
-INSTALLED VERSIONS
-------------------
-commit           : None
-python           : 3.7.4.final.0
-python-bits      : 64
-OS               : Linux
-OS-release       : 5.2.13-arch1-1-ARCH
-machine          : x86_64
-processor        : 
-byteorder        : little
-LC_ALL           : None
-LANG             : en_US.UTF-8
-LOCALE           : en_US.UTF-8
-
-pandas           : 0.25.1
-numpy            : 1.17.2
-pytz             : 2019.2
-dateutil         : 2.8.0
-pip              : 19.2.3
-setuptools       : 41.2.0
-Cython           : None
-pytest           : 5.1.2
-hypothesis       : None
-sphinx           : None
-blosc            : None
-feather          : 0.4.0
-xlsxwriter       : None
-lxml.etree       : None
-html5lib         : None
-pymysql          : None
-psycopg2         : None
-jinja2           : None
-IPython          : 7.8.0
-pandas_datareader: None
-bs4              : None
-bottleneck       : None
-fastparquet      : None
-gcsfs            : None
-lxml.etree       : None
-matplotlib       : None
-numexpr          : 2.7.0
-odfpy            : None
-openpyxl         : None
-pandas_gbq       : None
-pyarrow          : 0.14.1
-pytables         : None
-s3fs             : None
-scipy            : None
-sqlalchemy       : None
-tables           : 3.5.2
-xarray           : None
-xlrd             : None
-xlwt             : None
-xlsxwriter       : None
-```
 
 1. Analyze the buggy function and it's relationship with the related functions, test code, corresponding error message, the expected input/output variable information, the github issue.
 2. Identify the potential error location within the problematic function.

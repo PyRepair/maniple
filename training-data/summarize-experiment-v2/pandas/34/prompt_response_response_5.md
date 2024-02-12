@@ -1,67 +1,74 @@
-The potential error location within the problematic function is in the `date_range` method, where the `ambiguous` parameter is set to "infer". This causes an AmbiguousTimeError when trying to infer daylight saving time from a specific date and time.
-
-The bug's cause is that the `date_range` method is not handling ambiguous time properly, leading to the AmbiguousTimeError. The input values and the failing test both indicate the same issue of handling ambiguous time on clock change day in Cuba.
-
-To fix the bug, the `ambiguous` parameter in the `date_range` method should be set to "NaT", which means the ambiguous times will be returned as Not-A-Time. This will prevent the AmbiguousTimeError and handle ambiguous times correctly.
-
-The corrected version of the function is as follows:
-
 ```python
-def _get_time_bins(self, ax):
-    if not isinstance(ax, DatetimeIndex):
-        raise TypeError(
-            "axis must be a DatetimeIndex, but got "
-            f"an instance of {type(ax).__name__}"
+from pandas._libs import lib
+from pandas._libs.tslibs import NaT, Period, Timestamp
+from pandas.core.indexes.datetimes import DatetimeIndex, date_range
+
+class TimeGrouper(Grouper):
+    """
+    Custom groupby class for time-interval grouping.
+    
+    Parameters
+    ----------
+    freq : pandas date offset or offset alias for identifying bin edges
+    closed : closed end of interval; 'left' or 'right'
+    label : interval boundary to use for labeling; 'left' or 'right'
+    convention : {'start', 'end', 'e', 's'}
+        If axis is PeriodIndex
+    """
+
+    def _get_time_bins(self, ax):
+        if not isinstance(ax, DatetimeIndex):
+            raise TypeError(
+                "axis must be a DatetimeIndex, but got "
+                f"an instance of {type(ax).__name__}"
+            )
+    
+        if len(ax) == 0:
+            binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
+            return binner, [], labels
+    
+        first, last = _get_timestamp_range_edges(
+            ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
         )
-
-    if len(ax) == 0:
-        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
-        return binner, [], labels
-
-    first, last = _get_timestamp_range_edges(
-        ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
-    )
-    # GH #12037
-    # use first/last directly instead of call replace() on them
-    # because replace() will swallow the nanosecond part
-    # thus last bin maybe slightly before the end if the end contains
-    # nanosecond part and lead to `Values falls after last bin` error
-    binner = labels = date_range(
-        freq=self.freq,
-        start=first,
-        end=last,
-        tz=ax.tz,
-        name=ax.name,
-        ambiguous="NaT",  # Change ambiguous parameter to "NaT"
-        nonexistent="shift_forward",
-    )
-
-    ax_values = ax.asi8
-    binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
-
-    # general version, knowing nothing about relative frequencies
-    bins = lib.generate_bins_dt64(
-        ax_values, bin_edges, self.closed, hasnans=ax.hasnans
-    )
-
-    if self.closed == "right":
-        labels = binner
-        if self.label == "right":
+        # GH #12037
+        # use first/last directly instead of call replace() on them
+        # because replace() will swallow the nanosecond part
+        # thus last bin maybe slightly before the end if the end contains
+        # nanosecond part and lead to `Values falls after last bin` error
+        binner = labels = date_range(
+            freq=self.freq,
+            start=first,
+            end=last,
+            tz=ax.tz,
+            name=ax.name,
+            ambiguous="infer",
+            nonexistent="shift_forward",
+        )
+    
+        ax_values = ax.asi8
+        binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
+    
+        # general version, knowing nothing about relative frequencies
+        bins = lib.generate_bins_dt64(
+            ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+        )
+    
+        if self.closed == "right":
+            labels = binner
+            if self.label == "right":
+                labels = labels[1:]
+        elif self.label == "right":
             labels = labels[1:]
-    elif self.label == "right":
-        labels = labels[1:]
-
-    if ax.hasnans:
-        binner = binner.insert(0, NaT)
-        labels = labels.insert(0, NaT)
-
-    # if we end up with more labels than bins
-    # adjust the labels
-    # GH4076
-    if len(bins) < len(labels):
-        labels = labels[: len(bins)]
-
-    return binner, bins, labels
+    
+        if ax.hasnans:
+            binner = binner.insert(0, NaT)
+            labels = labels.insert(0, NaT)
+    
+        # if we end up with more labels than bins
+        # adjust the labels
+        # GH4076
+        if len(bins) < len(labels):
+            labels = labels[: len(bins)]
+    
+        return binner, bins, labels
 ```
-
-This corrected version of the function sets the ambiguous parameter to "NaT" when calling the `date_range` method and should resolve the issue reported in the failing test and the corresponding GitHub issue.

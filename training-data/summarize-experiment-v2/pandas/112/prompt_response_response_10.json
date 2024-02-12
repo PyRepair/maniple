@@ -4,8 +4,8 @@
             "bugID": 112,
             "start_line": 907,
             "file_name": "pandas/core/indexes/interval.py",
-            "replace_code": null,
-            "import_list": null
+            "replace_code": "def get_indexer(\n    self,\n    target: AnyArrayLike,\n    method: Optional[str] = None,\n    limit: Optional[int] = None,\n    tolerance: Optional[Any] = None,\n) -> np.ndarray:\n\n    self._check_method(method)\n\n    if self.is_overlapping:\n        msg = (\n            \"cannot handle overlapping indices; use \"\n            \"IntervalIndex.get_indexer_non_unique\"\n        )\n        raise InvalidIndexError(msg)\n\n    target_as_index = ensure_index(target)\n\n    if isinstance(target_as_index, IntervalIndex):\n        if np.array_equal(target_as_index.values, self.values):\n            return np.arange(len(self), dtype=\"intp\")\n        else:\n            return np.repeat(np.intp(-1), len(target_as_index))\n    elif not is_object_dtype(target_as_index):\n        target_as_index = self._maybe_convert_i8(target_as_index)\n        indexer = self._engine.get_indexer(target_as_index.values)\n    else:\n        indexer = []\n        for key in target_as_index:\n            try:\n                loc = self.get_loc(key)\n            except KeyError:\n                loc = -1\n            indexer.append(loc)\n\n    return ensure_platform_int(indexer)",
+            "import_list": []
         }
     ]
 }

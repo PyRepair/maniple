@@ -1,68 +1,48 @@
 ```python
-# The relative path of the buggy file: pandas/core/resample.py
-
-class TimeGrouper(Grouper):
-    """
-    Custom groupby class for time-interval grouping.
-    
-    Parameters
-    ----------
-    freq : pandas date offset or offset alias for identifying bin edges
-    closed : closed end of interval; 'left' or 'right'
-    label : interval boundary to use for labeling; 'left' or 'right'
-    convention : {'start', 'end', 'e', 's'}
-        If axis is PeriodIndex
-    """
-
-    def _get_time_bins(self, ax):
-        if not isinstance(ax, DatetimeIndex):
-            raise TypeError(
-                "axis must be a DatetimeIndex, but got "
-                f"an instance of {type(ax).__name__}"
-            )
-
-        if len(ax) == 0:
-            binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
-            return binner, [], labels
-
-        first, last = _get_timestamp_range_edges(
-            ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
-        )
-        binner = labels = date_range(
-            freq=self.freq,
-            start=first,
-            end=last,
-            tz=ax.tz,
-            name=ax.name,
-            ambiguous="infer",
-            nonexistent="shift_forward",
+# The corrected version of the function
+def _get_time_bins(self, ax):
+    if not isinstance(ax, DatetimeIndex):
+        raise TypeError(
+            "axis must be a DatetimeIndex, but got "
+            f"an instance of {type(ax).__name__}"
         )
 
-        ax_values = ax.asi8
-        binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
+    if len(ax) == 0:
+        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name, tz=ax.tz)
+        return binner, [], labels
 
-        # general version, knowing nothing about relative frequencies
-        bins = lib.generate_bins_dt64(
-            ax_values, bin_edges, self.closed, hasnans=ax.hasnans
-        )
+    first, last = _get_timestamp_range_edges(
+        ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
+    )
 
-        if self.closed == "right":
-            labels = binner
-            if self.label == "right":
-                labels = labels[1:]
-        elif self.label == "right":
-            labels = labels[1:]
+    # Ensure that first and last have the same time zone as ax
+    first = first.tz_convert(ax.tz)
+    last = last.tz_convert(ax.tz)
 
-        if ax.hasnans:
-            binner = binner.insert(0, NaT)
-            labels = labels.insert(0, NaT)
+    bins = date_range(
+        start=first,
+        end=last,
+        freq=self.freq,
+        tz=ax.tz,
+        closed=self.closed,
+        name=ax.name,
+        ambiguous="infer",
+        nonexistent="shift_forward",
+    )
 
-        # if we end up with more labels than bins
-        # adjust the labels
-        # GH4076
-        if len(binner) < len(labels):
-            labels = labels[: len(binner)]
+    ax_values = ax.asi8
+    binner, bin_edges = self._adjust_bin_edges(bins, ax_values)
 
-        return binner, bins, labels
+    labels = binner
+    if self.closed == "right" or self.label == "right":
+        labels = labels[1:]
+
+    if ax.hasnans:
+        binner = binner.insert(0, NaT)
+        labels = labels.insert(0, NaT)
+
+    if len(bin_edges) < len(labels):
+        labels = labels[:len(bin_edges)]
+
+    return binner, bins, labels
 ```
-I have removed the unnecessary function declarations and extra comments for the bug fix.

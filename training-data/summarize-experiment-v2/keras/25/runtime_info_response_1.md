@@ -1,13 +1,14 @@
-## Expected Inputs and Outputs
-Since the focus here is to reduce the input and output pairs and to make it shorter, the input/output values and types are listed below:
+In all the test cases, the code is intended to subtract the channel-wise mean from the input data. 
 
-### Input
-x (value and type): `(2, 10, 10, 3)`, `ndarray`
-mode (value and type): `'caffe'`, `str`
-data_format (value and type): `'channels_last'`, `str`
+The mean value being used is `[103.939, 116.779, 123.68]` for all the test cases. The incorrect results indicate that there is an issue with the mean subtraction from the input data.
 
-### Relevant variables right before the buggy function's return
-Output:
-mean (value and type): `[103.939, 116.779, 123.68]`, `list`
+Upon analyzing the code in the function, it appears that the mean subtraction logic is improper, resulting in the incorrect output.
 
-We're presenting the selected input-output pair to facilitate a better understanding and analysis to correct the implementation of the buggy function.
+The mean subtraction should be performed by subtracting each channel's mean value from the corresponding channel of the input data. However, the code is currently subtracting the entire mean list from the input, resulting in the incorrect output values.
+
+To fix the bug, the mean values should be subtracted from the input data using correct indexing for the channels, as demonstrated in the following revised code snippet:
+
+```
+for i in range(len(x)):
+  x[:,:,:,i] -= mean[i]
+```

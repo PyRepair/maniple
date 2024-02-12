@@ -1,11 +1,10 @@
 ```python
-# The corrected version of the buggy function
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
-    if columns is None:  # check if columns is None
-        raise ValueError("columns is not optional")  # raise an error if columns is None
-
+    if columns is None:  # Fix: Check if columns is None and raise a TypeError
+        raise TypeError("pivot() missing 1 required argument: 'columns'")
+    
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None
@@ -24,5 +23,5 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
             )
         else:
             indexed = data._constructor_sliced(data[values].values, index=index)
-    return indexed.unstack(columns)
+    return indexed.unstack(columns)  # Fix: unstack 'columns' instead of 'values'
 ```

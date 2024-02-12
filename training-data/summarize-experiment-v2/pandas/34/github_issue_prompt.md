@@ -1,0 +1,68 @@
+You have been provided with a description for GitHub issue. However, it may be ambiguous, please simplify it and make it readable by developer while keeping the key information.
+
+
+# A GitHub issue title for this bug
+```text
+groupby with daily frequency fails with AmbiguousTimeError on clock change day in Cuba
+```
+
+## The GitHub issue's detailed description
+```text
+Code Sample
+import pandas as pd
+from datetime import datetime
+start = datetime(2018, 11, 3, 12)
+end = datetime(2018, 11, 5, 12)
+index = pd.date_range(start, end, freq="1H")
+index = index.tz_localize('UTC').tz_convert('America/Havana')
+data = list(range(len(index)))
+dataframe = pd.DataFrame(data, index=index)
+groups = dataframe.groupby(pd.Grouper(freq='1D'))
+
+Problem description
+On a long clock-change day in Cuba, e.g 2018-11-04, midnight local time is an ambiguous timestamp. pd.Grouper does not handle this as I expect. More precisely the call to groupby in the code above raises an AmbiguousTimeError.
+
+This issue is of a similar nature to #23742 but it seems #23742 was fixed in 0.24 whereas this was not.
+
+Expected Output
+The call to groupby should return three groups (one for each day, 3rd, 4th, and 5th of november). The group for the 4th of november should be labelled as '2018-11-04 00:00:00-04:00' (that is the first midnight, before the clock change) and it should contain the 25 hourly data points for this day.
+
+Output of pd.show_versions()
+INSTALLED VERSIONS ------------------ commit: None python: 3.6.8.final.0 python-bits: 64 OS: Linux OS-release: 4.9.125-linuxkit machine: x86_64 processor: x86_64 byteorder: little LC_ALL: None LANG: None LOCALE: None.None
+pandas: 0.24.2
+pytest: 3.3.2
+pip: None
+setuptools: 40.6.3
+Cython: 0.29.6
+numpy: 1.15.4
+scipy: None
+pyarrow: None
+xarray: None
+IPython: None
+sphinx: None
+patsy: None
+dateutil: 2.7.3
+pytz: 2016.6.1
+blosc: None
+bottleneck: None
+tables: None
+numexpr: None
+feather: None
+matplotlib: None
+openpyxl: None
+xlrd: None
+xlwt: None
+xlsxwriter: None
+lxml.etree: None
+bs4: None
+html5lib: None
+sqlalchemy: None
+pymysql: None
+psycopg2: None
+jinja2: None
+s3fs: None
+fastparquet: None
+pandas_gbq: None
+pandas_datareader: None
+gcsfs: None
+```

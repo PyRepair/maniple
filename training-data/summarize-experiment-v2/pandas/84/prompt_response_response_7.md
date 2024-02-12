@@ -1,14 +1,17 @@
+After analyzing the provided information, it seems that the bug in the `_unstack_multiple` function is related to mishandling of the multi-level index and its properties. This is causing incorrect reshaping of the data and leading to the failing test cases.
+
+To fix the bug, the function should be updated to correctly interpret and manipulate the multi-index data structure, ensuring accurate unstacking and reshaping of the data.
+
+Here is the corrected version of the `_unstack_multiple` function:
+
 ```python
-# The corrected version of the buggy function
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
-    # NOTE: This doesn't deal with hierarchical columns yet
-
     index = data.index
 
-    clocs = [index._get_level_number(i) if isinstance(i, tuple) else i for i in clocs]
+    clocs = [index._get_level_number(i) for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
@@ -25,16 +28,12 @@ def _unstack_multiple(data, clocs, fill_value=None):
     comp_ids, obs_ids = compress_group_index(group_index, sort=False)
     recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
 
-    if rlocs == []:
-        # Everything is in clocs, so the dummy df has a regular index
-        dummy_index = Index(obs_ids, name="__placeholder__")
-    else:
-        dummy_index = MultiIndex(
-            levels=rlevels + [obs_ids],
-            codes=rcodes + [comp_ids],
-            names=rnames + ["__placeholder__"],
-            verify_integrity=False,
-        )
+    dummy_index = MultiIndex(
+        levels=rlevels + [obs_ids],
+        codes=rcodes + [comp_ids],
+        names=rnames + ["__placeholder__"],
+        verify_integrity=False,
+    )
 
     if isinstance(data, Series):
         dummy = data.copy()
@@ -45,15 +44,6 @@ def _unstack_multiple(data, clocs, fill_value=None):
         new_names = cnames
         new_codes = recons_codes
     else:
-        if isinstance(data.columns, MultiIndex):
-            result = data
-            for i in range(len(clocs)):
-                val = clocs[i]
-                result = result.unstack(val, fill_value=fill_value)
-                clocs = [v if i > v else v - 1 for v in clocs]
-
-            return result
-
         dummy = data.copy()
         dummy.index = dummy_index
 
@@ -80,3 +70,9 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     return unstacked
 ```
+
+This corrected version of the function should address the mishandling of the multi-index data structure and ensure accurate unstacking and reshaping of the data.
+
+Please note that the entire function is provided to be used as a drop-in replacement for the buggy version.
+
+This corrected version of the function should resolve the failing test cases and also address the issue reported on GitHub.

@@ -1,12 +1,11 @@
-Based on the failing test and the runtime information, it seems that the bug is caused by using the wrong command to retrieve the Fish shell version. Additionally, the expected value of "proc" does not match the actual value.
+The bug is caused by the command used to retrieve the version of the Fish shell. The command is incorrect and leads to a wrong version string being returned. This causes the failing test to compare the incorrect version string to the expected one, resulting in the test failure.
 
-To fix the bug, we need to change the command used to get the Fish shell version and ensure that the "proc" value matches the expected value.
+To fix the bug, the command used to retrieve the version of the Fish shell should be updated to output the correct version string.
 
-Here's the corrected version of the function:
+Here's the corrected code for the problematic function:
 
 ```python
-from subprocess import Popen, PIPE
-from ..utils import DEVNULL, cache
+# The relative path of the buggy file: thefuck/shells/fish.py
 
 class Fish(Generic):
     def info(self):
@@ -17,6 +16,4 @@ class Fish(Generic):
         return u'Fish Shell {}'.format(version)
 ```
 
-This fix changes the command used to get the Fish shell version from "echo $FISH_VERSION" to "--version", which should provide the correct version information. Additionally, it eliminates the mock objects and uses the actual Popen functionality.
-
-With this fix, the function will pass the failing test and satisfy the expected input/output variable information. It should also successfully resolve the issue reported in the GitHub link provided.
+This fix updates the command to retrieve the Fish shell version by using `['fish', '--version']`, which should output the correct version string. This corrected function should now pass the failing test and satisfy the expected input/output variable information provided. Additionally, it should also resolve the issue posted in GitHub.

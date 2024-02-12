@@ -1,4 +1,7 @@
-You have been given the source code of a function that is currently failing its test cases. Your task is to create a short version of runtime input and output value pair by removing some variables that contribute less to the error.  This involves examining what variables are directly inducing the error.
+You have been given the source code of a function that is currently failing its test cases.
+
+Image you are in the middle of debugging process and you have logged the variable values from this buggy function. Your mission involves analyzing each test case of runtime input/output values step by step and compare it with the core logic of the function. Using this comparisons, formulate the reason for the discrepancy and
+summarise it.
 
 
 # Runtime value and type of variables inside the buggy function

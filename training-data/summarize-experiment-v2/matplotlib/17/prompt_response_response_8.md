@@ -1,4 +1,7 @@
 ```python
+# The relative path of the buggy file: lib/matplotlib/transforms.py
+
+# this is the corrected function
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
     """
     Modify the endpoints of a range as needed to avoid singularities.
@@ -31,23 +34,18 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         return -expander, expander
 
     swapped = False
-    if increasing:
-        if vmax < vmin:
-            vmin, vmax = vmax, vmin
-            swapped = True
-    else:
-        if vmax > vmin:
-            vmin, vmax = vmax, vmin
-            swapped = True
+    if not increasing and vmin > vmax:
+        vmin, vmax = vmax, vmin
+        swapped = True
 
     maxabsvalue = max(abs(vmin), abs(vmax))
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
         vmin = -expander
         vmax = expander
+
     elif vmax - vmin <= maxabsvalue * tiny:
         if vmax == 0 and vmin == 0:
-            vmin = -expander
-            vmax = expander
+            vmin, vmax = -expander, expander
         else:
             vmin -= expander*abs(vmin)
             vmax += expander*abs(vmax)

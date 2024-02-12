@@ -1,4 +1,8 @@
+Here's the corrected version of the function:
+
 ```python
+# The relative path of the buggy file: lib/matplotlib/transforms.py
+
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
     """
     Modify the endpoints of a range as needed to avoid singularities.
@@ -26,21 +30,18 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         If either input is inf or NaN, or if both inputs are 0 or very
         close to zero, it returns -*expander*, *expander*.
     """
-    import numpy as np
 
     if (not np.isfinite(vmin)) or (not np.isfinite(vmax)):
         return -expander, expander
-
-    swapped = False
-    if increasing and vmax < vmin:
+    
+    if vmax < vmin:
         vmin, vmax = vmax, vmin
-        swapped = True
 
     maxabsvalue = max(abs(vmin), abs(vmax))
+    
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
         vmin = -expander
         vmax = expander
-
     elif vmax - vmin <= maxabsvalue * tiny:
         if vmax == 0 and vmin == 0:
             vmin = -expander
@@ -48,8 +49,12 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         else:
             vmin -= expander*abs(vmin)
             vmax += expander*abs(vmax)
+    
+    if not increasing:
+        if vmax < vmin:
+            vmin, vmax = vmax, vmin
 
-    if (not increasing) and swapped:
-        vmin, vmax = vmax, vmin
     return vmin, vmax
 ```
+
+This corrected version addresses the issues with handling the vmin and vmax values, as well as the calculations of the maxabsvalue and swapped variables. The function should now pass the failing test cases and correctly handle the transformation of the input parameters.

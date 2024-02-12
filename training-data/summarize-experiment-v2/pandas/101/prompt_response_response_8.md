@@ -1,33 +1,108 @@
-The issue is with the `astype_nansafe` function, which is not handling the NaN values correctly when converting a categorical series to an integer dtype. This leads to unexpected behavior and an error when attempting to cast a Categorical or CategoricalIndex containing NaN values to an integer dtype.
-
-From the failing test and the GitHub issue, it is clear that the bug is related to converting NaN values to an integer dtype. The `astype_nansafe` function is not handling NaN values properly in certain cases, leading to unexpected behavior.
-
-To fix the bug, we need to update the `astype_nansafe` function to handle NaN values correctly when casting to integer types.
-
-Here's the corrected version of the `astype_nansafe` function:
-
+# The corrected version of the function
 ```python
+# The relative path of the buggy file: pandas/core/dtypes/cast.py
+
+# this is the corrected function
 def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
-    if is_object_dtype(arr):
+    """
+    Cast the elements of an array to a given dtype a nan-safe manner.
+
+    Parameters
+    ----------
+    arr : ndarray
+    dtype : np.dtype
+    copy : bool, default True
+        If False, a view will be attempted but may fail, if
+        e.g. the item sizes don't align.
+    skipna: bool, default False
+        Whether or not we should skip NaN when casting as a string-type.
+
+    Raises
+    ------
+    ValueError
+        The dtype was a datetime64/timedelta64 dtype, but it had no unit.
+    """
+
+    # dispatch on extension dtype if needed
+    if is_extension_array_dtype(dtype):
+        return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
+
+    if not isinstance(dtype, np.dtype):
+        dtype = pandas_dtype(dtype)
+
+    if issubclass(dtype.type, str):
+        return lib.astype_str(arr.ravel(), skipna=skipna).reshape(arr.shape)
+
+    elif is_datetime64_dtype(arr):
+        if is_object_dtype(dtype):
+            return tslib.ints_to_pydatetime(arr.view(np.int64))
+        elif dtype == np.int64:
+            return arr.view(dtype)
+
+        # allow frequency conversions
+        if dtype.kind == "M":
+            return arr.astype(dtype)
+
+        raise TypeError(f"cannot astype a datetimelike from [{arr.dtype}] to [{dtype}]")
+
+    elif is_timedelta64_dtype(arr):
+        if is_object_dtype(dtype):
+            return tslibs.ints_to_pytimedelta(arr.view(np.int64))
+        elif dtype == np.int64:
+            return arr.view(dtype)
+
+        if dtype not in [_INT64_DTYPE, _TD_DTYPE]:
+
+            # allow frequency conversions
+            # we return a float here!
+            if dtype.kind == "m":
+                mask = isna(arr)
+                result = arr.astype(dtype).astype(np.float64)
+                result[mask] = np.nan
+                return result
+        elif dtype == _TD_DTYPE:
+            return arr.astype(_TD_DTYPE, copy=copy)
+
+        raise TypeError(f"cannot astype a timedelta from [{arr.dtype}] to [{dtype}]")
+
+    elif np.issubdtype(arr.dtype, np.floating) and np.issubdtype(dtype, np.integer):
+
+        if not np.isfinite(arr).all():
+            raise ValueError("Cannot convert non-finite values (NA or inf) to integer")
+
+    elif is_object_dtype(arr):
+
+        # work around NumPy brokenness, #1987
         if np.issubdtype(dtype.type, np.integer):
-            msg = "Cannot convert NaT values to integer"
-            if skipna and isna(arr).any():
-                raise ValueError(msg)
-            return lib.astype_intsafe(arr, dtype)
+            return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+
+        # if we have a datetime/timedelta array of objects
+        # then coerce to a proper dtype and recall astype_nansafe
+
         elif is_datetime64_dtype(dtype):
             from pandas import to_datetime
-            return astype_nansafe(to_datetime(arr).values, dtype, skipna=skipna)
+
+            return astype_nansafe(to_datetime(arr).values, dtype, copy=copy)
         elif is_timedelta64_dtype(dtype):
             from pandas import to_timedelta
-            return astype_nansafe(to_timedelta(arr).values, dtype, skipna=skipna)
-    return arr.astype(dtype, copy=copy)
 
+            return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
+
+    if dtype.name in ("datetime64", "timedelta64"):
+        msg = (
+            f"The '{dtype.name}' dtype has no unit. Please pass in "
+            f"'{dtype.name}[ns]' instead."
+        )
+        raise ValueError(msg)
+
+    if copy or is_object_dtype(arr) or is_object_dtype(dtype):
+        # Explicit copy, or required since NumPy can't view from / to object.
+        return arr.astype(dtype, copy=True)
+    # Fix added - handling NaT values when converting to integer
+    else:
+        if is_datetime64_dtype(arr) or is_timedelta64_dtype(arr):
+            if np.isnan(arr).any():
+                raise ValueError("Cannot convert NaT values to integer")
+
+    return arr.view(dtype)
 ```
-
-This corrected version of the function specifically handles the case where the input array is of object dtype and the output should be an integer type. It checks for NaN values and raises a ValueError if NaN values are present and `skipna` is `True`.
-
-This corrected version should pass the failing test case and should handle NaN values properly when converting categorical series to an integer dtype.
-
-Now the `astype_nansafe` function has been updated to handle NaN values correctly when converting to integer types, which should resolve the issue reported in the GitHub link.
-
-Please note that the corrected function does not change any of the existing behavior for other data types and edge cases.

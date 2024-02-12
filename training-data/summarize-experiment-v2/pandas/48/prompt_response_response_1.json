@@ -4,7 +4,7 @@
             "bugID": 48,
             "start_line": 999,
             "file_name": "pandas/core/groupby/generic.py",
-            "replace_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> \"Tuple[List[Block], Index]\":\n    # Existing code for _cython_agg_blocks function goes here\n\n    for block in data.blocks:\n        # Existing code for iterating through blocks goes here\n\n        if result is not no_result:\n            # Code for casting the block back to the original dtype\n            if isinstance(block, pd.IntBlock) and result.dtype == \"float64\":\n                arr = result.astype(block.dtype)\n                agg_block: Block = block.make_block(arr)\n            else:\n                agg_block: Block = block.make_block(result)\n\n            new_items.append(locs)\n            agg_blocks.append(agg_block)",
+            "replace_code": "def _handle_alternative_aggregation(self, block, alt):\n    obj = self.obj[block.mgr_locs].droplevel(0)\n    s = get_groupby(obj, self.grouper)\n    result = s.aggregate(lambda x: alt(x, axis=self.axis))\n    result = cast(DataFrame, result)\n    # Unwrap DataFrame to get array\n    return result._data.blocks[0].values",
             "import_list": []
         }
     ]

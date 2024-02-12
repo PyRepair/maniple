@@ -3,19 +3,18 @@
 
 from .transforms import IdentityTransform, Affine2D
 
-# The declaration of the class containing the buggy function
 class MarkerStyle():
-    # this is the corrected function
+    # this is the buggy function fixed
     def _recache(self):
         if self._marker_function is None:
             return
-        self._path = _empty_path
+        self._path = None  # corrected to None to make the marker hollow
         self._transform = IdentityTransform()
         self._alt_path = None
         self._alt_transform = None
         self._snap_threshold = None
         self._joinstyle = 'round'
         self._capstyle = 'butt'
-        self._filled = False
+        self._filled = False  # corrected to False to make the marker hollow
         self._marker_function()
 ```

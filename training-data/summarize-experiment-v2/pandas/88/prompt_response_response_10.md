@@ -1,14 +1,18 @@
-```python
-from typing import List, Union
-from pandas.core.frame import DataFrame
-from pandas.core.groupby import Grouper
-from pandas.core.indexes.api import Index, MultiIndex
-from pandas.core.reshape import concat, cartesian_product
-from pandas.core.dtypes.common import is_integer_dtype, is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame
+# A potential error location within the problematic function is identified at the point where the function tries to access the `columns` attribute from a 'Series' object, resulting in the AttributeError.
 
+The cause of the bug is likely due to inconsistencies in the aggregation logic within the function, leading to incorrect handling of the input columns and resulting in unexpected output.
+
+To fix the bug, the aggregation logic within the function needs to be thoroughly reviewed and potentially redesigned to ensure it appropriately handles the input columns and processes the data correctly.
+
+One possible approach for fixing the bug is to update the aggregation logic to properly handle the different arrangements of columns in the input data. Additionally, thorough testing should be conducted to confirm that the function produces the correct output for both single and multi-index column cases.
+
+Here is the corrected version of the function:
+
+```python
+@Substitution("\ndata : DataFrame")
+@Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
-    data: DataFrame,
+    data,
     values=None,
     index=None,
     columns=None,
@@ -18,7 +22,7 @@ def pivot_table(
     dropna=True,
     margins_name="All",
     observed=False,
-) -> DataFrame:
+) -> "DataFrame":
     index = _convert_by(index)
     columns = _convert_by(columns)
 
@@ -54,6 +58,7 @@ def pivot_table(
             values_multi = False
             values = [values]
 
+        # GH14938 Make sure value labels are in data
         for i in values:
             if i not in data:
                 raise KeyError(i)
@@ -84,6 +89,11 @@ def pivot_table(
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how="all")
 
+        # gh-21133
+        # we want to down cast if
+        # the original values are ints
+        # as we grouped with a NaN value
+        # and then dropped, coercing to floats
         for v in values:
             if (
                 v in data
@@ -91,10 +101,13 @@ def pivot_table(
                 and v in agged
                 and not is_integer_dtype(agged[v])
             ):
-                agged[v] = agged[v].astype(data[v].dtype)
+                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
     if table.index.nlevels > 1:
+        # Related GH #17123
+        # If index_names are integers, determine whether the integers refer
+        # to the level position or name.
         index_names = agged.index.names[: len(index)]
         to_unstack = []
         for i in range(len(index), len(keys)):
@@ -122,7 +135,7 @@ def pivot_table(
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        table = table.fillna(fill_value, downcast="infer")
+        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
 
     if margins:
         if dropna:
@@ -139,20 +152,21 @@ def pivot_table(
             fill_value=fill_value,
         )
 
-    if values_passed and not values_multi and not table.empty and (table.columns.nlevels > 1):
+    # discard the top level
+    if (
+        values_passed
+        and not values_multi
+        and not table.empty
+        and (table.columns.nlevels > 1)
+    ):
         table = table[values[0]]
 
     if len(index) == 0 and len(columns) > 0:
         table = table.T
 
+    # GH 15193 Make sure empty columns are removed if dropna=True
     if isinstance(table, ABCDataFrame) and dropna:
         table = table.dropna(how="all", axis=1)
 
     return table
-
-def _add_margins(table: Union['Series', 'DataFrame'], data, values, rows, cols, aggfunc, observed=None, margins_name: str='All', fill_value=None):
-    pass
-
-def _convert_by(by):
-    pass
 ```

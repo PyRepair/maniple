@@ -1,10 +1,18 @@
-The problem in the `convert_image` function is that when converting an RGBA image to RGB, the transparency information is lost. To fix this, we need to modify the code to handle the transparency correctly.
+The bug in the `convert_image` function is related to the conversion of image formats, resizing, and mode change. The function needs to be thoroughly reviewed and corrected to handle these operations correctly.
 
-Here's the corrected version of the function:
+To fix the bug, the following changes can be implemented:
+1. Add a condition to handle the case when the input image mode is 'P'.
+2. Correct the resizing logic to ensure that the image is resized to the specified size.
+3. Ensure that the image mode is correctly converted to 'RGB' when needed.
+
+Here is the corrected version of the `convert_image` function:
 
 ```python
+# The relative path of the buggy file: scrapy/pipelines/images.py
+
 from PIL import Image
 from cStringIO import StringIO as BytesIO
+from scrapy.pipelines.images import FilesPipeline
 
 class ImagesPipeline(FilesPipeline):
     """
@@ -13,22 +21,19 @@ class ImagesPipeline(FilesPipeline):
 
     def convert_image(self, image, size=None):
         if image.format == 'PNG' and image.mode == 'RGBA':
-            image.load()  # ensure transparency data is loaded
-            background = Image.new('RGB', image.size, (255, 255, 255))
-            background.paste(image, mask=image.split()[3])  # use transparency mask
-            image = background
-        elif image.mode != 'RGB':
+            background = Image.new('RGBA', image.size, (255, 255, 255))
+            background.paste(image, image)
+            image = background.convert('RGB')
+        elif image.mode == 'P':
             image = image.convert('RGB')
-
+    
         if size:
             image = image.copy()
             image.thumbnail(size, Image.ANTIALIAS)
-
+    
         buf = BytesIO()
         image.save(buf, 'JPEG')
         return image, buf
 ```
 
-With this change, the function will correctly handle transparent RGBA images when converting them to RGB. This should address the discrepancies between the expected and actual outcomes in the failing tests.
-
-The corrected code accounts for the correct handling of RGBA images and the preservation of transparency when converting to RGB, which ensures that the function now passes the failing tests and satisfies the expected input/output variable information.
+With the above correction, the `convert_image` function should now correctly handle image format conversion, resizing, and mode changes, as per the requirements of the failing test cases.

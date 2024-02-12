@@ -1,22 +1,14 @@
 ```python
-# The fixed version of the buggy function
-@Substitution(
-    **dict(
-        _index_doc_kwargs,
-        **{
-            "raises_section": textwrap.dedent(
-                """
-    Raises
-    ------
-    NotImplementedError
-        If any method argument other than the default of
-        None is specified as these are not yet implemented.
-    """
-            )
-        },
-    )
-)
-@Appender(_interval_shared_docs['get_indexer'])
+from typing import Any, Optional, Tuple, Union
+import numpy as np
+from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.core.dtypes.cast import find_common_type, infer_dtype_from_scalar, maybe_downcast_to_dtype
+from pandas.core.dtypes.common import ensure_platform_int, is_object_dtype
+from pandas._typing import AnyArrayLike
+from pandas.core.indexes.base import Index, InvalidIndexError, ensure_index
+from pandas.core.indexes.interval import IntervalIndex
+
+@Appender(_index_shared_docs["get_indexer"])
 def get_indexer(
     self,
     target: AnyArrayLike,
@@ -57,9 +49,7 @@ def get_indexer(
     elif not is_object_dtype(target_as_index):
         # homogeneous scalar index: use IntervalTree
         target_as_index = self._maybe_convert_i8(target_as_index)
-        indexer = self._engine.values.argsort()[np.searchsorted(
-            self._engine.values, target_as_index.values, side="left"
-        )]
+        indexer = self._engine.get_indexer(target_as_index.values)
     else:
         # heterogeneous scalar index: defer elementwise to get_loc
         # (non-overlapping so get_loc guarantees scalar of KeyError)

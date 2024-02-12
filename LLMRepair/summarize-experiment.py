@@ -10,7 +10,8 @@ from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_re
 from utils import print_in_red, print_in_yellow, iter_bugid_folders, divide_list, print_in_green
 
 total_usage = 0
-n_partitions = 10
+n_partitions = 1  # number of threads
+compression_cap = 500  # token size cap
 database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v2"
 
 LOG_MODE = n_partitions == 1
@@ -108,7 +109,7 @@ def resolve_stacktrace(processor: Processor):
         log_red(f"Test info summary is too long. Tokens: {num_tokens}")
         return ""
 
-    if num_tokens < 1000:
+    if num_tokens < compression_cap:
         log("Preserving test info. Tokens:", num_tokens)
         return processor.facts_in_prompt["5"]
 
@@ -138,7 +139,7 @@ def resolve_runtime_value(processor: Processor):
         log_red(f"Runtime value summary is too long. Tokens: {num_tokens}")
         return ""
 
-    if num_tokens < 1000:
+    if num_tokens < compression_cap:
         log("Preserving runtime value. Tokens:", num_tokens)
         return processor.facts_in_prompt["6"]
 
@@ -168,7 +169,7 @@ def resolve_angelic_value(processor: Processor):
         log_red(f"Angelic value summary is too long. Tokens: {num_tokens}")
         return ""
 
-    if num_tokens < 1000:
+    if num_tokens < compression_cap:
         log("Preserving angelic value. Tokens:", num_tokens)
         return processor.facts_in_prompt["7"]
 
@@ -198,7 +199,7 @@ def resolve_github_issue(processor: Processor):
         log_red(f"GitHub issue summary is too long. Tokens: {num_tokens}")
         return ""
 
-    if num_tokens < 1000:
+    if num_tokens < compression_cap:
         log("Preserving GitHub issue. Tokens:", num_tokens)
         return processor.facts_in_prompt["8"]
 

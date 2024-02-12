@@ -1,12 +1,8 @@
-Based on the error message and the failing test, it seems that the issue arises when the function encounters overflow errors during certain calculations.
-
-The potential error location within the function is when it calculates `maxabsvalue` using the `max()` function. This could potentially lead to an overflow error under certain conditions, such as when dealing with large numbers.
-
-One possible approach to fixing this bug is to modify the calculation of `maxabsvalue` to handle overflow errors more gracefully. We can use the absolute function separately for `vmin` and `vmax` to prevent overflow during the calculation. Additionally, we can add a check to handle cases where `vmin` and `vmax` are too close to each other and may cause overflow during subsequent calculations.
-
-Here's the corrected version of the function:
+Here is the corrected version of the buggy function:
 
 ```python
+import numpy as np
+
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
     """
     Modify the endpoints of a range as needed to avoid singularities.
@@ -39,14 +35,14 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
         return -expander, expander
 
     swapped = False
-    if vmax < vmin:
+    if increasing and vmax < vmin:
+        vmin, vmax = vmax, vmin
+        swapped = True
+    elif not increasing and vmin < vmax:
         vmin, vmax = vmax, vmin
         swapped = True
 
-    abs_vmin = abs(vmin)
-    abs_vmax = abs(vmax)
-
-    maxabsvalue = max(abs_vmin, abs_vmax)
+    maxabsvalue = max(abs(vmin), abs(vmax))
     if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
         vmin = -expander
         vmax = expander
@@ -56,12 +52,13 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
             vmin = -expander
             vmax = expander
         else:
-            vmin -= expander*abs_vmin
-            vmax += expander*abs_vmax
+            vmin -= expander*abs(vmin)
+            vmax += expander*abs(vmax)
 
-    if swapped and not increasing:
+    if swapped:
         vmin, vmax = vmax, vmin
+
     return vmin, vmax
 ```
 
-This corrected version of the function should handle overflow errors more gracefully and pass the failing test cases.
+This corrected version of the function should fix the issues with the original buggy function. It handles the swapping of vmin and vmax based on the "increasing" parameter and addresses the discrepancies that caused the failing test cases. This corrected version should pass the failing tests and satisfy the expected input/output variable information.

@@ -1,6 +1,3 @@
-The original error message is "E Failed: DID NOT RAISE <class 'ValueError'>". This error message occurs in the failing test file in the "test_astype_nansafe" test function. It indicates that the test failed because the "astype_nansafe" function did not raise a ValueError as expected.
+The error messages are indicating that the `astype_nansafe` function is not raising a `ValueError` as expected. This occurs at lines 723 and 723 in the file `pandas/tests/dtypes/test_common.py`. The test is checking for the specific case when the input array contains "NaT" (Not a Time) values and should raise a `ValueError` with the message "Cannot convert NaT values to integer". However, the function is not raising the expected error, resulting in the test failure.
 
-The failing test case provides the error message "Cannot convert NaT values to integer", which helps to understand the specific error condition that the test is checking for.
-
-To simplify the original error message:
-- The "astype_nansafe" function did not raise a ValueError as expected in the test_astype_nansafe test function.
+To simplify the original error message, we can summarize it as: "Failed to raise a ValueError when attempting to convert NaT values to integer".

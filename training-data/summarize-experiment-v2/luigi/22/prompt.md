@@ -43,33 +43,14 @@ class Worker(object):
 ```
 
 
-## The error message from the failing test
-```text
-self = <scheduler_test.SchedulerTest testMethod=test_worker_prune_after_init>
+Here is a summary of the test cases and error messages:
 
-    def test_worker_prune_after_init(self):
-        worker = luigi.scheduler.Worker(123)
-    
-        class TmpCfg:
-            def __init__(self):
-                self.worker_disconnect_delay = 10
-    
->       worker.prune(TmpCfg())
+The error message is a TypeError, specifically an unsupported operand type(s) for +: 'NoneType' and 'int', at 'luigi/scheduler.py:245'. The failing test is 'test_worker_prune_after_init' which specifically calls the 'prune' method on a luigi.scheduler.Worker object. The exact line in the code where the error is originating from is 'if self.last_active + config.worker_disconnect_delay < time.time():'. This error occurs because 'last_active' is initialized to 'None' when the 'Worker' object is being created.
 
-test/scheduler_test.py:108: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+Simplified error message:
+TypeError: unsupported operand type(s) for +: 'NoneType' and 'int' in luigi/scheduler.py at line 245
 
-self = <luigi.scheduler.Worker object at 0x7f78d9aa2250>
-config = <scheduler_test.SchedulerTest.test_worker_prune_after_init.<locals>.TmpCfg object at 0x7f78d9aa22e0>
 
-    def prune(self, config):
-        # Delete workers that haven't said anything for a while (probably killed)
->       if self.last_active + config.worker_disconnect_delay < time.time():
-E       TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'
-
-luigi/scheduler.py:245: TypeError
-
-```
 # Runtime value and type of variables inside the buggy function
 Each case below includes input parameter value and type, and the value and type of relevant variables at the function's return, derived from executing failing tests. If an input parameter is not reflected in the output, it is assumed to remain unchanged. Note that some of these values at the function's return might be incorrect. Analyze these cases to identify why the tests are failing to effectively fix the bug.
 

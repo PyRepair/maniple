@@ -1,14 +1,3 @@
-Input:
-current_line.depth (int): 0
-current_line.leaves (list): [Leaf(AT, '@'), Leaf(NAME, 'property')]
-self.previous_defs (list): []
-self (EmptyLineTracker): previous_line=None, previous_after=0, previous_defs=[]
-current_line.is_decorator (bool): True
+The bug in the function arises from an incorrect comparison of the `is_decorator` attribute with the `current_line.depth` attribute. When the function checks if `current_line.is_decorator` is False, it should also be checking if `current_line.depth` is 0. However, in some cases, `current_line.depth` is not considered when making this comparison, leading to incorrect return values.
 
-Output:
-max_allowed (int): 2
-first_leaf (Leaf): Leaf(AT, '@')
-before (int): 0
-first_leaf.prefix (str): ''
-depth (int): 0
-is_decorator (bool): True
+The bug occurs when the function compares `current_line.is_decorator` and `current_line.depth` without considering the depth of the line. This leads to incorrect return values and failing test cases. To fix the bug, the comparison logic needs to be updated to include the `current_line.depth` attribute in the comparison with `is_decorator`.

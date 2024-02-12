@@ -1,16 +1,16 @@
-The issue with the `_dict_arg` function is that it is incorrectly adding quotes around the values when creating the command list.
+The issue with the _dict_arg function is that it is incorrectly formatting the key-value pairs as separate strings inside a list, leading to assertion errors in the test cases. To fix this, we need to modify the way the command list is constructed so that the key-value pairs are formatted correctly.
 
-To fix this bug, we need to ensure that the values are added to the command list without quotes and with the correct formatting.
-
-Here's the corrected version of the function:
+Here's the corrected version of the _dict_arg function:
 
 ```python
 def _dict_arg(self, name, value):
     command = []
     if value and isinstance(value, dict):
         for prop, val in value.items():
-            command += [name, '{0}={1}'.format(prop, val)]
+            command += [name, '"{0}={1}"'.format(prop, val)]
     return command
 ```
 
-With this fix, the function will correctly format the command list without adding unnecessary quotes around the values. This will ensure that the failing tests pass and the expected input/output variable information is satisfied.
+With this correction, the key-value pairs will be properly formatted as a single string inside the list. This should resolve the assertion errors in the failing test cases.
+
+The corrected function can be used as a drop-in replacement for the buggy version.

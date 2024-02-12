@@ -1,18 +1,15 @@
-The bug in the function `_maybe_empty_lines` is caused by incorrect calculation and handling of the number of newlines before and after the current line. This is leading to discrepancies between the expected and actual output, causing the test case `test_comment_in_decorator` to fail.
+The bug in the function `_maybe_empty_lines` arises from an incorrect comparison of the `is_decorator` attribute with the `current_line.depth` attribute. When the function checks if `current_line.is_decorator` is False, it should also be checking if `current_line.depth` is 0. However, in some cases, `current_line.depth` is not considered when making this comparison, leading to incorrect return values.
 
-To fix this bug, we need to correct the logic and return the correct number of newlines before and after the current line for each condition in the function.
+To fix the bug, we need to update the comparison logic to include the `current_line.depth` attribute in the comparison with `is_decorator`.
 
-Here's the corrected version of the `_maybe_empty_lines` function:
+Here is the corrected version of the function `_maybe_empty_lines`:
 
 ```python
 from dataclasses import dataclass
-from typing import Any, Callable, Collection, Dict, Generic, Iterable, Iterator, List, Optional, Pattern, Set, Tuple, Type, TypeVar, Union
-# dependencies
-from leaf import Leaf
-from line import Line
+from typing import Tuple
 
 @dataclass
-class EmptyLineTracker():
+class EmptyLineTracker:
     """
     Provides a stateful method that returns the number of potential extra
     empty lines needed before and after the currently processed line.
@@ -40,24 +37,24 @@ class EmptyLineTracker():
             before = 1 if depth else 2
         is_decorator = current_line.is_decorator
         if is_decorator or current_line.is_def or current_line.is_class:
-            if not is_decorator:
+            if not is_decorator or current_line.depth == 0:  # Fix the comparison
                 self.previous_defs.append(depth)
             if self.previous_line is None:
                 # Don't insert empty lines before the first line in the file.
                 return 0, 0
-            
+    
             if self.previous_line and self.previous_line.is_decorator:
                 # Don't insert empty lines between decorators.
                 return 0, 0
-            
+    
             newlines = 2
             if current_line.depth:
                 newlines -= 1
             return newlines, 0
-        
+    
         if current_line.is_flow_control:
             return before, 1
-        
+    
         if (
             self.previous_line
             and self.previous_line.is_import
@@ -65,16 +62,15 @@ class EmptyLineTracker():
             and depth == self.previous_line.depth
         ):
             return (before or 1), 0
-        
+    
         if (
             self.previous_line
             and self.previous_line.is_yield
             and (not current_line.is_yield or depth != self.previous_line.depth)
         ):
             return (before or 1), 0
-        
-        # Add a default case to return before and 0
+    
         return before, 0
 ```
 
-The corrected code ensures that the logic for calculating the number of newlines before and after the current line functions as intended. This should address the discrepancies in the output and make the test case `test_comment_in_decorator` pass.
+In the corrected function, the comparison logic for `is_decorator` and `current_line.depth` has been updated to fix the bug. Now, the function should provide the correct return values and pass the failing test cases.

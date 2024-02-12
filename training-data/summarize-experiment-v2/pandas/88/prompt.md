@@ -278,134 +278,38 @@ def _convert_by(by):
 
 Here is a summary of the test cases and error messages:
 
-The original error message relates to a `Series` object that has no attribute 'columns' at line 6101 in the file `pandas/core/frame.py`, which was initiated by one of the calls to `pivot_table` in the file `pandas/core/reshape/pivot.py`. The error occurred while the `pivot_table` method was invoked in the `test_pivot_table_multiindex_only` test method in `pandas/tests/reshape/test_pivot.py`. The pivot table values are derived using the dataframe `df2` from this test file.
+The error message is as follows:
+`AttributeError: 'Series' object has no attribute 'columns'`
 
-Simplified Error Message:
-```
-During the execution of the test_pivot_table_multiindex_only test in pandas/tests/reshape/test_pivot.py, the pivot_table method encountered an error in the pivot.py file at line 173, and subsequently, the Series object called this method which resulted in an AttributeError.
-```
+This occurs at two main points in the error messages. The first point is at `pandas/tests/reshape/test_pivot.py` on line 953, which is the `result = df2.pivot_table(values="v", columns=cols)` line when evaluating a specific test. The other point is at `pandas/core/reshape/pivot.py` at line 173 related to the pivot_table function and the code snippet `and (table.columns.nlevels > 1)`.
+
+The error message clearly indicates that the code is trying to access the `columns` attribute from a 'Series' object, which is not available. This helps in identifying the point of failure. It shows that the method `pivot_table` is assumed to be returning a 'DataFrame', but the resulting object is a 'Series' instead.
+
+This kind of error occurs when the input or the pivot_table function is unable to generate the expected output. The error should be traced back to identifying issues in the pivot_table function.
+
+Upon simplification, the error message is: `AttributeError: 'Series' object has no attribute 'columns'`.
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-Input:
-columns: (1, 2)
-aggfunc: 'mean'
-data:  
-   1  2  v
-0  1  1  4
-1  2  2  5
-2  3  3  6
-values: 'v'
-margins: False
-dropna: True
-margins_name: 'All'
-observed: False
+The buggy function appears to be performing the aggregation of the data erroneously. Despite the input columns and data types being correct and consistent with the function's requirements in all test cases, the aggregation does not seem to be occurring as expected. It seems that the aggregation logic in the function is not properly handling the different arrangements of columns in the input data, resulting in the incorrect output.
 
-Output:
-index: []
-columns: [1, 2]
-keys: [1, 2]
-table: 
-     v
-1 2   
-1 1  4
-2 2  5
-3 3  6
-values: ['v']
-values_passed: True
-values_multi: False
-i: 'v'
-to_filter: [1, 2, 'v']
-x: 'v'
-agged: 
-     v
-1 2   
-1 1  4
-2 2  5
-3 3  6
-agged.columns: Index(['v'], dtype='object')
-v: 'v'
-table.index: Index(['v'], dtype='object')
-agged.index: MultiIndex([(1, 1),
-            (2, 2),
-            (3, 3)],
-           names=[1, 2])
-table.columns: MultiIndex([(1, 1),
-            (2, 2),
-            (3, 3)],
-           names=[1, 2])
-table.empty: False
-table.T: 
-     v
-1 2   
-1 1  4
-2 2  5
-3 3  6
+The discrepancies in the returned values suggest that the function is not correctly interpreting the columns or is not handling them properly during the aggregation process. This is evident from the incorrect values and types of the `table` and `agged` variables returned by the function, which do not match the expected results based on the given input parameters.
+
+To address the issue, the core aggregation logic within the function needs to be thoroughly reviewed and potentially redesigned to ensure that it appropriately considers the input columns and processes the data correctly, regardless of the column arrangements. The inconsistent behavior across multiple test cases indicates that the issue is systemic and requires a fundamental correction in the aggregation algorithm.
 
 
-# A GitHub issue title for this bug
-```text
-BUG/API: pivot_table with multi-index columns only
-```
+## Summary of the GitHub Issue Related to the Bug
 
-## The GitHub issue's detailed description
-```text
-Code Sample, a copy-pastable example if possible
+# GitHub Bug Issue Title
+BUG/API: pivot_table with multi-index columns causing AttributeError
 
-In [21]: df = pd.DataFrame({'k': [1, 2, 3], 'v': [4, 5, 6]})
+## Description
+The output is asymmetrical between rows/columns and single/multi case. The error is caused by an AttributeError, resulting in no error for a symmetrical output between rows/columns and single/multi case.
 
-In [22]: df.pivot_table(values='v', columns='k')
-Out[22]: 
-k  1  2  3
-v  4  5  6
+## Additional Information
+- Output of pd.show_versions(): pandas 0.20.2
 
-In [23]: df.pivot_table(values='v', index='k')
-Out[23]: 
-   v
-k   
-1  4
-2  5
-3  6
-
-In [24]: df2 = pd.DataFrame({'k1': [1, 2, 3], 'k2': [1, 2, 3], 'v': [4, 5, 6]})
-
-In [25]: df2.pivot_table(values='v', index=('k1','k2'))
-Out[25]: 
-       v
-k1 k2   
-1  1   4
-2  2   5
-3  3   6
-
-In [26]: df2.pivot_table(values='v', columns=('k1','k2'))
----------------------------------------------------------------------------
-AttributeError                            Traceback (most recent call last)
-<ipython-input-26-80d7fdeb9743> in <module>()
-----> 1 df2.pivot_table(values='v', columns=('k1','k2'))
-
-~\Anaconda\envs\py36\lib\site-packages\pandas\core\reshape\pivot.py in pivot_table(data, values, index, columns, aggfunc, fill_value, margins, dropna, margins_name)
-    172     # discard the top level
-    173     if values_passed and not values_multi and not table.empty and \
---> 174        (table.columns.nlevels > 1):
-    175         table = table[values[0]]
-    176 
-
-~\Anaconda\envs\py36\lib\site-packages\pandas\core\generic.py in __getattr__(self, name)
-   3075         if (name in self._internal_names_set or name in self._metadata or
-   3076                 name in self._accessors):
--> 3077             return object.__getattribute__(self, name)
-   3078         else:
-   3079             if name in self._info_axis:
-
-AttributeError: 'Series' object has no attribute 'columns'
-
-Expected Output
-No error, symmetrical between rows/columns and single/multi case
-
-Output of pd.show_versions()
-pandas 0.20.2
-```
 
 1. Analyze the buggy function and it's relationship with the related functions, test code, corresponding error message, the actual input/output variable information, the github issue.
 2. Identify the potential error location within the problematic function.

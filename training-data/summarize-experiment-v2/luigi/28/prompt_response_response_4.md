@@ -1,32 +1,17 @@
-The issue with the table_exists function is that it is not case insensitive when checking the table names in the stdout. This results in false positives or false negatives when testing the existence of a table.
+The bug in the `table_exists` function is related to case-sensitivity issues with table names and potential problems with handling partitions. Additionally, there may be a logic error that is causing the function to return incorrect values for different test cases.
 
-One possible approach to fixing this bug is to modify the function to convert both the table name and the stdout to lowercase before comparing them.
+To fix the bug, the function should be updated to check `stdout` against the lowercase version of the table name to ensure case insensitivity. Additionally, the logic for handling partitions should be reviewed to ensure correct output values. 
 
-Here is the corrected version of the table_exists function:
+Here is the corrected version of the `table_exists` function:
 
 ```python
-class HiveCommandClient(HiveClient):
-    """
-    Uses `hive` invocations to find information.
-    """
+def table_exists(self, table, database='default', partition=None):
+    if partition is None:
+        stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
 
-    def table_exists(self, table, database='default', partition=None):
-        if partition is None:
-            stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
+        return stdout and table.lower() in stdout.lower()
+    else:
+        stdout = run_hive_cmd("use {0}; show partitions {1} partition ({2})".format(database, table, self.partition_spec(partition)))
 
-            return stdout and table.lower() in stdout.lower()
-        else:
-            stdout = run_hive_cmd("""use %s; show partitions %s partition
-                                (%s)""" % (database, table, self.partition_spec(partition)))
-
-            if stdout:
-                return True
-            else:
-                return False
+        return bool(stdout)
 ```
-
-This corrected version of the function checks for the existence of the table in a case-insensitive manner by converting both the table name and the stdout to lowercase before comparing them. This should resolve the issue and make the table_exists function case insensitive.
-
-This corrected version of the function is also expected to pass all the failing test cases and satisfy the expected input/output variable information provided. Additionally, it successfully resolves the issue posted in the GitHub issue by making the table_exists function case insensitive.
-
-Once this corrected version of the function is implemented, the failing test should no longer result in the AssertionError: False is not true.

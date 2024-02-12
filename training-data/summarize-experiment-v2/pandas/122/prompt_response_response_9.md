@@ -1,8 +1,4 @@
-The issue with the buggy function `equals` is that it doesn't compare the blocks within the BlockManager properly. It should consider the block order and the type name, along with the manager locations, to ensure an accurate comparison.
-
-To fix this issue, the `canonicalize` function should be modified to consider the block's dtype, as well as its manager locations, when sorting the blocks for comparison.
-
-Here's the corrected version of the function:
+Here is the corrected version of the buggy function:
 
 ```python
 def equals(self, other):
@@ -16,11 +12,8 @@ def equals(self, other):
     if len(self.blocks) != len(other.blocks):
         return False
 
-    # canonicalize block order, using a tuple combining the type name and mgr_locs
-    # because there might be unconsolidated blocks (say, Categorical) which
-    # can only be distinguished by the iteration order
     def canonicalize(block):
-        return (block.dtype.name, block.mgr_locs.as_array.tolist())
+        return (block.dtype.name, block.mgr_locs.as_array(transpose=True).tolist())
 
     self_blocks = sorted(self.blocks, key=canonicalize)
     other_blocks = sorted(other.blocks, key=canonicalize)
@@ -29,6 +22,4 @@ def equals(self, other):
     )
 ```
 
-This corrected version of the `equals` function considers the type name and manager locations when sorting and comparing the blocks, providing a more accurate comparison.
-
-With this fix, the test case `test_dataframe_not_equal` should now pass, and the `equals` function should return False for the given input, as expected.
+This corrected version of the function includes the correct usage of `canonicalize` and also handles the correct comparison of block data within the `BlockManager` objects. This version should resolve the issue reported in the GitHub issue and also pass the failing test case.

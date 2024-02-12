@@ -1,27 +1,51 @@
-The bug in the table_exists function appears to be related to case sensitivity. The function does not account for the case of the table name when comparing it with the stdout. This leads to false positives or false negatives when testing the existence of a table.
-
-To fix the bug, the function should compare the lowercase version of the table name with the lowercase version of the stdout.
-
-Here is the corrected version of the function:
-
+# The source code of the buggy function
 ```python
-def table_exists(self, table, database='default', partition=None):
-    if partition is None:
-        stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
+# The relative path of the buggy file: luigi/contrib/hive.py
 
-        return stdout and table.lower() in stdout.lower()
-    else:
-        stdout = run_hive_cmd("""use %s; show partitions %s partition
-                            (%s)""" % (database, table, self.partition_spec(partition)))
+class HiveCommandClient(HiveClient):
+    """
+    Uses `hive` invocations to find information.
+    """
 
-        if stdout:
-            return True
+    # This is the fixed function
+    def table_exists(self, table, database='default', partition=None):
+        if partition is None:
+            stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
+
+            return stdout and table.lower() in stdout.lower()
         else:
-            return False
+            stdout = run_hive_cmd("""use %s; show partitions %s partition
+                                (%s)""" % (database, table, self.partition_spec(partition)))
+
+            return bool(stdout)
+
+# A failing test function for the buggy function
+# The relative path of the failing test file: test/contrib/hive_test.py
+
+    @mock.patch("luigi.contrib.hive.run_hive_cmd")
+    def test_table_exists(self, run_command):
+        run_command.return_value = "OK"
+        returned = self.client.table_exists("mytable")
+        self.assertTrue(returned)
+
+        run_command.return_value = "OK\n" \
+                                   "mytable"
+        returned = self.client.table_exists("mytable")
+        self.assertTrue(returned)
+
+        # Issue #896 test case insensitivity
+        returned = self.client.table_exists("MyTable")
+        self.assertTrue(returned)
+
+        run_command.return_value = "day=2013-06-28/hour=3\n" \
+                                   "day=2013-06-28/hour=4\n" \
+                                   "day=2013-07-07/hour=2\n"
+        self.client.partition_spec = mock.Mock(name="partition_spec")
+        self.client.partition_spec.return_value = "somepart"
+        returned = self.client.table_exists("mytable", partition={'a': 'b'})
+        self.assertTrue(returned)
+
+        run_command.return_value = ""
+        returned = self.client.table_exists("mytable", partition={'a': 'b'})
+        self.assertFalse(returned)
 ```
-
-With this correction, the function should now be case-insensitive when checking for the existence of a table.
-
-The correction should resolve the failing test cases and the issue reported on GitHub (#896).
-
-Additionally, the "table_exists" function in the "HiveCommandClient" class was used as an example to show the corrections that needed to be made and tested. The corrected version can be used as a drop-in replacement for the buggy version of the function.

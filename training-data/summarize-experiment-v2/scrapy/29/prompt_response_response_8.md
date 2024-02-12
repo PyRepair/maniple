@@ -1,8 +1,8 @@
-The issue in the `request_httprepr` function is that the `parsed.hostname` can be `None` for non-HTTP requests, which causes an error when trying to concatenate it in the `s` variable.
+The potential error in the function is when getting the `parsed.hostname` since it is returning `None` and then trying to convert it to bytes using the `to_bytes` function, which results in a `TypeError`. This is happening when non-HTTP requests are passed to the `request_httprepr` function, as shown in the failing test `test_request_httprepr_for_non_http_request`.
 
-To fix this issue, we can check if `parsed.hostname` is `None` and provide a default value in such cases.
+To fix this bug, we need to handle the case when `parsed.hostname` is `None` by providing a default value. We can use an empty string as the default value for `parsed.hostname` if it is `None`.
 
-Here is the corrected version of the `request_httprepr` function:
+Here's the corrected code for the `request_httprepr` function that includes the fix:
 
 ```python
 def request_httprepr(request):
@@ -14,8 +14,14 @@ def request_httprepr(request):
     parsed = urlparse_cached(request)
     path = urlunparse(('', '', parsed.path or '/', parsed.params, parsed.query, ''))
     s = to_bytes(request.method) + b" " + to_bytes(path) + b" HTTP/1.1\r\n"
-    if parsed.hostname is not None:  # check if hostname is not None
-        s += b"Host: " + to_bytes(parsed.hostname) + b"\r\n"
+    
+    if parsed.hostname:
+        host = to_bytes(parsed.hostname)
+    else:
+        host = b''
+        
+    s += b"Host: " + host + b"\r\n"
+    
     if request.headers:
         s += request.headers.to_string() + b"\r\n"
     s += b"\r\n"
@@ -23,4 +29,6 @@ def request_httprepr(request):
     return s
 ```
 
-With this change, the function will not throw an error when `parsed.hostname` is `None`, and it should pass the failing test.
+With this fix, the `parsed.hostname` is checked for `None` and handled by using an empty byte string as the default value. This will prevent the `TypeError` that was occurring previously.
+
+This corrected code should pass the failing test `test_request_httprepr_for_non_http_request` and handle non-HTTP requests correctly.

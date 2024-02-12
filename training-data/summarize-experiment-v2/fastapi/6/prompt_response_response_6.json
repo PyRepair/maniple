@@ -4,7 +4,7 @@
             "bugID": 6,
             "start_line": 617,
             "file_name": "fastapi/dependencies/utils.py",
-            "replace_code": null,
+            "replace_code": "async def request_body_to_args(\n    required_params: List[ModelField],\n    received_body: Optional[Union[Dict[str, Any], FormData]],\n) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:\n    values = {}\n    errors = []\n    if required_params:\n        for field in required_params:\n            value: Any = None\n            if received_body is not None:\n                if field.shape in sequence_shapes and isinstance(\n                    received_body, FormData\n                ):\n                    value = received_body.getlist(field.alias)\n                else:\n                    value = received_body.get(field.alias)\n\n            # Add handling for converting input types to the expected type\n            if isinstance(value, list) and lenient_issubclass(field.type_, list):\n                value = value\n            elif isinstance(value, set) and lenient_issubclass(field.type_, set):\n                value = value\n            elif isinstance(value, tuple) and lenient_issubclass(field.type_, tuple):\n                value = value\n            else:\n                # Handle other cases where the input type does not match the expected type\n                value = field.validate(value, {}, loc=(\"body\", field.alias))\n\n            if isinstance(value, ErrorWrapper):\n                errors.append(value)\n            elif isinstance(value, list):\n                errors.extend(value)\n            else:\n                values[field.alias] = value\n    return values, errors",
             "import_list": []
         }
     ]

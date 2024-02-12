@@ -1,4 +1,6 @@
-You have been given the source code of a function that is currently failing its test cases. Your task is to create a short version of expected input and output value pair by removing some unnecessary or less important variable. This involves examining how the input parameters relate to the return values, based on the buggy function's source code.
+You have been given the source code of a function that is currently failing its test cases.
+
+Your mission involves analyzing each test case of expected input/output values step by step and compare it with the core logic of the function. Using this comparisons, formulate the reason for the discrepancy and summarise it.
 
 
 # Expected value and type of variables during the failing test execution

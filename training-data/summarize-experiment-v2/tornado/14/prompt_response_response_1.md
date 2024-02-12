@@ -1,5 +1,8 @@
+# The corrected version of the buggy function
 ```python
-# The corrected version of the function
+# The relative path of the buggy file: tornado/ioloop.py
+
+# The declaration of the class containing the buggy function
 class IOLoop(Configurable):
     """
     A level-triggered I/O loop.
@@ -37,7 +40,7 @@ class IOLoop(Configurable):
             sock.bind(("", port))
             sock.listen(128)
     
-            io_loop = IOLoop.current()
+            io_loop = tornado.ioloop.IOLoop.current()
             callback = functools.partial(connection_ready, sock)
             io_loop.add_handler(sock.fileno(), callback, io_loop.READ)
             io_loop.start()
@@ -58,13 +61,13 @@ class IOLoop(Configurable):
        constructor.
     """
 
-    # corrected version of the buggy function
+    # this is the fixed function
     def initialize(self, make_current=None):
         if make_current is None:
-            if IOLoop.current(instance=False) is None:  
+            if IOLoop.current(instance=False) is None:
                 self.make_current()
-        elif make_current:
-            if IOLoop.current(instance=False) is not None:  
+        elif make_current is True:  # Changed from if to elif
+            if IOLoop.current(instance=False) is not None:  # Changed condition
                 raise RuntimeError("current IOLoop already exists")
             self.make_current()
 ```

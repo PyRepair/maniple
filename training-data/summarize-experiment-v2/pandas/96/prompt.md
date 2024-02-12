@@ -247,128 +247,31 @@ def test_date_range_with_custom_holidays():
 
 Here is a summary of the test cases and error messages:
 
-The original long error message can be simplified as the source code being the buggy function:
+This error occurs at line 891 of `datetimelike.py`, as indicated by the file path. The error message is related to the failing test `test_date_range_with_custom_holidays` found in the `test_date_range.py` file.
 
+The error message specifies the problem occurs at line 891 in the `_validate_frequency` method of `datetimelike.py`. The root cause of the error appears to be due to the fact that the inferred frequency does not match the passed frequency, in this case it does not conform to the passed frequency `CBH`.
 
-
-```text
-ValueError: Inferred frequency from passed values does not conform to passed frequency CBH
+Simplified error message:
+```
+ValueError: Inferred frequency None from passed values does not conform to passed frequency CBH
 ```
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-Based on the given information, it seems that the variable "n" and "other" are directly contributing to the buggy function result. The other variables with various names do not seem to have a notable impact on the function's return values. Here are the simplified input-output value pairs for the failing test cases:
+Based on the analysis of the runtime values and type of variables inside the buggy function, it seems that the issue lies in the calculation of the business hours. The values of the "businesshours" variable for all the test cases are consistently set to 7200, which suggests that the calculation logic is not correctly processing the input parameters.
 
-## Simplified Input-Output Value Pairs
+The correct business hours should be calculated based on the difference between the "other" timestamp and the start time of the CustomBusinessHour. This calculation is likely affected by the "n" parameter as well.
 
-### Case 1
-- Input:
-  - `other`: `Timestamp('2020-11-25 15:00:00')`
-  - `self.n`: `3`
-- Output:
-  - `other`: `Timestamp('2020-11-27 16:00:00')`
-  - `n`: `3`
-
-### Case 2
-- Input:
-  - `other`: `Timestamp('2020-11-25 15:00:00')`
-  - `self.n`: `1`
-- Output:
-  - `other`: `datetime.datetime(2020, 11, 25, 16, 0)`
-  - `n`: `1`
-
-### Case 3
-- Input:
-  - `other`: `Timestamp('2020-11-25 16:00:00')`
-  - `self.n`: `1`
-- Output:
-  - `other`: `datetime.datetime(2020, 11, 27, 15, 0)`
-  - `n`: `1`
-
-### Case 4
-- Input:
-  - `other`: `Timestamp('2020-11-27 15:00:00')`
-  - `self.n`: `1`
-- Output:
-  - `other`: `datetime.datetime(2020, 11, 27, 16, 0)`
-  - `n`: `1`
-
-### Case 5
-- Input:
-  - `other`: `Timestamp('2020-11-25 15:00:00', freq='CBH')`
-  - `self.n`: `3`
-- Output:
-  - `other`: `Timestamp('2020-11-27 16:00:00')`
-  - `n`: `3`
-
-### Case 6
-- Input:
-  - `other`: `Timestamp('2020-11-25 15:00:00', freq='CBH')`
-  - `self.n`: `1`
-- Output:
-  - `other`: `datetime.datetime(2020, 11, 25, 16, 0)`
-  - `n`: `1`
-
-### Case 7
-- Input:
-  - `other`: `Timestamp('2020-11-25 16:00:00')`
-  - `self.n`: `1`
-- Output:
-  - `other`: `datetime.datetime(2020, 11, 27, 15, 0)`
-  - `n`: `1`
-
-### Case 8
-- Input:
-  - `other`: `Timestamp('2020-11-27 15:00:00')`
-  - `self.n`: `1`
-- Output:
-  - `other`: `datetime.datetime(2020, 11, 27, 16, 0)`
-  - `n`: `1`
-
-By focusing on the variables "other" and "n" in the input and output value pairs, we can identify the specific issue causing the failing test cases.
+To fix the bug, investigate the code that calculates the business hours and ensure that it correctly accounts for the timestamps and the specified CustomBusinessHours. Additionally, check for any issues related to the usage of the "n" parameter in the calculation logic.
 
 
-# A GitHub issue title for this bug
-```text
-Pandas date_range does not work when using periods and adding holiday
-```
+## Summary of the GitHub Issue Related to the Bug
 
-## The GitHub issue's detailed description
-```text
-This code works fine
+# GitHub Issue: Pandas date_range and holiday issue
+## Description
+The code for creating date ranges with pandas works fine, but when adding holidays, it produces more periods than specified. Replacing 'periods' with the corresponding 'end' solves the issue. Looking for help to understand this behavior.
 
-pd.date_range(start='2020-11-25 10:00',periods=14,
-              freq=pd.offsets.CustomBusinessHour(start='10:00'))
-but if I add holidays then it produces more than 14 periods
-
-pd.date_range(start='2020-11-25 10:00',periods=14,
-              freq=pd.offsets.CustomBusinessHour(start='10:00',holidays=['2020-11-26']))
-Output:
-
-DatetimeIndex(['2020-11-25 10:00:00', '2020-11-25 11:00:00',
-               '2020-11-25 12:00:00', '2020-11-25 13:00:00',
-               '2020-11-25 14:00:00', '2020-11-25 15:00:00',
-               '2020-11-25 16:00:00', '2020-11-27 10:00:00',
-               '2020-11-27 11:00:00', '2020-11-27 12:00:00',
-               '2020-11-27 13:00:00', '2020-11-27 14:00:00',
-               '2020-11-27 15:00:00', '2020-11-27 16:00:00',
-               '2020-11-30 10:00:00', '2020-11-30 11:00:00',
-               '2020-11-30 12:00:00', '2020-11-30 13:00:00',
-               '2020-11-30 14:00:00', '2020-11-30 15:00:00',
-               '2020-11-30 16:00:00', '2020-12-01 10:00:00',
-               '2020-12-01 11:00:00', '2020-12-01 12:00:00',
-               '2020-12-01 13:00:00', '2020-12-01 14:00:00',
-               '2020-12-01 15:00:00', '2020-12-01 16:00:00',
-               '2020-12-02 10:00:00', '2020-12-02 11:00:00',
-               '2020-12-02 12:00:00'],
-              dtype='datetime64[ns]', freq='CBH')
-If I replace periods with the corresponding end then everything works fine.
-
-pd.date_range(start='2020-11-25 10:00',end='2020-11-27 16:00:00',
-              freq=pd.offsets.CustomBusinessHour(start='10:00',holidays=['2020-11-26']))
-I am not sure why date_range has this weird behavior. Appreciate any help.
-```
 
 1. Analyze the buggy function and it's relationship with the buggy class, related functions, test code, corresponding error message, the actual input/output variable information, the expected input/output variable information, the github issue.
 2. Identify the potential error location within the problematic function.

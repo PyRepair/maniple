@@ -108,38 +108,16 @@ def make_current(self):
 ```
 
 
-## The error message from the failing test
-```text
-self = <tornado.test.ioloop_test.TestIOLoopCurrent testMethod=test_force_current>
+Here is a summary of the test cases and error messages:
 
-    def test_force_current(self):
->       self.io_loop = IOLoop(make_current=True)
+The original error message has multiple stack frames and specific error locations associated with the failing test that can make it confusing to understand for a workaround.
 
-tornado/test/ioloop_test.py:443: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-tornado/util.py:221: in __new__
-    instance.initialize(*args, **init_kwargs)
-tornado/platform/epoll.py:26: in initialize
-    super(EPollIOLoop, self).initialize(impl=select.epoll(), **kwargs)
-tornado/ioloop.py:664: in initialize
-    super(PollIOLoop, self).initialize(**kwargs)
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+The bug is located in ioloop.py, within the `initialize` method of the IOLoop class and specifically within the `if make_current` conditional block. The error `RuntimeError: current IOLoop already exists` is raised when the IOLoop current instance already exists.
 
-self = <tornado.platform.epoll.EPollIOLoop object at 0x7ff63f5d7f90>
-make_current = True
+A simplified version of the original error message could be:
+"Error at line 253 in ioloop.py: RuntimeError - current IOLoop already exists."
 
-    def initialize(self, make_current=None):
-        if make_current is None:
-            if IOLoop.current(instance=False) is None:
-                self.make_current()
-        elif make_current:
-            if IOLoop.current(instance=False) is None:
->               raise RuntimeError("current IOLoop already exists")
-E               RuntimeError: current IOLoop already exists
 
-tornado/ioloop.py:253: RuntimeError
-
-```
 # Runtime value and type of variables inside the buggy function
 Each case below includes input parameter value and type, and the value and type of relevant variables at the function's return, derived from executing failing tests. If an input parameter is not reflected in the output, it is assumed to remain unchanged. Note that some of these values at the function's return might be incorrect. Analyze these cases to identify why the tests are failing to effectively fix the bug.
 

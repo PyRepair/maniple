@@ -1,10 +1,8 @@
 ```python
-# The relative path of the buggy file: lib/matplotlib/markers.py
+from .transforms import IdentityTransform, Affine2D
 
 
-# The corrected class
 class MarkerStyle():
-    # this is the corrected function
     def _recache(self):
         if self._marker_function is None:
             return

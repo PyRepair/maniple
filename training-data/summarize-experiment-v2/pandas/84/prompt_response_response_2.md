@@ -1,5 +1,4 @@
 ```python
-# The corrected version of the buggy function
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
@@ -8,7 +7,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     index = data.index
 
-    clocs = [index._get_level_number(i) if isinstance(i, tuple) else index._get_level_number([i]) for i in clocs]
+    clocs = [index._get_level_number(i) if isinstance(i, tuple) else index.get_loc(i) for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
@@ -62,12 +61,12 @@ def _unstack_multiple(data, clocs, fill_value=None):
             unstcols = unstacked.index
         else:
             unstcols = unstacked.columns
-        new_levels = [unstcols.levels[0] if isinstance(unstcols, MultiIndex) else unstcols.levels] + clevels
+        new_levels = [unstcols.levels[0]] + clevels
         new_names = [data.columns.name] + cnames
 
-        new_codes = [unstcols.codes[0]] if isinstance(unstcols, MultiIndex) else [unstcols.codes]
+        new_codes = [unstcols.codes[0]]
         for rec in recons_codes:
-            new_codes.append(rec.take(unstcols.codes[-1] if isinstance(unstcols, MultiIndex) else unstcols.codes))
+            new_codes.append(rec.take(unstcols.codes[-1]))
 
     new_columns = MultiIndex(
         levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False

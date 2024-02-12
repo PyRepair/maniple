@@ -1,12 +1,5 @@
-The cause of the error is that the function is attempting to perform operations on an input array of type `int32` that is not compatible with the calculations being performed. To fix this, we need to ensure that the input array is converted to a compatible type for the operations being carried out in the function.
-
-To fix the bug, we can update the `_preprocess_numpy_input` function to explicitly cast the input array `x` to a float type before performing any arithmetic operations on it. This will ensure that the division and subtraction operations are carried out with compatible data types.
-
-Here's the corrected code for the problematic function:
-
 ```python
-import numpy as np
-
+# The corrected function
 def _preprocess_numpy_input(x, data_format, mode):
     """Preprocesses a Numpy array encoding a batch of images.
 
@@ -27,8 +20,6 @@ def _preprocess_numpy_input(x, data_format, mode):
     # Returns
         Preprocessed Numpy array.
     """
-    x = x.astype('float64')  # Convert input array to float type
-
     if mode == 'tf':
         x /= 127.5
         x -= 1.
@@ -53,31 +44,14 @@ def _preprocess_numpy_input(x, data_format, mode):
 
     # Zero-center by mean pixel
     if data_format == 'channels_first':
-        if x.ndim == 3:
-            x[0, :, :] -= mean[0]
-            x[1, :, :] -= mean[1]
-            x[2, :, :] -= mean[2]
+        for i in range(len(x)):
+            x[:,:,:,i] -= mean[i]
             if std is not None:
-                x[0, :, :] /= std[0]
-                x[1, :, :] /= std[1]
-                x[2, :, :] /= std[2]
-        else:
-            x[:, 0, :, :] -= mean[0]
-            x[:, 1, :, :] -= mean[1]
-            x[:, 2, :, :] -= mean[2]
-            if std is not None:
-                x[:, 0, :, :] /= std[0]
-                x[:, 1, :, :] /= std[1]
-                x[:, 2, :, :] /= std[2]
+                x[:,:,:,i] /= std[i]
     else:
-        x[..., 0] -= mean[0]
-        x[..., 1] -= mean[1]
-        x[..., 2] -= mean[2]
-        if std is not None:
-            x[..., 0] /= std[0]
-            x[..., 1] /= std[1]
-            x[..., 2] /= std[2]
+        for i in range(3):
+            x[..., i] -= mean[i]
+            if std is not None:
+                x[..., i] /= std[i]
     return x
 ```
-
-With this corrected function, the failing test (`test_preprocess_input`) should pass successfully, and the function should satisfy all the provided expected input/output variable information.

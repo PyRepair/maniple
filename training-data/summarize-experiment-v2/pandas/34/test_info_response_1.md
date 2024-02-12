@@ -1,6 +1,3 @@
-The error message indicates an ambiguous time error that occurs when the code attempts to infer the daylight saving time from a specific date and time. The error occurs in the `_get_time_bins` method within resample.py. The failing test is from the file `test_datetime_index.py` and the error occurs when trying to group data based on a frequency.
+The error message indicates that there is an AmbiguousTimeError when converting the timezone. The exception was raised during the execution of the 'test_downsample_dst_at_midnight' test function and it happened in the pandas core. The code related to this error is found in the 'pandas/core/resample.py' file, specifically in the '_get_time_bins' method.
 
-Simplified error message:
-```
-AmbiguousTimeError: Cannot infer dst time as there are no repeated times
-```
+The error message can be simplified to: "AmbiguousTimeError: Cannot infer dst time from 2018-11-04 00:00:00 as there are no repeated times".

@@ -1,10 +1,4 @@
-The bug in the source code causes the "KeyError: None" error when running the failing test `test_pivot_columns_none_raise_error`. You will get the error when the `columns` argument is `None` in the `df.pivot(index="col1", values="col3")`. Therefore, the related stack frames are: 
-
-- `pandas/core/reshape/pivot.py` on line 441, which is the pivot function
-- `pandas/tests/reshape/test_pivot.py` on line 791, where the test case is calling the pivot function
-- Multiple frames in the "During handling of the above exception" section where the error from the failing test is traced indirectly to the `KeyError: None`
+The error message indicates a KeyError, which occurs at several locations during the code execution, ultimately originating in the pandas/core/reshape/pivot.py file, particularly at the `MultiIndex.from_arrays([index, data[columns]])` line. This error is further thrown from the pandas/_libs/hashtable_class_helper.pxi file.
 
 Simplified error message:
-```
-KeyError: None
-```
+KeyError occurred at line 441 in the pivot function in pivot.py file resulted from multiple stack frames including the get_loc method in base.py and index.pyx files.

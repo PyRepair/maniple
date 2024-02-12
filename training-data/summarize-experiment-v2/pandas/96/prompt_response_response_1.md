@@ -1,46 +1,93 @@
-The issue is related to the inferred frequency from passed values not conforming to the passed frequency CBH when using periods and adding holidays. The bug is within the `apply` function of the `BusinessHourMixin` class.
+Based on the analysis, it seems that the issue lies in the calculation of the business hours in the apply function. The calculation logic may not be correctly processing the input parameters and the "n" parameter. To fix the bug, the calculation for business hours should be revised to ensure it accurately reflects the difference between the "other" timestamp and the start time of the CustomBusinessHour, accounting for the "n" parameter as well.
 
-After reviewing the code and the failing test, it seems that the issue lies in the variable adjustments made based on the `n` and `other` variables within the `apply` function. The logic for adjusting the business days and remaining business hours seems to be causing the discrepancies in the output frequency.
-
-To fix the bug, the logic for adjusting the business days and remaining business hours needs to be modified. Specifically, the adjustment logic in the branches for `n >= 0` and `n < 0` should be revised to ensure the correct adjustment of days and hours based on the provided input.
-
-Here's the corrected version of the `apply` function within the `BusinessHourMixin` class:
+Here's the corrected version of the apply function:
 
 ```python
-@apply_wraps
-def apply(self, other):
-    if isinstance(other, datetime):
-        n = self.n
+class BusinessHourMixin(BusinessMixin):
 
-        # Adjust for business days
-        if n != 0:
-            if n > 0:
-                # Add business days
-                other = next_business_day(other, n)
+    @apply_wraps
+    def apply(self, other):
+        if isinstance(other, datetime):
+            # Keep the original nanosecond value for later use
+            nanosecond = getattr(other, "nanosecond", 0)
+            # Reset timezone and nanosecond
+            other = datetime(
+                other.year,
+                other.month,
+                other.day,
+                other.hour,
+                other.minute,
+                other.second,
+                other.microsecond,
+            )
+            n = self.n
+
+            # Adjust other to reduce number of cases to handle
+            if n >= 0:
+                if other.time() in self.end or not self._is_on_offset(other):
+                    other = self._next_opening_time(other)
             else:
-                # Subtract business days
-                other = previous_business_day(other, abs(n))
+                if other.time() in self.start:
+                    other = other - timedelta(seconds=1)
+                if not self._is_on_offset(other):
+                    other = self._next_opening_time(other)
+                    other = self._get_closing_time(other)
 
-        # Adjust for remaining business hours
-        business_hour = timedelta(hours=1)
-        if n >= 0:
-            while n > 0:
-                other += business_hour
-                while not is_business_hour(other):
-                    other += business_hour
-                    n -= 1
+            # Get the total business hours by seconds in one business day
+            businesshours = sum(
+                self._get_business_hours_by_sec(st, en)
+                for st, en in zip(self.start, self.end)
+            )
+
+            bd, r = divmod(abs(n * 60), businesshours // 60)
+            if n < 0:
+                bd, r = -bd, -r
+
+            # Adjust by business days first
+            if bd != 0:
+                skip_bd = BusinessDay(n=bd)
+                if not self.next_bday.is_on_offset(other):
+                    prev_open = self._prev_opening_time(other)
+                    remain = other - prev_open
+                    other = prev_open + skip_bd + remain
+                else:
+                    other = other + skip_bd
+
+            # Remaining business hours to adjust
+            bhour_remain = timedelta(minutes=r)
+
+            if n >= 0:
+                while bhour_remain != timedelta(0):
+                    bhour = (
+                        self._get_closing_time(self._prev_opening_time(other)) - other
+                    )
+                    if bhour_remain < bhour:
+                        other += bhour_remain
+                        bhour_remain = timedelta(0)
+                    else:
+                        bhour_remain -= bhour
+                        other = self._next_opening_time(other + bhour)
+            else:
+                while bhour_remain != timedelta(0):
+                    bhour = self._next_opening_time(other) - other
+                    if (
+                        bhour_remain > bhour
+                        or bhour_remain == bhour
+                        and nanosecond != 0
+                    ):
+                        other += bhour_remain
+                        bhour_remain = timedelta(0)
+                    else:
+                        bhour_remain -= bhour
+                        other = self._get_closing_time(
+                            self._next_opening_time(
+                                other + bhour - timedelta(seconds=1)
+                            )
+                        )
+
+            return other
         else:
-            while n < 0:
-                other -= business_hour
-                while not is_business_hour(other):
-                    other -= business_hour
-                    n += 1
-
-        return other
-    else:
-        raise ApplyTypeError("Only know how to combine business hour with datetime")
+            raise ApplyTypeError("Only know how to combine business hour with datetime")
 ```
 
-In this corrected version, the logic for adjusting business days and remaining business hours has been refactored to ensure that the correct adjustments are made based on the provided input. The `next_business_day` and `previous_business_day` functions are assumed to be correctly implemented elsewhere. Additionally, the `is_business_hour` function is assumed to correctly identify business hours.
-
-With this corrected version of the function, it should now pass the failing test cases and satisfy the expected input/output variable information provided. It should also resolve the issue described in the GitHub post.
+The corrected function should address the calculation issues within the original buggy code and pass the failing test. Additionally, it should align with the expected input/output variable information and resolve the issue posted on GitHub.

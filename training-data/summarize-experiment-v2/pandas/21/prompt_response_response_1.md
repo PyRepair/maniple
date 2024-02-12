@@ -1,10 +1,8 @@
-The issue with the `_get_with` function is that it is not handling the case of list-like indexers correctly, leading to inconsistency in behavior when using list indexers compared to other array-like indexers. This inconsistency leads to the failing test in the `test_getitem_no_matches` function.
+Based on the analysis, it seems that the buggy function is not handling the key input parameter consistently, leading to the discrepancy in the test cases. The function is expecting a string input as the key, but in some cases, it receives input of type list, ndarray, or Series.
 
-The potential error in the function is the handling of list-like indexers. The function is not treating list-like indexers (e.g., `key`) consistently with other array-like indexers (e.g., `np.array(key)`, `pd.Index(key)`).
+To fix the bug, the input handling logic of the function should be updated to enforce the correct type for the 'key' parameter and ensure consistent handling of the input.
 
-To fix this bug, we need to ensure that list-like indexers are handled in a consistent manner with other array-like indexers, so that the behavior remains consistent across different types of indexers.
-
-Here's the corrected version of the `_get_with` function:
+Here's the corrected version of the function:
 
 ```python
 def _get_with(self, key):
@@ -19,8 +17,9 @@ def _get_with(self, key):
     elif isinstance(key, tuple):
         return self._get_values_tuple(key)
 
-    if isinstance(key, pd.Index) or is_list_like(key):
-        key = list(key)
+    # Convert non-list-like keys to list
+    if not is_list_like(key) or isinstance(key, (str, np.str_, np.str)):
+        key = [key]
 
     key_type = lib.infer_dtype(key, skipna=False)
 
@@ -30,9 +29,16 @@ def _get_with(self, key):
         else:
             return self.iloc[key]
 
+    # Handle the dup indexing case and reindex
     return self.reindex(key)
 ```
 
-With this corrected version, we handle list-like indexers (including `pd.Index` and other list-like objects) in a consistent manner, ensuring that the behavior remains consistent across different types of indexers.
+In the corrected code:
+1. We explicitly convert non-list-like keys to a list to ensure consistent handling.
+2. We check if the key is a string and directly index the Series if it is.
+3. We perform the necessary operations based on the inferred type of the key.
+4. Finally, we handle the duplicate indexing case and call the reindex method if needed.
 
-This should resolve the inconsistency issue and make the function behave as expected for different types of indexers, passing the failing test and satisfying the expected input/output variable information. This will also address the problem described in the GitHub issue.
+These changes should ensure that the function correctly handles the input key parameter, resolves the failing test case, and addresses the GitHub issue related to the inconsistency in behavior for list indexers.
+
+The corrected code is provided in full to be used as a drop-in replacement for the buggy version of the function.

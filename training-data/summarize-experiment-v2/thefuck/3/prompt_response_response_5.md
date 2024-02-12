@@ -1,27 +1,31 @@
-The issue is caused by a mismatch in the commands used to obtain the fish shell version within the `info` method. The expected command in the failing test is `['fish', '--version']` but the actual command used is `['fish', '-c', 'echo $FISH_VERSION']`.
+Given the provided input and to fix the bug in the `info` function, we can deduce the following:
 
-To fix this, we need to modify the `info` method to use the correct command for obtaining the fish shell version. In addition, we also need to update the assertion in the failing test to reflect the correct expected output.
+The problem is that the `info` function is extracting the version from the output without querying the actual fish version. The function needs to query the actual fish version using the `--version` argument.
 
-Here's the corrected version of the `info` method within the `Fish` class:
+The issue is related to the function `info` in the `Fish` class, and the failing test is indicating that the output of the function does not match the expected value.
+
+The cause of the bug is that the function is not correctly retrieving the version of the fish shell. This leads to a mismatch in the expected and actual outputs, as indicated by the failing test.
+
+To fix the bug:
+1. We need to modify the `info` function to use the `--version` argument while querying the fish version.
+2. We need to ensure that the function returns the expected output, which is the correct fish shell version in the expected format.
+
+Here's the corrected code for the `info` function:
 
 ```python
-class Fish(Generic):
+# The relative path of the buggy file: thefuck/shells/fish.py
+from .generic import Generic
+from subprocess import Popen, PIPE
+from ..utils import DEVNULL, cache
 
+class Fish(Generic):
     def info(self):
         """Returns the name and version of the current shell"""
         proc = Popen(['fish', '--version'],
                      stdout=PIPE, stderr=DEVNULL)
         version = proc.stdout.read().decode('utf-8').strip()
+        version = version.split(', ')[1]  # Extract only the version number
         return u'Fish Shell {}'.format(version)
 ```
 
-And here's the updated failing test with the correct assertion:
-
-```python
-def test_info(self, shell, Popen):
-    Popen.return_value.stdout.read.side_effect = [b'fish, version 3.5.9\n']
-    assert shell.info() == 'Fish Shell 3.5.9'
-    assert Popen.call_args[0][0] == ['fish', '--version']
-```
-
-With these changes, the `info` method now correctly obtains the fish shell version using the `['fish', '--version']` command, and the failing test is updated to reflect the correct expected output. These changes should resolve the issue reported in GitHub and ensure that the tests pass as expected.
+The fix involves using the `--version` argument while querying the fish version and then extracting the version number from the output. This corrected function should now pass the failing test and also resolve the issue posted in GitHub.

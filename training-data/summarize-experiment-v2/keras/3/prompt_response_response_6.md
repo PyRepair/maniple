@@ -1,30 +1,55 @@
-The potential error location within the function seems to be in the section where it computes the output tensors and masks for the layers. This is evident from the GitHub issue where it is mentioned that the error appears when using a functional model with a layer which has more outputs without mask support, and that the `output_masks` will always be `[None]` when it is expected to be `[None, None]`.
+The potential error location within the problematic function appears to be in the mapping of input layers and nodes, which leads to an inconsistent state in the layer_map and tensor_map. This inconsistency causes the failure of the swap layer functionality.
 
-To fix the bug, we need to modify the section where it computes the `output_tensors` and `output_masks` to handle cases where the layer does not support masks. We also need to ensure that the `clone_model` function correctly computes the output tensor for the model.
+To fix this bug, the layer_map and tensor_map need to be corrected to reflect the correct mappings between layers and tensors. It's also important to review the weight initializations and input tensor mappings to ensure all steps leading to the swap layer function are correct.
 
-Here's the corrected version of the function:
+Here's the corrected version of the _clone_functional_model function:
 
 ```python
 def _clone_functional_model(model, input_tensors=None):
-    # ... (same as original function up to line 172)
+    if not isinstance(model, Model):
+        raise ValueError('Expected `model` argument to be a `Model` instance, got ', model)
+    if isinstance(model, Sequential):
+        raise ValueError('Expected `model` argument to be a functional `Model` instance, got a `Sequential` instance instead:', model)
 
-    # Check that we did compute the model outputs,
-    # then instantiate a new model from inputs and outputs.
-    output_tensors = []
-    for x in model.outputs:
-        if x in tensor_map:
-            tensor, mask = tensor_map[x]
-            if mask:  # If mask is available
-                output_tensors.append(tensor * mask)
-            else:
-                output_tensors.append(tensor)
+    layer_map = {}
+    tensor_map = {}
+
+    if input_tensors is None:
+        input_layers = []
+        input_tensors = []
+        for layer in model._input_layers:
+            input_tensor = Input(batch_shape=layer.batch_input_shape,
+                                 dtype=layer.dtype,
+                                 sparse=layer.sparse,
+                                 name=layer.name)
+            input_tensors.append(input_tensor)
+            layer_map[layer] = input_tensor._keras_history[0]
+
+    for x in model.inputs:
+        tensor_map[x] = (layer_map[x], None)
+
+    for layer in model.layers:
+        layer_config = layer.get_config()
+        new_layer = layer.__class__.from_config(layer_config)
+        layer_map[layer] = new_layer
+
+    for node in model._nodes_by_depth:
+        inbound_layers = [layer_map[layer] for layer in node.inbound_layers]
+        kwargs = node.arguments if node.arguments else {}
+
+        if len(inbound_layers) == 1:
+            output_tensors = to_list(layer(inbound_layers[0], **kwargs))
+
         else:
-            raise ValueError('Could not compute output for tensor ', x)
+            output_tensors = to_list(layer(inbound_layers, **kwargs))
 
-    # Return the new model
+        for idx, tensor in enumerate(node.outbound_layer.inbound_nodes):
+            tensor_map[node.output_tensors[idx]] = (output_tensors[idx], None)
+
+    output_tensors = [tensor_map[x][0] for x in model.outputs]
     return Model(input_tensors, output_tensors, name=model.name)
 ```
 
-With this corrected version, the function will now correctly handle the computation of output tensors and masks for the layers in the model.
+This corrected version of the _clone_functional_model function should fix the issue and pass the failing test case. Additionally, it should address the problem raised in the GitHub issue.
 
-This should fix the bug and pass the failing test case and also resolve the issue mentioned in the GitHub post.
+Please note that the provided fix assumes the correctness and completeness of other parts of the codebase and the corresponding dependencies. It's always good practice to thoroughly test the entire system after making changes.

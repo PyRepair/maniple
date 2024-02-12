@@ -1,27 +1,22 @@
-## Analysis
-The buggy function `pivot_table` is attempting to handle both single and multi-index cases for columns, but it encounters an error when only multi-index columns are used. The error occurs when it tries to access the `columns` attribute of a `Series` object, which does not exist, causing the `AttributeError`. This is likely due to a mismatch in the expected data types, which is causing the function to incorrectly handle the multi-index case.
-
-The function also makes a recursive call to itself when `aggfunc` is a list, which can lead to redundant processing and potential stack overflow errors.
-
-The failing test case `test_pivot_table_multiindex_only` in `test_pivot.py` uses a multi-index scenario, and the actual output does not match the expected output.
-
-The GitHub issue describes the error message and provides example code to demonstrate the issue.
-
-## Bug Cause
-The cause of the bug is the handling of multi-index columns in the `pivot_table` function. The function also exhibits unexpected behavior when `aggfunc` is a list, leading to a potentially infinite recursive call.
-
-## Possible Approaches
-1. Revise the handling of multi-index columns to ensure correct behavior.
-2. Modify the handling of `aggfunc` when it is a list to prevent infinite recursion.
-3. Ensure that the function correctly handles different input scenarios and data types to avoid the `AttributeError`.
-4. Optimize the function to avoid unnecessary recursive calls and improve efficiency.
-
-## Bug Fix
+# The corrected version of the buggy function
 ```python
+# The relative path of the corrected file: pandas/core/reshape/pivot.py
+
+from pandas.util._decorators import Appender, Substitution
+from pandas.core.frame import DataFrame
+from pandas.core.reshape.concat import concat
+from pandas.core.reshape.util import cartesian_product
+from pandas.core.groupby import Grouper
+from pandas.core.dtypes.common import is_integer_dtype, is_list_like
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.frame import _shared_docs
+from pandas import MultiIndex, Index
+from typing import TYPE_CHECKING, List, Union
+
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
-    data: DataFrame,
+    data,
     values=None,
     index=None,
     columns=None,
@@ -32,14 +27,8 @@ def pivot_table(
     margins_name="All",
     observed=False,
 ) -> "DataFrame":
-    if isinstance(columns, (tuple, list)):
-        if len(columns) > 1:
-            # Multi-index columns
-            if not isinstance(columns[0], (tuple, list)):
-                columns = [columns]
-        else:
-            # Single index or column case
-            columns = list(columns)
+    index = _convert_by(index)
+    columns = _convert_by(columns)
 
     if isinstance(aggfunc, list):
         pieces: List[DataFrame] = []
@@ -62,9 +51,117 @@ def pivot_table(
 
         return concat(pieces, keys=keys, axis=1)
 
-    # Rest of the function remains the same
-    # ...
-```
-This fixed version of the `pivot_table` function correctly handles the multi-index columns and prevents infinite recursion when `aggfunc` is a list.
+    keys = index + columns
 
-By making these changes, the function should now pass the failing test and resolve the issue reported in the GitHub bug.
+    values_passed = values is not None
+    if values_passed:
+        if is_list_like(values):
+            values_multi = True
+            values = list(values)
+        else:
+            values_multi = False
+            values = [values]
+
+        # GH14938 Make sure value labels are in data
+        for i in values:
+            if i not in data:
+                raise KeyError(i)
+
+        to_filter = []
+        for x in keys + values:
+            if isinstance(x, Grouper):
+                x = x.key
+            try:
+                if x in data:
+                    to_filter.append(x)
+            except TypeError:
+                pass
+        if len(to_filter) < len(data.columns):
+            data = data[to_filter]
+
+    else:
+        values = data.columns
+        for key in keys:
+            try:
+                values = values.drop(key)
+            except (TypeError, ValueError, KeyError):
+                pass
+        values = list(values)
+
+    grouped = data.groupby(keys, observed=observed)
+    agged = grouped.agg(aggfunc)
+    if dropna and isinstance(agged, DataFrame) and len(agged.columns):
+        agged = agged.dropna(how="all")
+
+        for v in values:
+            if (
+                v in data
+                and is_integer_dtype(data[v])
+                and v in agged
+                and not is_integer_dtype(agged[v])
+            ):
+                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
+
+    table = agged
+    if table.index.nlevels > 1:
+        index_names = agged.index.names[: len(index)]
+        to_unstack = []
+        for i in range(len(index), len(keys)):
+            name = agged.index.names[i]
+            if name is None or name in index_names:
+                to_unstack.append(i)
+            else:
+                to_unstack.append(name)
+        table = agged.unstack(to_unstack)
+
+    if not dropna:
+        if table.index.nlevels > 1:
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.index.levels), names=table.index.names
+            )
+            table = table.reindex(m, axis=0)
+
+        if table.columns.nlevels > 1:
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.columns.levels), names=table.columns.names
+            )
+            table = table.reindex(m, axis=1)
+
+    if isinstance(table, DataFrame):
+        table = table.sort_index(axis=1)
+
+    if fill_value is not None:
+        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
+
+    if margins:
+        if dropna:
+            data = data[data.notna().all(axis=1)]
+        table = _add_margins(
+            table,
+            data,
+            values,
+            rows=index,
+            cols=columns,
+            aggfunc=aggfunc,
+            observed=dropna,
+            margins_name=margins_name,
+            fill_value=fill_value,
+        )
+
+    if (
+        values_passed
+        and not values_multi
+        and not table.empty
+        and (table.columns.nlevels > 1)
+    ):
+        table = table[values[0]]
+
+    if len(index) == 0 and len(columns) > 0:
+        table = table.T
+
+    if isinstance(table, DataFrame) and dropna:
+        table = table.dropna(how="all", axis=1)
+
+    return table
+
+```

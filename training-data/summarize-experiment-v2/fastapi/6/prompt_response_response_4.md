@@ -1,10 +1,12 @@
-Based on the provided information, it appears that the issue is related to the way FastAPI handles repeated keys in form data. The current implementation of `request_body_to_args` is not handling repeated keys correctly, resulting in unexpected behavior and error responses.
+The buggy function `request_body_to_args` is failing to properly handle different types of input parameters such as list, set, and tuple. This is leading to incorrect conversion of input data and subsequent discrepancies in the output values, causing the failing tests.
 
-The root cause of the issue is that the function is not correctly processing repeated keys when received in form data. This results in the incorrect handling of Python lists, sets, and tuples, ultimately leading to the 422 status code in the client response.
+The potential error location within the function is in the section where the input value is being processed and converted to match the expected type. This should be the main focus for fixing the issue.
 
-To fix the problem, the function needs to be modified to properly handle repeated keys in form data, ensuring that they are correctly processed as lists, sets, or tuples based on the expected data types.
+The cause of the bug is that the function is not correctly handling the conversion of input data into the expected type, and this is leading to discrepancies in the output values for different types of input parameters.
 
-Here is the corrected code for the `request_body_to_args` function:
+To fix the bug, the function needs to be updated to properly handle the conversion of different input data types (e.g., list, set, tuple) and ensure that the output values match the expected type. Additionally, the function should address the GitHub issue related to supporting repeated key=value pairs in form data and properly validating them as a list before validation.
+
+Here is the corrected version of the function `request_body_to_args`:
 
 ```python
 async def request_body_to_args(
@@ -17,29 +19,45 @@ async def request_body_to_args(
         for field in required_params:
             value: Any = None
             if received_body is not None:
-                if field.shape in sequence_shapes and isinstance(received_body, FormData):
+                if field.shape in sequence_shapes and isinstance(
+                    received_body, FormData
+                ):
                     value = received_body.getlist(field.alias)
                 else:
                     value = received_body.get(field.alias)
-
-            if value is None and field.required:
-                errors.append(ErrorWrapper(MissingError(), loc=("body", field.alias)))
-            else:
-                raw_value = value
-                if field.shape == 1:
-                    value = [raw_value] if isinstance(raw_value, str) else raw_value
-                elif field.shape == 2:
-                    value = set(raw_value) if isinstance(raw_value, list) else raw_value
-                v_, errors_ = field.validate(value, values, loc=("body", field.alias))
-                if isinstance(errors_, ErrorWrapper):
-                    errors.append(errors_)
-                elif isinstance(errors_, list):
-                    errors.extend(errors_)
+            if value is None:
+                if field.required:
+                    errors.append(
+                        ErrorWrapper(MissingError(), loc=("body", field.alias))
+                    )
                 else:
-                    values[field.name] = v_
+                    values[field.name] = deepcopy(field.default)
+                continue
+            if field.shape in sequence_shapes:
+                if isinstance(value, sequence_types):
+                    value = list(value)
+                else:
+                    value = [value]
+            if (
+                isinstance(field_info, params.File)
+                and lenient_issubclass(field.type_, bytes)
+                and isinstance(value, sequence_types)
+            ):
+                contents = []
+                for sub_value in value:
+                    if isinstance(sub_value, UploadFile):
+                        contents.append(await sub_value.read())
+                value = sequence_shape_to_type[field.shape](contents)
+            v_, errors_ = field.validate(value, values, loc=("body", field.alias))
+            if isinstance(errors_, ErrorWrapper):
+                errors.append(errors_)
+            elif isinstance(errors_, list):
+                errors.extend(errors_)
+            else:
+                values[field.name] = v_
     return values, errors
 ```
 
-By updating the function with the corrected code, it should now be able to handle repeated keys in form data accurately and correctly process Python lists, sets, and tuples based on the expected data types.
+With this corrected version of the function, it should properly handle the conversion of different input types and ensure that the output values match the expected type. It should also address the issue mentioned in the GitHub post related to supporting repeated key=value pairs in form data.
 
-This corrected version of the function should now pass the failing tests and satisfy the expected input/output variable information. Additionally, it resolves the issue posted in the GitHub report by properly collecting repeated keys and assigning their values as lists, sets, or tuples before validation.
+This corrected version of the function should pass the failing tests, satisfy the expected input/output variable information, and successfully resolve the GitHub issue.

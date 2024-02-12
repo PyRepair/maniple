@@ -1,0 +1,82 @@
+You have been provided with a description for GitHub issue. However, it may be ambiguous, please simplify it and make it readable by developer while keeping the key information.
+
+
+# A GitHub issue title for this bug
+```text
+MultiIndexed unstack with tuple names fails with KeyError
+```
+
+## The GitHub issue's detailed description
+```text
+In [8]: idx = pd.MultiIndex.from_product([['a', 'b', 'c'], [1, 2, 3]], names=[('A', 'a'), ('B', 'b')])
+
+In [9]: s = pd.Series(1, index=idx)
+
+In [10]: s
+Out[10]:
+(A, a)  (B, b)
+a       1         1
+        2         1
+        3         1
+b       1         1
+        2         1
+        3         1
+c       1         1
+        2         1
+        3         1
+dtype: int64
+
+In [11]: s.unstack(("A", "a"))
+---------------------------------------------------------------------------
+ValueError                                Traceback (most recent call last)
+~/Envs/pandas-dev/lib/python3.6/site-packages/pandas/pandas/core/indexes/multi.py in _get_level_number(self, level)
+    749                                  'level number' % level)
+--> 750             level = self.names.index(level)
+    751         except ValueError:
+
+ValueError: 'A' is not in list
+
+During handling of the above exception, another exception occurred:
+
+KeyError                                  Traceback (most recent call last)
+<ipython-input-11-1ce241b42d82> in <module>()
+----> 1 s.unstack(("A", "a"))
+
+~/Envs/pandas-dev/lib/python3.6/site-packages/pandas/pandas/core/series.py in unstack(self, level, fill_value)
+   2231         """
+   2232         from pandas.core.reshape.reshape import unstack
+-> 2233         return unstack(self, level, fill_value)
+   2234
+   2235     # ----------------------------------------------------------------------
+
+~/Envs/pandas-dev/lib/python3.6/site-packages/pandas/pandas/core/reshape/reshape.py in unstack(obj, level, fill_value)
+    481             # _unstack_multiple only handles MultiIndexes,
+    482             # and isn't needed for a single level
+--> 483             return _unstack_multiple(obj, level, fill_value=fill_value)
+    484         else:
+    485             level = level[0]
+
+~/Envs/pandas-dev/lib/python3.6/site-packages/pandas/pandas/core/reshape/reshape.py in _unstack_multiple(data, clocs, fill_value)
+    315     index = data.index
+    316
+--> 317     clocs = [index._get_level_number(i) for i in clocs]
+    318
+    319     rlocs = [i for i in range(index.nlevels) if i not in clocs]
+
+~/Envs/pandas-dev/lib/python3.6/site-packages/pandas/pandas/core/reshape/reshape.py in <listcomp>(.0)
+    315     index = data.index
+    316
+--> 317     clocs = [index._get_level_number(i) for i in clocs]
+    318
+    319     rlocs = [i for i in range(index.nlevels) if i not in clocs]
+
+~/Envs/pandas-dev/lib/python3.6/site-packages/pandas/pandas/core/indexes/multi.py in _get_level_number(self, level)
+    751         except ValueError:
+    752             if not isinstance(level, int):
+--> 753                 raise KeyError('Level %s not found' % str(level))
+    754             elif level < 0:
+    755                 level += self.nlevels
+
+KeyError: 'Level A not found'
+cc @ibrahimsharaf, @toobaz does this look difficult?
+```

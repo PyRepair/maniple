@@ -1,10 +1,8 @@
-The issue with the buggy function `_unstack_multiple` is related to the `_get_level_number` method of the index, resulting in a `ValueError` or `KeyError` when attempting to find the specified levels.
+Based on the analysis provided, it seems that the root cause of the bug lies in the mishandling of the multi-level index and its properties within the `_unstack_multiple` function. The incorrect interpretation and manipulation of the index levels, codes, and names lead to the failing test cases.
 
-The bug likely occurs when the function attempts to identify the level numbers from the input `clocs` using the `index._get_level_number(i)` line. The provided input variables and outputs are not aligning with the expected values, leading to the issue.
+To fix the bug, the function needs to accurately handle the multi-index structure to ensure correct unstacking and reshaping of the data. Specifically, the function should properly interpret the index levels, codes, and names to produce the expected output.
 
-To fix the bug, we can update the code to properly handle the hierarchical columns and correctly identify the level numbers. This will resolve the issue and ensure that the function works as expected.
-
-Below is the corrected version of the `_unstack_multiple` function:
+Here's the corrected version of the `_unstack_multiple` function:
 
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
@@ -13,17 +11,30 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     index = data.index
 
-    clevels = [index.get_level_values(i) for i in clocs]
+    clocs = [index._get_level_number(i) if isinstance(i, str) else i for i in clocs]  # Fix for handling string level names
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
+    clevels = [index.levels[i] for i in clocs]
+    ccodes = [index.codes[i] for i in clocs]
+    cnames = [index.names[i] for i in clocs]
+    rlevels = [index.levels[i] for i in rlocs]
+    rcodes = [index.codes[i] for i in rlocs]
+    rnames = [index.names[i] for i in rlocs]
+
+    shape = [len(x) for x in clevels]
+    group_index = get_group_index(ccodes, shape, sort=False, xnull=False)
+
+    comp_ids, obs_ids = compress_group_index(group_index, sort=False)
+    recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
+
     if rlocs == []:
-        # Everything is in clocs, so the dummy df has a regular index
-        dummy_index = Index(index)
+        dummy_index = Index(obs_ids, name="__placeholder__")
     else:
         dummy_index = MultiIndex(
-            levels=clevels + [index],
-            names=[index.names[i] for i in clocs] + ["__placeholder__"],
+            levels=rlevels + [obs_ids],
+            codes=rcodes + [comp_ids],
+            names=rnames + ["__placeholder__"],
             verify_integrity=False,
         )
 
@@ -32,23 +43,44 @@ def _unstack_multiple(data, clocs, fill_value=None):
         dummy.index = dummy_index
 
         unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
+        new_levels = clevels
+        new_names = cnames
+        new_codes = recons_codes
     else:
+        if isinstance(data.columns, MultiIndex):
+            result = data
+            for i in range(len(clocs)):
+                val = clocs[i]
+                result = result.unstack(val, fill_value=fill_value)
+                clocs = [v if i > v else v - 1 for v in clocs]
+
+            return result
+
         dummy = data.copy()
         dummy.index = dummy_index
 
         unstacked = dummy.unstack("__placeholder__", fill_value=fill_value)
-        new_names = [index.names[i] for i in clocs]
-        new_columns = MultiIndex(
-            levels=[unstacked.columns.levels[-1]] + clevels,
-            codes=[unstacked.columns.codes[-1]] + [unstacked.columns.codes[i] for i in clocs],
-            names=[None] + new_names,
-            verify_integrity=False
-        )
+        if isinstance(unstacked, Series):
+            unstcols = unstacked.index
+        else:
+            unstcols = unstacked.columns
+        new_levels = [unstcols.levels[0]] + clevels
+        new_names = [data.columns.names[-1]] + cnames  # Fix for handling names properly
+
+        new_codes = [unstcols.codes[0]]
+        for rec in recons_codes:
+            new_codes.append(rec.take(unstcols.codes[-1]))
+
+    new_columns = MultiIndex(
+        levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
+    )
+
+    if isinstance(unstacked, Series):
+        unstacked.index = new_columns
+    else:
         unstacked.columns = new_columns
 
     return unstacked
 ```
 
-This corrected function now properly handles the hierarchical columns and should resolve the issues that were occurring.
-
-The updated function should pass the failing test cases and resolve the issue described in the GitHub report.
+This corrected version of the function should pass the failing test cases and satisfy the expected input/output variable information. It should also successfully resolve the issue posted in the GitHub.

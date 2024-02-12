@@ -196,50 +196,25 @@ def test_clone_functional_model_with_multi_outputs():
 
 Here is a summary of the test cases and error messages:
 
-The error occurs in the `clone_model` function of `keras.models.py` at line 166. The error is raised when attempting to compute the outputs of the model. It fails at the assertion check where it cannot compute the output for the specified tensor.
+In the given error message, the failure occurs at line 166 of the 'keras/models.py' file. The error message in the failing test indicates that it could not compute an output with the specific tensor: "Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)".
 
-The error message in the failing test script points to the `clone_model` function and identifies a specific tensor for which the output cannot be computed.
-
-Simplified Error Message:
+Simplified error message:
 ```
-Assert Error: Could not compute output for tensor "swap_layer_1/Identity:0"
+AssertionError: Could not compute output Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)
 ```
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-Shortened version of the input and output pair related to the failing test cases for Case 1 is given below.
+As I understand, the goal of this program is to predict whether any given pair of numbers should be swapped or not. Based on the input parameters and the relevant variables at function's return, I have identified the bug and summarized it as follows:
 
-**Input:**
+Issue:
+Looking at the input layers and nodes, it appears that there is a problem with the layer_map and tensor_map causing an inconsistent state. Since the input layers have an empty list, it might be the cause of the failure of the swap layer functionality.
 
-model._input_layers: `[<keras.engine.input_layer.InputLayer object at 0x7f21169baa10>]`
+Suggested Solution:
+The layer_map and tensor_map need to be corrected to reflect the correct mappings between layers and tensors. This may involve a closer look at the layer and tensor assignment logic earlier in the process. Additionally, the weight initializations and input tensor mappings should also be reviewed to ensure all steps leading to the swap layer function are correct.
 
-model.inputs: `[<tf.Tensor 'input_1:0' shape=(?, 4) dtype=float32>]`
-
-
-**Output:**
-
-layer_map: `{<keras.engine.input_layer.InputLayer object at 0x7f21169baa10>: <keras.engine.input_layer.InputLayer object at 0x7f21169bf0d0>}`
-
-input_tensors: `[<tf.Tensor 'input_1_1:0' shape=(?, 4) dtype=float32>]`
-
-input_layers: `[]`
-
-layer.name: `'swap_layer_1'`
-
-x: `<tf.Tensor 'swap_layer_1/Identity_1:0' shape=(?, 4) dtype=float32>`
-
-y: `<tf.Tensor 'swap_layer_1_1/Identity_1:0' shape=(?, 4) dtype=float32>`
-
-nodes: `[<keras.engine.base_layer.Node object at 0x7f211717eed0>]`
-
-reference_input_tensors: `[<tf.Tensor 'lambda_1/add:0' shape=(?, 4) dtype=float32>, <tf.Tensor 'lambda_1/Identity:0' shape=(?, 4) dtype=float32>]`
-
-reference_output_tensors: `[<tf.Tensor 'swap_layer_1/Identity:0' shape=(?, 4) dtype=float32>, <tf.Tensor 'swap_layer_1/Identity_1:0' shape=(?, 4) dtype=float32>]`
-
-computed_tensors: `[<tf.Tensor 'lambda_1_1/add:0' shape=(?, 4) dtype=float32>, <tf.Tensor 'lambda_1_1/Identity:0' shape=(?, 4) dtype=float32>]`
-
-tensor: `<tf.Tensor 'swap_layer_1_1/Identity_1:0' shape=(?, 4) dtype=float32>`
+By resolving these issues, I believe the bug should be fixed.
 
 
 # A GitHub issue title for this bug
