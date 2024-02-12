@@ -207,11 +207,11 @@ class PromptGenerator:
                 count += 1
 
             if self.actual_strata_bitvector['6'] == 1:
-                optional_2 += f"   ({chr(count)}). Discrepancies between actual input/output variable value\n"
+                optional_2 += f"   ({chr(count)}). The actual input/output variable values\n"
                 count += 1
 
             if self.actual_strata_bitvector['7'] == 1:
-                optional_2 += f"   ({chr(count)}). Discrepancies between expected input/output variable value\n"
+                optional_2 += f"   ({chr(count)}). The expected input/output variable values\n"
                 count += 1
 
             if self.actual_strata_bitvector['8'] == 1:
