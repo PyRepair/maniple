@@ -54,36 +54,37 @@ def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFram
 
 Here is a summary of the test cases and error messages:
 
-The error message indicates a KeyError, which occurs at several locations during the code execution, ultimately originating in the pandas/core/reshape/pivot.py file, particularly at the `MultiIndex.from_arrays([index, data[columns]])` line. This error is further thrown from the pandas/_libs/hashtable_class_helper.pxi file.
+The error is raised in the 'pivot' function located at line 441 in the 'pandas/core/reshape/pivot.py' file.
 
-Simplified error message:
-KeyError occurred at line 441 in the pivot function in pivot.py file resulted from multiple stack frames including the get_loc method in base.py and index.pyx files.
+The failing test that raises the error is `test_pivot_columns_none_raise_error`.
+
+The specific failing line that raises the error in the 'test_pivot_columns_none_raise_error' test is `df.pivot(index="col1", values="col3")`.
+
+Simplified Error:
+KeyError: None
+
+Stack Frames Closely Related to the Fault Location:
+1. file 'pandas/core/reshape/pivot.py' at line 441
+2. file 'pandas/tests/reshape/test_pivot.py' at line 791 
+3. file 'pandas/core/frame.py' at line 5947
 
 
-# A GitHub issue title for this bug
-```text
-BUG: Wrong error message is raised when columns=None in df.pivot
-```
+## Summary of the GitHub Issue Related to the Bug
 
-## The GitHub issue's detailed description
-```text
-From docstring, index and values can be optional in df.pivot, but columns is not
+GitHub Bug Title:
+Error Message Raised Incorrectly for columns=None in df.pivot
 
-https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.pivot.html
-index : string or object, optional
-Column to use to make new frame’s index. If None, uses existing index.
+Description:
+The error message currently indicates that columns is optional in df.pivot, however, the documentation states that it is not. This should be clarified to reflect that columns is not optional.
 
-columns : string or object
-Column to use to make new frame’s columns.
+Expected Output:
+When using df.pivot with columns=None, a KeyError should be raised indicating that columns cannot be None.
 
-However, the error message is confusing now, should raise columns is not optional.
+Environment:
+- Python: 3.7.3.final.0
+- pandas: 1.0.1
+- numpy: 1.18.1
 
-Code example:
->>> df = pd.DataFrame({"foo": ['one', 'one', 'two', 'two'],"bar": ['A', 'A', 'B', 'C'],"baz": [1, 2, 3, 4]})
->>> df.pivot(columns=None)
-
-KeyError: 'None of [None] are in the columns'
-```
 
 1. Analyze the buggy function and it's relationship with the test code, corresponding error message, the github issue.
 2. Identify the potential error location within the problematic function.

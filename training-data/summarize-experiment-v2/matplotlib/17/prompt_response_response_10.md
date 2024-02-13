@@ -1,47 +1,19 @@
+The potential error in the `nonsingular` function is related to the conditions for swapping `vmin` and `vmax`, as well as the logic for expanding the range based on the `tiny` threshold. These conditions are not functioning as expected, leading to incorrect output values and triggering overflow errors. To fix the bug, we need to adjust the conditions and logic for handling these cases.
+
+One approach to fixing the bug is to carefully review the conditions for swapping and expanding the range in the `nonsingular` function. By adjusting these conditions and ensuring that the swapping and expanding logic works correctly, we can address the issues observed in the failing test cases.
+
+Here's the corrected code for the `nonsingular` function:
+
 ```python
-import numpy as np
-
 def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
-    """
-    Modify the endpoints of a range as needed to avoid singularities.
-
-    Parameters
-    ----------
-    vmin, vmax : float
-        The initial endpoints.
-    expander : float, default: 0.001
-        Fractional amount by which *vmin* and *vmax* are expanded if
-        the original interval is too small, based on *tiny*.
-    tiny : float, default: 1e-15
-        Threshold for the ratio of the interval to the maximum absolute
-        value of its endpoints.  If the interval is smaller than
-        this, it will be expanded.  This value should be around
-        1e-15 or larger; otherwise the interval will be approaching
-        the double precision resolution limit.
-    increasing : bool, default: True
-        If True, swap *vmin*, *vmax* if *vmin* > *vmax*.
-
-    Returns
-    -------
-    vmin, vmax : float
-        Endpoints, expanded and/or swapped if necessary.
-        If either input is inf or NaN, or if both inputs are 0 or very
-        close to zero, it returns -*expander*, *expander*.
-    """
-
     if (not np.isfinite(vmin)) or (not np.isfinite(vmax)):
         return -expander, expander
 
-    swapped = False
-    if increasing and vmax < vmin:
+    if vmin > vmax and increasing:
         vmin, vmax = vmax, vmin
-        swapped = True
-    elif not increasing and vmin < vmax:
-        vmin, vmax = vmax, vmin
-        swapped = True
 
     maxabsvalue = max(abs(vmin), abs(vmax))
-    if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:
+    if maxabsvalue < tiny:
         vmin = -expander
         vmax = expander
     elif vmax - vmin <= maxabsvalue * tiny:
@@ -52,7 +24,10 @@ def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):
             vmin -= expander * abs(vmin)
             vmax += expander * abs(vmax)
 
-    if swapped and not increasing:
+    if vmin > vmax and not increasing:
         vmin, vmax = vmax, vmin
+
     return vmin, vmax
 ```
+
+The updated function resolves the issues with swapping and range expansion by addressing the specific conditions and logic. This corrected version should pass the failing test cases and satisfy the expected input/output variable information.

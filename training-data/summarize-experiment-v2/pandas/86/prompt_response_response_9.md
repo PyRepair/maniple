@@ -1,17 +1,15 @@
 ```python
+# The corrected version of the buggy function
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
+    if columns is None:  # check if columns is None
+        raise KeyError("columns cannot be None")  # raise a KeyError
     if values is None:
-        if columns is None:
-            raise TypeError("pivot() missing 1 required argument: 'columns'")
         cols = [columns] if index is None else [index, columns]
         append = index is None
         indexed = data.set_index(cols, append=append)
     else:
-        if columns is None:
-            raise TypeError("pivot() missing 1 required argument: 'columns'")
-        
         if index is None:
             index = data.index
         else:

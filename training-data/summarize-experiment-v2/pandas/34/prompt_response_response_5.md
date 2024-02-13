@@ -1,7 +1,7 @@
+Here's the corrected version of the _get_time_bins function:
+
 ```python
-from pandas._libs import lib
-from pandas._libs.tslibs import NaT, Period, Timestamp
-from pandas.core.indexes.datetimes import DatetimeIndex, date_range
+# The relative path of the buggy file: pandas/core/resample.py
 
 class TimeGrouper(Grouper):
     """
@@ -72,3 +72,5 @@ class TimeGrouper(Grouper):
     
         return binner, bins, labels
 ```
+
+This corrected version of the function should resolve the AmbiguousTimeError issue and pass the failing test.

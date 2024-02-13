@@ -1,4 +1,8 @@
-Here is the corrected version of the buggy function:
+The potential error location within the `equals` function is likely in the comparison of the blocks after sorting, as this is where the function is intended to identify differences between the two BlockManagers.
+
+To fix the bug, we need to thoroughly check the logic for comparing the blocks and ensure that it correctly identifies differences between the two managers. Additionally, we should review the logic in the `canonicalize` function to ensure that it appropriately captures the distinguishing characteristics of the blocks.
+
+Here's the corrected version of the `equals` function:
 
 ```python
 def equals(self, other):
@@ -12,8 +16,12 @@ def equals(self, other):
     if len(self.blocks) != len(other.blocks):
         return False
 
+    # canonicalize block order, using a tuple combining the type
+    # name and then mgr_locs because there might be unconsolidated
+    # blocks (say, Categorical) which can only be distinguished by
+    # the iteration order
     def canonicalize(block):
-        return (block.dtype.name, block.mgr_locs.as_array(transpose=True).tolist())
+        return (block.dtype.name, block.mgr_locs.internal_values)
 
     self_blocks = sorted(self.blocks, key=canonicalize)
     other_blocks = sorted(other.blocks, key=canonicalize)
@@ -22,4 +30,4 @@ def equals(self, other):
     )
 ```
 
-This corrected version of the function includes the correct usage of `canonicalize` and also handles the correct comparison of block data within the `BlockManager` objects. This version should resolve the issue reported in the GitHub issue and also pass the failing test case.
+This corrected version of the `equals` function should address the issues with comparing the blocks and ensure that it correctly identifies differences between the two BlockManagers. It should also pass the failing test and resolve the issue reported in the GitHub bug.

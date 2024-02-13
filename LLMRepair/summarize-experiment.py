@@ -10,7 +10,7 @@ from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_re
 from utils import print_in_red, print_in_yellow, iter_bugid_folders, divide_list, print_in_green
 
 total_usage = 0
-n_partitions = 1  # number of threads
+n_partitions = 16  # number of threads
 compression_cap = 500  # token size cap
 database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v2"
 
@@ -38,10 +38,10 @@ class Processor:
         with open(bug_folder / "facts-in-prompt.json") as f:
             self.facts_in_prompt = json.load(f)
         prompt_instruction_folder = Path.cwd() / "prompt_instructions"
-        self._stacktrace_instruction = (prompt_instruction_folder / "stacktrace.txt").read_text()
-        self._issue_description_instruction = (prompt_instruction_folder / "issue_description.txt").read_text()
-        self._runtime_value_instruction = (prompt_instruction_folder / "runtime_value.txt").read_text()
-        self._angelic_value_instruction = (prompt_instruction_folder / "angelic_value.txt").read_text()
+        self._stacktrace_instruction = (prompt_instruction_folder / "stacktrace.md").read_text()
+        self._issue_description_instruction = (prompt_instruction_folder / "issue_description.md").read_text()
+        self._runtime_value_instruction = (prompt_instruction_folder / "runtime_value.md").read_text()
+        self._angelic_value_instruction = (prompt_instruction_folder / "angelic_value.md").read_text()
 
     @property
     def stack_trace_summary_prompt(self):
@@ -60,6 +60,8 @@ class Processor:
             return ""
         prompt = self._issue_description_instruction
         prompt += "\n\n\n"
+        prompt += self.facts_in_prompt["source_code_section"].strip()
+        prompt += "\n\n\n"
         prompt += self.facts_in_prompt["8"].strip()
         return prompt
 
@@ -68,8 +70,11 @@ class Processor:
         if self.facts_in_prompt["6"] == "":
             return ""
         prompt = self._runtime_value_instruction
+        prompt += "\n\n\n\n"
+        prompt += self.facts_in_prompt["source_code_section"].strip()
         prompt += "\n\n\n"
         prompt += self.facts_in_prompt["6"].strip()
+        prompt += "\n\n# Explanation:"
         return prompt
 
     @property
@@ -77,8 +82,11 @@ class Processor:
         if self.facts_in_prompt["7"] == "":
             return ""
         prompt = self._angelic_value_instruction
+        prompt += "\n\n\n\n"
+        prompt += self.facts_in_prompt["source_code_section"].strip()
         prompt += "\n\n\n"
         prompt += self.facts_in_prompt["7"].strip()
+        prompt += "\n\n# Explanation:"
         return prompt
 
 

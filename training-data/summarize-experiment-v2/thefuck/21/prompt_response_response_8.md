@@ -1,7 +1,13 @@
-# The fixed version of the buggy function
 ```python
+from thefuck.specific.git import git_support
+
+# The corrected version of the function
 @git_support
 def match(command):
-    script_parts = command.script.split()
-    return len(script_parts) > 1 and script_parts[1] == 'stash' and 'usage:' in command.stderr
+    if len(command.script.split()) > 1:
+        script_contains_stash = 'stash' in command.script
+    else:
+        script_contains_stash = False
+    stderr_contains_usage = 'usage:' in command.stderr
+    return script_contains_stash and stderr_contains_usage
 ```

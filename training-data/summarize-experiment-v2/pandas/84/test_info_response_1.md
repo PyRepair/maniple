@@ -1,7 +1,5 @@
-The error occurs within the `_get_level_number(self, level) -> int` function inside the `_unstack_multiple` function in the pandas core reshape file. It is triggered by an attempt to access an index that is not present in the given `clocs`. 
+The first error message stack frame indicates the error occurred in the `test_unstack_tuplename_in_multiindex` function, on line 345 of the `pandas/tests/frame/test_reshape.py` file, while the second error message indicates the error occurred in the `test_unstack_mixed_type_name_in_multiindex` function, on line 406 of the same file. Both of these correspond to tests calling the `df.unstack` function with different data.
 
-The error messages indicate that an exception was caught while handling a previous exception. It is also shown that the error is present in the `pandas/core/reshape/reshape.py` file.
-
-The error is simplified to: `ValueError: 'A' is not in list`, but is also related to a second exception of `KeyError: 'Level A not found'.
-
-In summary, the error is due to `Level A` not being found in the multi-index, and ultimately this exception stems from the attempt to unstack a multi-index DataFrame.
+Simplified error messages:
+1. ValueError: 'A' is not in list in the `_get_level_number` method of `pandas/core/indexes/multi.py`.
+2. KeyError: 'Level A not found' in the `_get_level_number` method of `pandas/core/indexes/multi.py`.

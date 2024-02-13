@@ -1,10 +1,8 @@
-Based on the analysis of the buggy function, related functions, failing tests, error messages, and GitHub Issue, it appears that the root cause of the bug lies in the mishandling of the multi-level index and its properties.
-
-To fix the bug, it is crucial to ensure that the function accurately handles the index levels, codes, and names in order to perform correct unstacking and reshaping of the data.
-
-Here is the corrected version of the `_unstack_multiple` function that addresses the bug:
-
 ```python
+from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.series import Series
+from pandas.core.sorting import compress_group_index, decons_obs_group_ids, get_compressed_ids, get_group_index
+
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
@@ -13,7 +11,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     index = data.index
 
-    clocs = [index._get_level_number(i) for i in clocs]
+    clocs = [index._get_level_number(i) if isinstance(index, MultiIndex) else index.get_loc(i) for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
@@ -85,5 +83,3 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     return unstacked
 ```
-
-This corrected version of the function should now handle the multi-index and its properties accurately, resulting in the correct reshaping and unstacking of the data. This fix should resolve the issue reported in the GitHub Issue and ensure that the failing test cases are passed.

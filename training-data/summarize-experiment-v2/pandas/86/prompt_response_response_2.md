@@ -1,9 +1,10 @@
 ```python
+# The source code of the corrected function
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot"], indents=1)
 def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
-    if columns is None:  # check if columns is None
-        raise TypeError("pivot() missing 1 required argument: 'columns'")  # raise a TypeError if columns is None
+    if columns is None:  # Check if columns is None and raise an error
+        raise KeyError("The 'columns' parameter cannot be None in pivot")
 
     if values is None:
         cols = [columns] if index is None else [index, columns]

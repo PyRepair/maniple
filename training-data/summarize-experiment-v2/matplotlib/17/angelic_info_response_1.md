@@ -1,6 +1,3 @@
-### Summary of Discrepancy
-The discrepancy in the failing test cases seems to be related to how the function handles the vmin and vmax values, as well as the calculation of the maxabsvalue.
+In the first and second cases, the `swapped` variable is expected to be `False` and the `maxabsvalue` variable should be set to 1. In the third case, the `swapped` variable should be `True`, and the `vmin` and `vmax` values should be swapped accordingly. In the fourth case, if either of the input parameters is infinite, the function should return `-expander` and `expander`.
 
-In the third test case, the function fails to correctly handle the scenario where vmin is greater than vmax, resulting in the "swapped" variable not being set to True and the "maxabsvalue" not being calculated correctly.
-
-This discrepancy suggests that the core logic of the function does not properly handle the scenario where the vmin and vmax values are swapped. This issue likely leads to incorrect results and failing test cases.
+The function should also handle scenarios where the interval is very small and needs to be expanded. The function should correctly update the `vmin` and `vmax` values according to the logic provided in the function's docstring.

@@ -55,44 +55,48 @@ E       IndexError: list index out of range
 thefuck/rules/git_fix_stash.py:8: IndexError
 
 ```
-# Runtime value and type of variables inside the buggy function
-Each case below includes input parameter value and type, and the value and type of relevant variables at the function's return, derived from executing failing tests. If an input parameter is not reflected in the output, it is assumed to remain unchanged. Note that some of these values at the function's return might be incorrect. Analyze these cases to identify why the tests are failing to effectively fix the bug.
+## Summary of Runtime Variables and Types in the Buggy Function
 
-## Case 1
-### Runtime value and type of the input parameters of the buggy function
-command.script, value: `'git'`, type: `str`
+The buggy function is a part of a program that provides corrections for mistyped terminal commands. The function is designed to match a specific command and its output to determine if the command and its parameters are correct.
 
-command, value: `Command(script=git, stdout=, stderr=
-usage: git stash list [<options>]
-   or: git stash show [<stash>]
-   or: git stash drop [-q`, type: `Command`
+In this case, the function takes a Command object `command` as input and checks if the second word in the `command.script` is `'stash'` and if the word `'usage:'` is in the `command.stderr`.
 
-command.stderr, value: `'\nusage: git stash list [<options>]\n   or: git stash show [<stash>]\n   or: git stash drop [-q`, type: `str`
+The bug in the function is that it directly checks the `command.script.split()[1]` without verifying if `command.script` has multiple words, which leads to a potential error if `command.script` does not contain multiple words. Additionally, the function does not effectively use the `command.stderr` information to determine the match.
 
-### Runtime value and type of variables right before the buggy function's return
-splited_script, value: `['git']`, type: `list`
+To fix this bug, the function should first split the `command.script` and then check if the split list has at least two elements before comparing the second element to `'stash'`. Furthermore, the function should check both conditions related to `command.stderr` more effectively to determine a match.
 
-# Expected value and type of variables during the failing test execution
-Each case below includes input parameter value and type, and the expected value and type of relevant variables at the function's return. If an input parameter is not reflected in the output, it is assumed to remain unchanged. A corrected function must satisfy all these cases.
 
-## Expected case 1
-### Input parameter value and type
-command.script, value: `'git'`, type: `str`
+## Summary of Expected Parameters and Return Values in the Buggy Function
 
-command, value: `Command(script=git, stdout=, stderr=
-usage: git stash list [<options>]
-   or: git stash show [<stash>]
-   or: git stash drop [-q`, type: `Command`
+The expected behavior of the `match` function is to check if the command script contains the word "stash" and if the command's stderr contains the phrase "usage:". 
 
-command.stderr, value: `'\nusage: git stash list [<options>]\n   or: git stash show [<stash>]\n   or: git stash drop [-q`, type: `str`
+In this case, the input parameters are as follows:
+- command.script: 'git'
+- command: Command(script='git', stdout='', stderr='\nusage: git stash list [<options>]\n   or: git stash show [<stash>]\n   or: git stash drop [-q')
+- command.stderr: '\nusage: git stash list [<options>]\n   or: git stash show [<stash>]\n   or: git stash drop [-q'
+
+The expected behavior is to return True, since the script contains "stash" and the stderr contains "usage:". However, the current implementation is checking if the script.split()[1] is equal to "stash", which is not correct. 
+
+The corrected function should check if "stash" is in the command.script and if "usage:" is in command.stderr.
+
 
 ## Summary of the GitHub Issue Related to the Bug
 
-# GitHub Issue Title: 
-Fix git_fix_stash rule fails with "git" script
+GitHub Bug Title:
+Error when running 'git' commands
 
-## Detailed Description:
-The "git" script is causing the git_fix_stash rule to fail. The error log shows an IndexError: list index out of range.
+Description:
+When running 'git' commands with only the word 'git' in the script, it results in an error. The error occurs when running the 'stash' command. This leads to a 'list index out of range' error in the 'git_fix_stash' rule.
+
+Expected Output:
+When running 'git' commands, including just the word 'git,' it should not result in an error, specifically when running the 'stash' command.
+
+Environment:
+- Python: 3.7.3.final.0
+- numpy: 1.18.1
+- matplotlib: 3.1.2
+- scipy: 1.3.0
+- xlrd: 1.2.0
 
 
 1. Analyze the buggy function and it's relationship with the test code, corresponding error message, the actual input/output variable information, the expected input/output variable information, the github issue.

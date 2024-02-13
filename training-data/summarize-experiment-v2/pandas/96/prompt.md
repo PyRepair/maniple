@@ -247,30 +247,39 @@ def test_date_range_with_custom_holidays():
 
 Here is a summary of the test cases and error messages:
 
-This error occurs at line 891 of `datetimelike.py`, as indicated by the file path. The error message is related to the failing test `test_date_range_with_custom_holidays` found in the `test_date_range.py` file.
+Looking at the error message, we can infer that the error originates from the function `_validate_frequency(cls, index, freq, **kwargs)`. Within this function, the line `if index.size == 0 or inferred == freq.freqstr:` condition is not meeting properly, and this triggers a `ValueError`.
 
-The error message specifies the problem occurs at line 891 in the `_validate_frequency` method of `datetimelike.py`. The root cause of the error appears to be due to the fact that the inferred frequency does not match the passed frequency, in this case it does not conform to the passed frequency `CBH`.
+The failure is provoked from the test function `test_date_range_with_custom_holidays` located in the file `pandas/tests/indexes/datetimes/test_date_range.py` as it invokes the function `pd.date_range` with a custom business frequency defined by `pd.offsets.CustomBusinessHour`. 
 
-Simplified error message:
+To simplify the original error message, we can summarize it to: 
+
 ```
-ValueError: Inferred frequency None from passed values does not conform to passed frequency CBH
+Error on line 891 in pandas/core/arrays/datetimelike.py: Value error was raised in the _validate_frequency function. The inferred frequency None from passed values does not conform to the passed frequency CBH.
 ```
+
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-Based on the analysis of the runtime values and type of variables inside the buggy function, it seems that the issue lies in the calculation of the business hours. The values of the "businesshours" variable for all the test cases are consistently set to 7200, which suggests that the calculation logic is not correctly processing the input parameters.
+The given buggy function is supposed to adjust a given timestamp based on a custom business hour. However, the function has numerous complex logic and conditional statements, making it difficult to identify a specific bug based on the provided test cases and variable values.
 
-The correct business hours should be calculated based on the difference between the "other" timestamp and the start time of the CustomBusinessHour. This calculation is likely affected by the "n" parameter as well.
-
-To fix the bug, investigate the code that calculates the business hours and ensure that it correctly accounts for the timestamps and the specified CustomBusinessHours. Additionally, check for any issues related to the usage of the "n" parameter in the calculation logic.
+To effectively fix the bug, it would be necessary to thoroughly analyze the logic of the function and possibly simplify it to better understand the intended behavior and identify any inconsistencies or errors in implementation. Additionally, thorough testing and validation of the function with various input scenarios would be essential to ensure that it behaves correctly in all cases.
 
 
 ## Summary of the GitHub Issue Related to the Bug
 
-# GitHub Issue: Pandas date_range and holiday issue
-## Description
-The code for creating date ranges with pandas works fine, but when adding holidays, it produces more periods than specified. Replacing 'periods' with the corresponding 'end' solves the issue. Looking for help to understand this behavior.
+GitHub Bug Title:
+Pandas CustomBusinessHour date_range divides periods when adding holidays
+
+Description:
+When using pd.date_range with pd.offsets.CustomBusinessHour and adding holidays, the method produces an unexpected result. Instead of producing 14 periods, it generates more dates than intended. However, when replacing periods with the corresponding end date, the method works as expected. It is unclear why date_range has this behavior.
+
+Expected Output:
+pd.date_range with CustomBusinessHour and added holidays should produce the correct number of periods without dividing the dates unexpectedly.
+
+Environment:
+- Python: 3.7.3.final.0
+- pandas: 1.1.1
 
 
 1. Analyze the buggy function and it's relationship with the buggy class, related functions, test code, corresponding error message, the actual input/output variable information, the expected input/output variable information, the github issue.

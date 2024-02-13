@@ -1,5 +1,5 @@
 ```python
-# The fixed version of the function
+# The corrected version of the buggy function
 def _preprocess_numpy_input(x, data_format, mode):
     """Preprocesses a Numpy array encoding a batch of images.
 
@@ -29,28 +29,21 @@ def _preprocess_numpy_input(x, data_format, mode):
         x /= 255.
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
-        for i in range(len(x[0,0,0])):
-          x[:,:,:,i] -= mean[i]
-          x[:,:,:,i] /= std[i]
+        x = (x - mean) / std  # Applying normalization
     else:
         if data_format == 'channels_first':
             # 'RGB'->'BGR'
             if x.ndim == 3:
                 x = x[:, ::-1, ...]
             else:
-                x = x[:, :, ::-1, ...]
-            mean = [103.939, 116.779, 123.68]
-            std = None
+                x = x[:, ::-1, :, :]
         else:
             # 'RGB'->'BGR'
             x = x[..., ::-1]
-            mean = [103.939, 116.779, 123.68]
-            std = None
-
+        mean = [103.939, 116.779, 123.68]
+        
         # Zero-center by mean pixel
-        for i in range(len(x[0,0,0])):
-            x[:,:,:,i] -= mean[i]
-            if std is not None:
-                x[:,:,:,i] /= std[i]
+        x -= mean
+
     return x
 ```

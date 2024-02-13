@@ -1,12 +1,13 @@
-# GitHub Issue: Categorical NaN Not Converted to Int Correctly
+GitHub Bug Title:
+Categorical to int conversion ignores NaNs
 
-## Description:
-When converting categorical series back into an Int column, NaN is unexpectedly converted to a negative integer value. This behavior is not as expected and can cause issues.
+Description:
+When converting a categorical series to an integer column, NaN values are converted to incorrect integer negative values. This behavior is unexpected and results in errors when trying to use d.astype('Int8').
 
-### Expected Output:
-NaN in the category should convert to NaN in IntX (nullable integer) or float.
+Expected Output:
+When converting categorical series to IntX (nullable integer) or float, NaN values should be preserved and represented as NaN.
 
-### Versions: 
+Environment:
 - Python: 3.7.4.final.0
-- Pandas: 0.25.1
-- Numpy: 1.17.2
+- pandas: 0.25.1
+- numpy: 1.17.2

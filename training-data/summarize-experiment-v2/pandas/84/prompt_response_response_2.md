@@ -1,13 +1,13 @@
+Here is the corrected version of the _unstack_multiple function:
+
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
-    # NOTE: This doesn't deal with hierarchical columns yet
-
     index = data.index
 
-    clocs = [index._get_level_number(i) if isinstance(i, tuple) else index.get_loc(i) for i in clocs]
+    clocs = [index._get_level_number(i) for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
@@ -44,15 +44,6 @@ def _unstack_multiple(data, clocs, fill_value=None):
         new_names = cnames
         new_codes = recons_codes
     else:
-        if isinstance(data.columns, MultiIndex):
-            result = data
-            for i in range(len(clocs)):
-                val = clocs[i]
-                result = result.unstack(val, fill_value=fill_value)
-                clocs = [v if i > v else v - 1 for v in clocs]
-
-            return result
-
         dummy = data.copy()
         dummy.index = dummy_index
 

@@ -212,13 +212,7 @@ def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation='linear'):
 
 Here is a summary of the test cases and error messages:
 
-The error message is indicating a `ValueError` with the message "need at least one array to concatenate" in the `quantile` function in pandas/core/frame.py at line 8218. The error originates from the `quantile` function being when it tries to concatenate arrays, but there are none available to concatenate.
-
-The relevant stack frames are:
-1. File "pandas/tests/frame/test_quantile.py", line 475, calling the `quantile` method.
-2. File "pandas/core/frame.py", line 8218, in the `quantile` method.
-3. File "pandas/core/internals/managers.py", line 535, in the `quantile` method calling `concat_compat`.
-4. File "pandas/core/dtypes/concat.py", line 139, in the `concat_compat` method, calling `np.concatenate`.
+The error seems to be related to concatenation within the `quantile` method of the `DataFrame` class. The stack frames that are closely related to the fault location are in the `quantile` method of the `pandas/core/frame.py` file and in the `quantile` method of the `pandas/core/internals/managers.py` file.
 
 Simplified error message:
 ```
@@ -228,15 +222,30 @@ ValueError: need at least one array to concatenate
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-In both cases, the function seems to be failing to populate the 'data' variable with the expected values. It is returning an empty DataFrame despite taking input parameters and executing some logic. This suggests that there might be an issue with the core logic of the function, specifically in the portion of the code responsible for populating the 'data' variable. Without being able to see the source code itself it is difficult to identify the exact cause of the issue, but it's likely something related to how the input parameters are being used to generate the expected output DataFrame. Further investigation into how 'data' is being populated is needed to fix this bug.
+In both cases, the function `quantile` is not correctly processing the input data. It seems that the function is not correctly identifying the numeric data within the input DataFrame, which leads to empty dataframes and incorrect results.
+
+The issue likely lies in the `_get_numeric_data()` method, which is used to filter the numeric data in the input dataframe. This method is not functioning as intended, resulting in empty dataframes and incorrect quantile calculations.
+
+To fix this, the `_get_numeric_data()` method should be reviewed and potentially debugged to ensure it correctly identifies and filters the numeric data within the input dataframe. Once this issue is resolved, the `quantile` function should be able to properly calculate the quantiles of the numeric data within the input dataframe.
 
 
 ## Summary of the GitHub Issue Related to the Bug
 
-GitHub Issue Title: "DataFrame Quantile Issue with Datetime Data"
+GitHub Bug Title:
+TypeError when calling mean on a DataFrameGroupBy with Int64 dtype
 
 Description:
-When using the `quantile` method with datetime data, a DataFrame raises a ValueError. The expected output is that the DataFrame should return the same result as a Series does.
+When using the new nullable integer data type, calling mean after grouping results in a TypeError. The error also occurs with median and std but does not occur with min, max, or first.
+
+Expected Output:
+When performing aggregation operations on a DataFrameGroupBy object with columns of nullable integer data type (Int64), the mean, median, and std methods should compute the values without raising a TypeError.
+
+Environment:
+- Python: 3.7.3.final.0
+- numpy: 1.18.1
+- matplotlib: 3.1.2
+- scipy: 1.3.0
+- xlrd: 1.2.0
 
 
 1. Analyze the buggy function and it's relationship with the buggy class, related functions, test code, corresponding error message, the actual input/output variable information, the github issue.

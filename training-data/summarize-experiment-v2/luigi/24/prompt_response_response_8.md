@@ -1,16 +1,24 @@
-The issue with the buggy function is that it is not formatting the command arguments properly. It needs to create a string in the format "key=value" and then add it to the command list. 
-
-To fix this issue, we can update the `_dict_arg` function to format the command arguments correctly and return the formatted command list. 
-
-Here is the corrected code for the `_dict_arg` function:
+Here is the corrected version of the function:
 
 ```python
-def _dict_arg(self, name, value):
-    command = []
-    if value and isinstance(value, dict):
-        for prop, val in value.items():
-            command += [name, '"{0}={1}"'.format(prop, val)]
-    return command
+class SparkSubmitTask(luigi.Task):
+    """
+    Template task for running a Spark job
+
+    Supports running jobs on Spark local, standalone, Mesos or Yarn
+
+    See http://spark.apache.org/docs/latest/submitting-applications.html
+    for more information
+    """
+    
+    def _dict_arg(self, name, value):
+        command = []
+        if value and isinstance(value, dict):
+            for prop, val in value.items():  # Change the variable name from value to val
+                command += [name, '--{0}={1}'.format(prop, val)]  # Change the string format and remove unnecessary quotes
+        return command
 ```
 
-With this change, the function should now properly format the command arguments and return the expected output. This updated function should pass the failing tests and satisfy the expected input/output variable information provided.
+In this corrected version, the function now correctly iterates through the key-value pairs of the input dictionary and appends them to the command list in the format "--name=value". The unnecessary quotes around the value have been removed, and the variable name inside the for loop has been changed to avoid confusion with the outer 'value' variable.
+
+This corrected version should now pass the failing test cases and produce the expected output.

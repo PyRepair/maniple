@@ -1,4 +1,2 @@
-Title: Multi Indexing Unstack Error
-
-Description:
-When trying to unstack a multi-indexed Pandas Series using a tuple to reference the level names, a KeyError occurs.
+Summary:
+The issue is stating that when performing aggregation operations on a DataFrameGroupBy object with columns of nullable integer data type (Int64), computing the mean, median, or std results in a TypeError. This happens in the newer version, but the same computation works with the older version.

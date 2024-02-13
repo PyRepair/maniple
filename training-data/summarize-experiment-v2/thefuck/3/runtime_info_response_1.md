@@ -1,0 +1,3 @@
+The buggy function `info` is attempting to retrieve the version of the current shell by running a command in the Fish shell and capturing the output. However, the `Popen` function is not being used correctly, and the output is being mocked, resulting in incorrect values.
+
+To fix this bug, the `Popen` function should be used correctly to execute the command and capture the actual output, rather than using mocked values. This will ensure that the function retrieves the correct version of the Fish shell and returns the accurate information.

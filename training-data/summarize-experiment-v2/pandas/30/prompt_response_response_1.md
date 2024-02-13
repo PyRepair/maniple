@@ -1,5 +1,8 @@
+# The source code of the corrected function
+
 ```python
 class Parser():
+
     def _try_convert_to_date(self, data):
         """
         Try to parse a ndarray like into a date column.
@@ -14,22 +17,24 @@ class Parser():
         new_data = data
         if new_data.dtype == "object":
             try:
-                new_data = data.astype("int64")
-            except (TypeError, ValueError, OverflowError):
+                new_data = pd.to_numeric(data, errors="coerce")
+            except (ValueError, TypeError):
                 pass
+
+        # convert boolean data to integers
+        if new_data.dtype == bool:
+            new_data = new_data.astype(int)
 
         # ignore numbers that are out of range
         if issubclass(new_data.dtype.type, np.number):
-            in_range = (
-                isna(new_data._values) | (new_data > self.min_stamp)
-            )
+            in_range = (isna(new_data) | (new_data > self.min_stamp))
             if not in_range.all():
                 return data, False
 
         date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
         for date_unit in date_units:
             try:
-                new_data = to_datetime(new_data, errors="raise", unit=date_unit)
+                new_data = pd.to_datetime(new_data, errors="raise", unit=date_unit)
             except (ValueError, OverflowError):
                 continue
             return new_data, True

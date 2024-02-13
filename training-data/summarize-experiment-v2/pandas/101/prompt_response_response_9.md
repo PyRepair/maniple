@@ -1,13 +1,14 @@
-The bug in the `astype_nansafe` function is likely caused by the incorrect handling of NaN values when converting to integer types. This can be seen in the failing test case where the function should raise a `ValueError` when attempting to convert "NaT" values to an integer, but it does not.
-
-To fix this bug, we need to modify the logic in the `astype_nansafe` function to properly handle NaN values when converting to integer types.
-
-Here's the corrected version of the function:
-
 ```python
+import numpy as np
+from pandas._libs import lib, tslib, tslibs
+from .common import _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, ensure_int8, ensure_int16, ensure_int32, ensure_int64, ensure_object, ensure_str, is_bool, is_bool_dtype, is_complex, is_complex_dtype, is_datetime64_dtype, is_datetime64_ns_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype, is_dtype_equal, is_extension_array_dtype, is_float, is_float_dtype, is_integer, is_integer_dtype, is_object_dtype, is_scalar, is_string_dtype, is_timedelta64_dtype, is_timedelta64_ns_dtype, is_unsigned_integer_dtype, pandas_dtype
+from .missing import isna, notna
+from pandas import to_timedelta
+from pandas import to_datetime
+
 def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
     """
-    Cast the elements of an array to a given dtype in a nan-safe manner.
+    Cast the elements of an array to a given dtype a nan-safe manner.
 
     Parameters
     ----------
@@ -58,9 +59,9 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
             # allow frequency conversions
             # we return a float here!
             if dtype.kind == "m":
-                result = arr.astype(dtype)
-                if is_object_dtype(arr):
-                    result[isna(arr)] = np.nan
+                mask = isna(arr)
+                result = arr.astype(dtype).astype(np.float64)
+                result[mask] = np.nan
                 return result
         elif dtype == _TD_DTYPE:
             return arr.astype(_TD_DTYPE, copy=copy)
@@ -83,11 +84,9 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
 
         elif is_datetime64_dtype(dtype):
             from pandas import to_datetime
-
             return astype_nansafe(to_datetime(arr).values, dtype, copy=copy)
         elif is_timedelta64_dtype(dtype):
             from pandas import to_timedelta
-
             return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
@@ -103,5 +102,3 @@ def astype_nansafe(arr, dtype, copy: bool = True, skipna: bool = False):
 
     return arr.view(dtype)
 ```
-
-This corrected version of the function should now properly handle NaN values when converting to integer types. It should also pass the failing test case and address the issue reported in the GitHub bug.

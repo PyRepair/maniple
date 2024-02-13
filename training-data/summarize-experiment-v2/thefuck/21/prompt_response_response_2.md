@@ -1,10 +1,10 @@
 ```python
 from thefuck.specific.git import git_support
 
-# The corrected version of the function
 @git_support
 def match(command):
-    return (len(command.script.split()) > 1
-            and command.script.split()[1] == 'stash'
+    script_words = command.script.split()
+    return ('stash' in command.script
             and 'usage:' in command.stderr)
+
 ```

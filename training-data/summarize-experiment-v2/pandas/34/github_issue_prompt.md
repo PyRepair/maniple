@@ -1,5 +1,92 @@
 You have been provided with a description for GitHub issue. However, it may be ambiguous, please simplify it and make it readable by developer while keeping the key information.
 
+Here is an example summary of a GitHub issue:
+
+GitHub Bug Title:
+TypeError when calling mean on a DataFrameGroupBy with Int64 dtype
+
+Description:
+Using the new nullable integer data type, calling mean after grouping results in a TypeError. It works with int64 dtype and also with Int64 dtype when taking a single column to give a SeriesGroupBy. The error occurs with median and std as well. However, it does not occur with min, max, or first.
+
+Expected Output:
+When performing aggregation operations on a DataFrameGroupBy object with columns of nullable integer data type (Int64), the following behaviours are expected for the specified methods:
+mean(): The method should compute the mean of grouped data without raising a TypeError.
+median():The method should compute the median of grouped data without raising a TypeError.
+std(): The method should compute the standard deviation of grouped data without raising a TypeError.
+
+Environment:
+- Python: 3.7.3.final.0
+- numpy: 1.18.1
+- matplotlib: 3.1.2
+- scipy: 1.3.0
+- xlrd: 1.2.0
+
+
+# The source code of the buggy function
+```python
+# The relative path of the buggy file: pandas/core/resample.py
+
+
+
+    # this is the buggy function you need to fix
+    def _get_time_bins(self, ax):
+        if not isinstance(ax, DatetimeIndex):
+            raise TypeError(
+                "axis must be a DatetimeIndex, but got "
+                f"an instance of {type(ax).__name__}"
+            )
+    
+        if len(ax) == 0:
+            binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
+            return binner, [], labels
+    
+        first, last = _get_timestamp_range_edges(
+            ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
+        )
+        # GH #12037
+        # use first/last directly instead of call replace() on them
+        # because replace() will swallow the nanosecond part
+        # thus last bin maybe slightly before the end if the end contains
+        # nanosecond part and lead to `Values falls after last bin` error
+        binner = labels = date_range(
+            freq=self.freq,
+            start=first,
+            end=last,
+            tz=ax.tz,
+            name=ax.name,
+            ambiguous="infer",
+            nonexistent="shift_forward",
+        )
+    
+        ax_values = ax.asi8
+        binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
+    
+        # general version, knowing nothing about relative frequencies
+        bins = lib.generate_bins_dt64(
+            ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+        )
+    
+        if self.closed == "right":
+            labels = binner
+            if self.label == "right":
+                labels = labels[1:]
+        elif self.label == "right":
+            labels = labels[1:]
+    
+        if ax.hasnans:
+            binner = binner.insert(0, NaT)
+            labels = labels.insert(0, NaT)
+    
+        # if we end up with more labels than bins
+        # adjust the labels
+        # GH4076
+        if len(bins) < len(labels):
+            labels = labels[: len(bins)]
+    
+        return binner, bins, labels
+    
+```
+
 
 # A GitHub issue title for this bug
 ```text

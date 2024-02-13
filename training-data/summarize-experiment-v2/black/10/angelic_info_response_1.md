@@ -1,5 +1,1 @@
-Upon comparing the expected input/output values with the core logic of the function, it is observed that the function is failing to properly handle the given input parameters. It seems that the function is not correctly updating the variables `current_line`, `current_column`, `wait_for_nl`, and `char` based on the input `prefix` and `column` values.
-
-The discrepancies are particularly noticeable in the cases where the `prefix` contains comments and indentation. The function appears to be failing to correctly handle these cases and update the variables accordingly.
-
-In summary, the discrepancy is likely due to the function's failure to properly process and update the variables related to line content, indentation, and comment presence based on the input parameters.
+The function is expected to partially consume the prefix string based on the given column value. However, based on the expected values, it seems that the function is not working as expected and needs to be fixed. The variables lines, current_line, current_column, wait_for_nl, char, and res, are all expected to have different values at different stages of the function execution. The function needs to be corrected to ensure that it properly handles the prefix string and column value to produce the expected output at each stage.

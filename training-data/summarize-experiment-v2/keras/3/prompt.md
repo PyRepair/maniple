@@ -196,7 +196,9 @@ def test_clone_functional_model_with_multi_outputs():
 
 Here is a summary of the test cases and error messages:
 
-In the given error message, the failure occurs at line 166 of the 'keras/models.py' file. The error message in the failing test indicates that it could not compute an output with the specific tensor: "Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)".
+The error message is indicating that an `AssertionError` occurred in the file `keras/models.py` at line 166. The specific error message is "Could not compute output Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)".
+
+The error occurred during the execution of the function `_clone_functional_model` in the file `keras/models.py` at line 166. The error is due to the assertion that the output tensor is not present in the `tensor_map`.
 
 Simplified error message:
 ```
@@ -206,70 +208,35 @@ AssertionError: Could not compute output Tensor("swap_layer_1/Identity:0", shape
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-As I understand, the goal of this program is to predict whether any given pair of numbers should be swapped or not. Based on the input parameters and the relevant variables at function's return, I have identified the bug and summarized it as follows:
+The `_clone_functional_model` function is intended to clone a functional model instance, which creates new layers and new weights instead of sharing the weights of the existing layers. However, there are several issues in the code that need to be addressed in order to fix the bug.
 
-Issue:
-Looking at the input layers and nodes, it appears that there is a problem with the layer_map and tensor_map causing an inconsistent state. Since the input layers have an empty list, it might be the cause of the failure of the swap layer functionality.
+1. The function is not properly handling the input_layers and nodes of the model, leading to incorrect mapping and duplication of layers.
 
-Suggested Solution:
-The layer_map and tensor_map need to be corrected to reflect the correct mappings between layers and tensors. This may involve a closer look at the layer and tensor assignment logic earlier in the process. Additionally, the weight initializations and input tensor mappings should also be reviewed to ensure all steps leading to the swap layer function are correct.
+2. The function is not correctly computing the output tensors for the cloned model, leading to unexpected behavior and potentially incorrect model outputs.
 
-By resolving these issues, I believe the bug should be fixed.
+3. There are inconsistencies in the usage of `input_layers`, `input_tensors`, and `input_layers`, leading to incorrect caching and reuse of input layers.
 
-
-# A GitHub issue title for this bug
-```text
-'Could not compute output Tensor' error when I‘m using clone_model()
-```
-
-## The GitHub issue's detailed description
-```text
-Hi guys, I think I just met a bug.
-There was something wrong when I was using multi_gpu_model with cpu_relocation=True. After analyzing the traceback I think it is a bug inside keras.models.clone_model
-The script below can reproduce it
-
-from keras.models import Model, clone_model
-from keras.layers import Input, Add, Lambda
-from keras.utils import multi_gpu_model
+To fix the bug, the function needs to be refactored to properly handle input layers and nodes, compute output tensors, and handle input tensors consistently. Additionally, the layer mapping and caching should be carefully managed to avoid duplication and retain the intended behavior of the cloned model.
 
 
-def build_model():
-    input_layer = Input(shape=(1,))
-    test1, test2 = Lambda(lambda x: [x, x])(input_layer)
-    add = Add()([test1, test2])
-    model = Model(inputs=[input_layer], outputs=[add])
-    return model
+## Summary of the GitHub Issue Related to the Bug
 
+GitHub Bug Title:
+TypeError when calling mean on DataFrameGroupBy
 
-if __name__ == '__main__':
-    model = build_model()
-    model = clone_model(model)
-    # model = multi_gpu_model(model, cpu_relocation=True)  # it uses clone_model when set cpu_relocation=True
-If I didn't make any mistake, the script will raise AssertionError: Could not compute output Tensor("add_1/add:0", shape=(?, 1), dtype=float32)
+Description:
+Calling mean after grouping with nullable integer data type (Int64) results in a TypeError. The error also occurs with median and std but not with min, max, or first.
 
-My environment:
+Expected Output:
+Methods mean(), median(), and std() should compute the respective aggregations without raising a TypeError on DataFrameGroupBy object with nullable integer data type.
 
-Keras 2.2.4
-tensorflow 1.12.0
-I met the error on both 4 GTX1080tis and my own laptop with a GTX1060MQ
+Environment:
+- Python: 3.7.3.final.0
+- numpy: 1.18.1
+- matplotlib: 3.1.2
+- scipy: 1.3.0
+- xlrd: 1.2.0
 
-I noticed that output_masks here will always be [None](but [None, None] is expected)
-keras/keras/models.py
-
-Line 157 in a139716
-
- for x, y, mask in zip(reference_output_tensors, 
-and that's because layer.compute_mask(...) will always return None since Lambda doesn't support using masks
-keras/keras/models.py
-
-Line 153 in a139716
-
- output_masks = to_list( 
-So if I'm using a functional model with a layer which has more outputs without a mask support, I think the error can appear.
-
-P.S. thanks a lot for your brilliant works :)
-From my perspective, Keras is an amazing gift to everyone. Thank you all!
-```
 
 1. Analyze the buggy function and it's relationship with the test code, corresponding error message, the actual input/output variable information, the github issue.
 2. Identify the potential error location within the problematic function.

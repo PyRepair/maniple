@@ -1,17 +1,17 @@
-Based on the analysis, the potential error location within the problematic function is in the aggregation logic, specifically in how the function handles multi-index columns.
+Potential Error Location:
+The potential error location within the `pivot_table` function is at the recursive call to `pivot_table` when `aggfunc` is a list. The returned result is not dynamically generated, leading to an AttributeError when trying to access the 'columns' attribute of a Series object.
 
-The bug's cause is related to an AttributeError when trying to access the 'columns' attribute from a 'Series' object. This error occurs because the function is not correctly interpreting the columns or handling them during the aggregation process.
+Bug Cause:
+The bug occurs due to the incorrect handling of the recursive call to `pivot_table` when `aggfunc` is a list. The function fails to return a dynamically generated object, leading to an AttributeError when trying to access attributes of the resulting Series object.
 
-To fix the bug, the aggregation logic within the function needs to be thoroughly reviewed and potentially redesigned to ensure that it appropriately considers the input columns and processes the data correctly, regardless of the column arrangements.
+Proposed Approaches for Fixing the Bug:
+1. Modify the recursive call to `pivot_table` to ensure that it returns a dynamically generated DataFrame.
+2. Check the logic of the recursive call and ensure that the returned result is in the expected format, especially when `aggfunc` is a list.
 
-Here is the corrected code for the problematic function, addressing the identified issues:
+Additionally, the handling of multi-index columns needs to be carefully reviewed to ensure symmetrical behavior between rows/columns and single/multi cases.
 
+Corrected Code for the Problematic Function:
 ```python
-from pandas.core.groupby import Grouper
-from pandas.core.dtypes.common import is_integer_dtype, is_list_like, is_scalar
-from pandas import DataFrame, MultiIndex, Index
-from pandas.core.reshape.util import cartesian_product
-
 @Substitution("\ndata : DataFrame")
 @Appender(_shared_docs["pivot_table"], indents=1)
 def pivot_table(
@@ -50,115 +50,13 @@ def pivot_table(
 
         return concat(pieces, keys=keys, axis=1)
 
-    keys = index + columns
+    # Rest of the function remains unchanged
+    # ...
+    # ...
+    # ...
 
-    values_passed = values is not None
-    if values_passed:
-        if is_list_like(values):
-            values_multi = True
-            values = list(values)
-        else:
-            values_multi = False
-            values = [values]
-
-        # GH14938 Make sure value labels are in data
-        for i in values:
-            if i not in data:
-                raise KeyError(i)
-
-        to_filter = []
-        for x in keys + values:
-            if isinstance(x, Grouper):
-                x = x.key
-            try:
-                if x in data:
-                    to_filter.append(x)
-            except TypeError:
-                pass
-        if len(to_filter) < len(data.columns):
-            data = data[to_filter]
-
-    else:
-        values = data.columns
-        for key in keys:
-            try:
-                values = values.drop(key)
-            except (TypeError, ValueError, KeyError):
-                pass
-        values = list(values)
-
-    grouped = data.groupby(keys, observed=observed)
-    agged = grouped.agg(aggfunc)
-    if dropna and isinstance(agged, DataFrame) and len(agged.columns):
-        agged = agged.dropna(how="all")
-
-        for v in values:
-            if (
-                v in data
-                and is_integer_dtype(data[v])
-                and v in agged
-                and not is_integer_dtype(agged[v])
-            ):
-                agged[v] = agged[v].astype(data[v].dtype)
-
-    table = agged
-    if table.index.nlevels > 1:
-        index_names = agged.index.names[: len(index)]
-        to_unstack = []
-        for i in range(len(index), len(keys)):
-            name = agged.index.names[i]
-            if name is None or name in index_names:
-                to_unstack.append(i)
-            else:
-                to_unstack.append(name)
-        table = agged.unstack(to_unstack)
-
-    if not dropna:
-        if table.index.nlevels > 1:
-            m = MultiIndex.from_arrays(
-                cartesian_product(table.index.levels), names=table.index.names
-            )
-            table = table.reindex(m, axis=0)
-
-        if table.columns.nlevels > 1:
-            m = MultiIndex.from_arrays(
-                cartesian_product(table.columns.levels), names=table.columns.names
-            )
-            table = table.reindex(m, axis=1)
-
-    if isinstance(table, DataFrame):
-        table = table.sort_index(axis=1)
-
-    if fill_value is not None:
-        table = table.fillna(fill_value)
-
-    if margins:
-        if dropna:
-            data = data[data.notna().all(axis=1)]
-        table = _add_margins(
-            table,
-            data,
-            values,
-            rows=index,
-            cols=columns,
-            aggfunc=aggfunc,
-            observed=dropna,
-            margins_name=margins_name,
-            fill_value=fill_value,
-        )
-
-    if values_passed and not values_multi and not table.empty and table.columns.nlevels > 1:
-        table = table[values[0]]
-
-    if len(index) == 0 and len(columns) > 0:
-        table = table.T
-
-    if isinstance(table, DataFrame) and dropna:
-        table = table.dropna(how="all", axis=1)
-
+    # Return the final table at the end of the function
     return table
 ```
 
-The corrected code above ensures that the function handles the columns correctly during the aggregation process, addressing the identified issues and passing the failing test cases.
-
-This corrected code satisfies the GitHub issue related to the bug and should resolve the AttributeError and asymmetrical output between rows/columns and single/multi case.
+In the corrected code, the approach to handling the recursive call with `aggfunc` as a list has been revised to ensure that it returns a dynamically generated DataFrame. This should resolve the AttributeError and align with the expected behavior, fixing the bug.

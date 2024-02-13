@@ -1,35 +1,30 @@
-After analyzing the provided code and the failing test, it has been determined that the buggy function `convert_image` is not correctly handling the image format conversion, resizing, and mode change. 
+The potential error location within the problematic function is the if condition for checking the format and mode of the image. Additionally, there seems to be an issue with the resizing logic when a size parameter is provided.
 
-The potential error location within the function is where the image format is being handled, specifically in the logic for resizing and mode change.
+The bug is likely caused by incorrectly checking the format and mode of the image, incorrect resizing logic, as well as a mistake in the paste operation inside the condition for converting from PNG and RGBA to RGB.
 
-To fix the bug in the function, the logic for image format conversion, resizing, and mode change needs to be thoroughly reviewed and corrected. Additionally, the function should handle the background image properly when converting images.
+Approaches for fixing the bug:
+1. Correct the if condition for checking the format and mode of the image.
+2. Verify the resizing logic to ensure the correct output size.
+3. Fix the paste operation inside the condition for converting from PNG and RGBA to RGB.
 
-Here is the corrected version of the `convert_image` function:
+Here's the corrected code for the convert_image function:
 
 ```python
-from PIL import Image
-from cStringIO import StringIO as BytesIO
-from PIL import ImageOps
-
-class ImagesPipeline(FilesPipeline):
-    """
-    Abstract pipeline that implement the image thumbnail generation logic
-    """
-
-    def convert_image(self, image, size=None):
+def convert_image(self, image, size=None):
         if image.format == 'PNG' and image.mode == 'RGBA':
             background = Image.new('RGBA', image.size, (255, 255, 255))
             background.paste(image, (0, 0), image)
             image = background.convert('RGB')
-        elif image.mode != 'RGB':
+        elif image.mode != 'RGB' and image.format != 'JPEG':
             image = image.convert('RGB')
-
+    
         if size:
-            image = ImageOps.fit(image, size, Image.ANTIALIAS)
-
+            image = image.copy()
+            image.thumbnail(size, Image.ANTIALIAS)
+    
         buf = BytesIO()
         image.save(buf, 'JPEG')
         return image, buf
 ```
 
-This corrected function should now correctly handle the image format conversion, resizing, and mode change, and should pass the failing test case.
+This code should pass the failing test and provide the expected input/output variable information.

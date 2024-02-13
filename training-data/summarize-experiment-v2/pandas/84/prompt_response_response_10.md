@@ -1,13 +1,19 @@
-The potential error location within the problematic function `_unstack_multiple` is likely in the handling of the multi-index and its properties, such as the levels, codes, and names. This mishandling leads to incorrect manipulation and unstacking of the data, causing the failing test cases.
+The given code is quite extensive and complex, and fixing it based solely on the expected value and type of variables is challenging. Therefore, I recommend a thorough review of the entire function, including each step and data transformation. Additionally, comprehensive testing and debugging should be conducted to ensure that the function works as expected in different scenarios. It's also important to consider the specific use case and requirements for this function, as the desired behavior might vary based on the context in which it's used.
 
-To fix the bug, the function needs to properly interpret and manipulate the multi-index data structure to ensure accurate unstacking and reshaping of the data.
+In conclusion, the complexity of the code and the specific requirements for its behavior indicate that a more detailed and comprehensive approach is necessary to fix the function.
 
-Here is the corrected code for the problematic function `_unstack_multiple`:
+Here's the corrected version of the `_unstack_multiple` function:
 
 ```python
+from pandas.core.indexes.api import Index, MultiIndex
+from pandas.core.series import Series
+from pandas.core.sorting import compress_group_index, decons_obs_group_ids, get_compressed_ids, get_group_index
+
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
+
+    # NOTE: This doesn't deal with hierarchical columns yet
 
     index = data.index
 
@@ -18,6 +24,9 @@ def _unstack_multiple(data, clocs, fill_value=None):
     clevels = [index.levels[i] for i in clocs]
     ccodes = [index.codes[i] for i in clocs]
     cnames = [index.names[i] for i in clocs]
+    rlevels = [index.levels[i] for i in rlocs]
+    rcodes = [index.codes[i] for i in rlocs]
+    rnames = [index.names[i] for i in rlocs]
 
     shape = [len(x) for x in clevels]
     group_index = get_group_index(ccodes, shape, sort=False, xnull=False)
@@ -29,10 +38,6 @@ def _unstack_multiple(data, clocs, fill_value=None):
         # Everything is in clocs, so the dummy df has a regular index
         dummy_index = Index(obs_ids, name="__placeholder__")
     else:
-        rlevels = [index.levels[i] for i in rlocs]
-        rcodes = [index.codes[i] for i in rlocs]
-        rnames = [index.names[i] for i in rlocs]
-        
         dummy_index = MultiIndex(
             levels=rlevels + [obs_ids],
             codes=rcodes + [comp_ids],
@@ -49,6 +54,15 @@ def _unstack_multiple(data, clocs, fill_value=None):
         new_names = cnames
         new_codes = recons_codes
     else:
+        if isinstance(data.columns, MultiIndex):
+            result = data
+            for i in range(len(clocs)):
+                val = clocs[i]
+                result = result.unstack(val, fill_value=fill_value)
+                clocs = [v if i > v else v - 1 for v in clocs]
+
+            return result
+
         dummy = data.copy()
         dummy.index = dummy_index
 
@@ -75,5 +89,3 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     return unstacked
 ```
-
-The corrected function now properly handles the multi-index and its properties, ensuring accurate manipulation and unstacking of the data. This fix should resolve the issue reported in the GitHub bug and pass the failing test cases.

@@ -1,9 +1,12 @@
 ```python
-@Substitution("\ndata : DataFrame")
-@Appender(_shared_docs["pivot"], indents=1)
-def pivot(data: "DataFrame", index=None, columns=None, values=None) -> "DataFrame":
-    if columns is None:  # Check if columns is None
-        raise TypeError("pivot() missing 1 required argument: 'columns'")  # Raise a TypeError if columns is None
+# The corrected version of the function
+
+from typing import Any
+
+def pivot(data: 'DataFrame', index: Any = None, columns: Any = None, values: Any = None) -> 'DataFrame':
+    if columns is None:
+        raise ValueError("columns cannot be None")
+
     if values is None:
         cols = [columns] if index is None else [index, columns]
         append = index is None

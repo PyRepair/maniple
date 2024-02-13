@@ -1,5 +1,8 @@
 ```python
+# The relative path of the buggy file: keras/applications/imagenet_utils.py
+
 import numpy as np
+from numpy.testing import assert_allclose
 
 def _preprocess_numpy_input(x, data_format, mode):
     """Preprocesses a Numpy array encoding a batch of images.
@@ -30,8 +33,7 @@ def _preprocess_numpy_input(x, data_format, mode):
         x /= 255.
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
-        for i in range(len(x)):  # fix for mean subtraction
-            x[:, :, :, i] -= mean[i]
+        x = (x - mean) / std
     else:
         if data_format == 'channels_first':
             # 'RGB'->'BGR'
@@ -39,27 +41,17 @@ def _preprocess_numpy_input(x, data_format, mode):
                 x = x[:, ::-1, ...]
             else:
                 x = x[:, :, ::-1, ...]
+            mean = np.array([103.939, 116.779, 123.68])
         else:
             # 'RGB'->'BGR'
             x = x[..., ::-1]
-        mean = [103.939, 116.779, 123.68]
-        std = None
-        for i in range(len(x)):  # fix for mean subtraction
-            x[:, :, :, i] -= mean[i]
+            mean = np.array([103.939, 116.779, 123.68])
+            std = None
 
-    # Zero-center by mean pixel
-    if data_format == 'channels_first':
-        if x.ndim == 3:
-            if std is not None:
-                for i in range(len(x)):
-                    x[i, :, :] /= std[i]
-        else:
-            if std is not None:
-                for i in range(len(x)):
-                    x[:, i, :, :] /= std[i]
-    else:
+        # Zero-center by mean pixel
+        x -= mean
         if std is not None:
-            for i in range(len(x)):
-                x[..., i] /= std[i]
+            x /= std
+
     return x
 ```

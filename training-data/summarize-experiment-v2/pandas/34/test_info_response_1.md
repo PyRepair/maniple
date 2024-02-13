@@ -1,3 +1,10 @@
-The error message indicates that there is an AmbiguousTimeError when converting the timezone. The exception was raised during the execution of the 'test_downsample_dst_at_midnight' test function and it happened in the pandas core. The code related to this error is found in the 'pandas/core/resample.py' file, specifically in the '_get_time_bins' method.
+Fault location:
+  File "pandas/core/resample.py", line 1425, in _get_time_bins
+  binner = labels = date_range(
+  
+Original error message:
+  raise pytz.AmbiguousTimeError(
+  pytz.exceptions.AmbiguousTimeError: Cannot infer dst time from 2018-11-04 00:00:00 as there are no repeated times
 
-The error message can be simplified to: "AmbiguousTimeError: Cannot infer dst time from 2018-11-04 00:00:00 as there are no repeated times".
+Simplified error message:
+  AmbiguousTimeError: Cannot infer dst time from 2018-11-04 00:00:00, no repeated times.

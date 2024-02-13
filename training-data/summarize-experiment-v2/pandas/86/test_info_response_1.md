@@ -1,4 +1,13 @@
-The error message indicates a KeyError, which occurs at several locations during the code execution, ultimately originating in the pandas/core/reshape/pivot.py file, particularly at the `MultiIndex.from_arrays([index, data[columns]])` line. This error is further thrown from the pandas/_libs/hashtable_class_helper.pxi file.
+The error is raised in the 'pivot' function located at line 441 in the 'pandas/core/reshape/pivot.py' file.
 
-Simplified error message:
-KeyError occurred at line 441 in the pivot function in pivot.py file resulted from multiple stack frames including the get_loc method in base.py and index.pyx files.
+The failing test that raises the error is `test_pivot_columns_none_raise_error`.
+
+The specific failing line that raises the error in the 'test_pivot_columns_none_raise_error' test is `df.pivot(index="col1", values="col3")`.
+
+Simplified Error:
+KeyError: None
+
+Stack Frames Closely Related to the Fault Location:
+1. file 'pandas/core/reshape/pivot.py' at line 441
+2. file 'pandas/tests/reshape/test_pivot.py' at line 791 
+3. file 'pandas/core/frame.py' at line 5947

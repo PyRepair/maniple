@@ -1,11 +1,11 @@
 ```python
-# The relative path of the buggy file: thefuck/rules/git_fix_stash.py
+from thefuck.specific.git import git_support
 
-# this is the fixed function
 @git_support
 def match(command):
-    return (len(command.script.split()) > 1
-            and command.script.split()[1] == 'stash'
-            and 'usage:' in command.stderr)
-
+    script_words = command.script.split()
+    if len(script_words) > 1 and 'stash' in script_words and 'usage:' in command.stderr:
+        return True
+    else:
+        return False
 ```

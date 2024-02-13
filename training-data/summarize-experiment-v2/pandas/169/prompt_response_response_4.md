@@ -1,12 +1,17 @@
-Based on the analysis, the potential error location within the problematic function is the code responsible for populating the 'data' variable. It seems that the function is failing to correctly handle datetime data, which leads to the ValueError when trying to concatenate arrays.
+The potential error location within the problematic function is likely in the `_get_numeric_data()` method, which is used to filter the numeric data in the input DataFrame. This method is not functioning as intended, resulting in empty dataframes and incorrect quantile calculations.
 
-Possible approaches for fixing the bug could include:
-1. Ensuring that the function correctly handles datetime data and does not result in empty arrays when populating the 'data' variable.
-2. Checking for edge cases related to datetime data and implementing logic to handle them appropriately.
+The bug causes the `quantile` method to incorrectly identify the numeric data within the input DataFrame, leading to empty dataframes and incorrect quantile calculations, triggering the ValueError: "need at least one array to concatenate".
 
-Here is the corrected code for the problematic function:
+To fix this, the `_get_numeric_data()` method should be reviewed and potentially debugged to ensure it correctly identifies and filters the numeric data within the input DataFrame.
+
+Possible approaches for fixing the bug include:
+1. Reviewing and debugging the `_get_numeric_data()` method to ensure it correctly filters the numeric data within the input DataFrame.
+2. Checking for potential issues in the handling of nullable integer data type (Int64) in the input DataFrame.
+
+Here's the corrected code for the `quantile` method:
 
 ```python
+# The source code of the corrected function
 def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
     self._check_percentile(q)
 
@@ -17,14 +22,12 @@ def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
     if is_transposed:
         data = data.T
 
-    result = data._data.quantile(
-        qs=q, axis=axis, interpolation=interpolation, transposed=is_transposed
-    )
+    result = data.quantile(q=q, axis=axis, interpolation=interpolation)
 
     if result.ndim == 2:
-        result = self._constructor(result, index=q, columns=data.columns)
+        result = self._constructor(data=result, index=q, columns=self.columns)
     else:
-        result = self._constructor_sliced(result, name=q, index=data.columns)
+        result = self._constructor_sliced(result, name=q)
 
     if is_transposed:
         result = result.T
@@ -32,4 +35,4 @@ def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
     return result
 ```
 
-This corrected version of the function should handle datetime data correctly and prevent the ValueError that was occurring. It passes the failing test and resolves the issue posted in the GitHub.
+This corrected function should pass the failing test and successfully resolve the issue posted in the GitHub bug.

@@ -1,26 +1,13 @@
-The bug in the `get_indexer` function seems to be related to the comparison logic. It is failing to correctly evaluate the comparison between the input parameter `target` and the variable `target_as_index`. The function is expected to correctly identify when `target_as_index` is equal to `target`, but it is not doing so currently.
-
-To fix this bug, the comparison logic in the function needs to be reviewed and potentially updated to ensure that the comparison between `target` and `target_as_index` is correctly evaluated.
-
-Here's the corrected version of the `get_indexer` function:
-
 ```python
-@Substitution(
-    **dict(
-        _index_doc_kwargs,
-        **{
-            "raises_section": textwrap.dedent(
-                """
-    Raises
-    ------
-    NotImplementedError
-        If any method argument other than the default of
-        None is specified as these are not yet implemented.
-    """
-            )
-        },
-    )
-)
+import textwrap
+from typing import Any, Optional, Tuple, Union
+import numpy as np
+from pandas.util._decorators import Appender, Substitution, cache_readonly
+from pandas.core.dtypes.cast import find_common_type, infer_dtype_from_scalar, maybe_downcast_to_dtype
+from pandas.core.dtypes.common import ensure_platform_int, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype, is_dtype_equal, is_float, is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype, is_list_like, is_number, is_object_dtype, is_scalar
+from pandas._typing import AnyArrayLike
+from pandas.core.indexes.base import Index, InvalidIndexError, _index_shared_docs, default_pprint, ensure_index
+
 @Appender(_index_shared_docs["get_indexer"])
 def get_indexer(
     self,
@@ -39,17 +26,40 @@ def get_indexer(
         )
         raise InvalidIndexError(msg)
 
-    # Correct comparison logic for target_as_index
     target_as_index = ensure_index(target)
-    if not is_interval_dtype(target_as_index):
-        target_as_index = IntervalIndex(target_as_index)
 
-    # Rest of the function remains as is
-    # ...
+    if isinstance(target_as_index, IntervalIndex):
+        # equal indexes -> 1:1 positional match
+        if self.equals(target_as_index):
+            return np.arange(len(self), dtype="intp")
+
+        # different closed or incompatible subtype -> no matches
+        common_subtype = find_common_type(
+            [self.dtype.subtype, target_as_index.dtype.subtype]
+        )
+        if self.closed != target_as_index.closed or is_object_dtype(common_subtype):
+            return np.repeat(np.intp(-1), len(target_as_index))
+
+        # non-overlapping -> at most one match per interval in target_as_index
+        # want exact matches -> need both left/right to match, so defer to
+        # left/right get_indexer, compare elementwise, equality -> match
+        left_indexer = self.left.get_indexer(target_as_index.left)
+        right_indexer = self.right.get_indexer(target_as_index.right)
+        indexer = np.where(left_indexer == right_indexer, left_indexer, -1)
+    elif not is_object_dtype(target_as_index):
+        # homogeneous scalar index: use IntervalTree
+        target_as_index = self._maybe_convert_i8(target_as_index)
+        indexer = self._engine().get_indexer(target_as_index.values)
+    else:
+        # heterogeneous scalar index: defer elementwise to get_loc
+        # (non-overlapping so get_loc guarantees scalar of KeyError)
+        indexer = []
+        for key in target_as_index:
+            try:
+                loc = self.get_loc(key)
+            except KeyError:
+                loc = -1
+            indexer.append(loc)
 
     return ensure_platform_int(indexer)
 ```
-
-In this corrected version, we have updated the comparison logic to ensure that `target_as_index` is properly evaluated and handled. This should address the issue and allow the function to correctly identify when `target_as_index` is equal to `target`.
-
-This fix should resolve the TypeError and address the issue reported in the GitHub thread. It aligns with the expected behavior of the `get_indexer` function and should pass the failing test.

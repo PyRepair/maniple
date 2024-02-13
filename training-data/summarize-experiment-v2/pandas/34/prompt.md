@@ -127,53 +127,42 @@ def test_downsample_dst_at_midnight():
 
 Here is a summary of the test cases and error messages:
 
-The error message indicates that there is an AmbiguousTimeError when converting the timezone. The exception was raised during the execution of the 'test_downsample_dst_at_midnight' test function and it happened in the pandas core. The code related to this error is found in the 'pandas/core/resample.py' file, specifically in the '_get_time_bins' method.
+Fault location:
+  File "pandas/core/resample.py", line 1425, in _get_time_bins
+  binner = labels = date_range(
+  
+Original error message:
+  raise pytz.AmbiguousTimeError(
+  pytz.exceptions.AmbiguousTimeError: Cannot infer dst time from 2018-11-04 00:00:00 as there are no repeated times
 
-The error message can be simplified to: "AmbiguousTimeError: Cannot infer dst time from 2018-11-04 00:00:00 as there are no repeated times".
+Simplified error message:
+  AmbiguousTimeError: Cannot infer dst time from 2018-11-04 00:00:00, no repeated times.
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-The bug seems to be related to the calculation and handling of the bin edges and labels. Based on the provided test case, the input parameter `ax` is a `DatetimeIndex` with hourly frequency and a time zone of America/Havana. The `self.freq` parameter is set to `<Day>` and `self.closed` is set to `'left'`. The `binner` and `labels` variables, which are the values right before the function's return, are also `DatetimeIndex` objects with certain date values and the same time zone. Additionally, `bin_edges` and `bins` are ndarrays with some specific values.
+Upon analyzing the variables and their values, it appears that the issue lies with the calculation of the `bins` variable. The `bins` variable is being generated incorrectly due to the value of the `ax_values` and `bin_edges` variables.
 
-The bug likely originates from the incorrect calculation of the bin edges and labels. Since the frequency `self.freq` is set to `<Day>`, the bin edges and labels should correspond to day-wise intervals in the provided time zone. However, based on the provided runtime values, it seems that these calculations are not being performed correctly, resulting in discrepancies between the expected and actual bin edges and labels.
+The `_adjust_bin_edges` function is responsible for adjusting the bin edges, and it seems that it is not returning the correct `binner` and `bin_edges` values, resulting in the incorrect calculation of the `bins`.
 
-To fix this bug, the function should be analyzed to ensure that the frequency and time zone are appropriately accounted for in the calculation of bin edges and labels. Specifically, the code handling the conversion of hourly frequency to daily frequency and adjustments for the time zone should be reviewed to identify and rectify the issue.
+To fix this, you may need to review the logic in the `_adjust_bin_edges` function and ensure that it correctly adjusts the bin edges based on the input values of `binner` and `ax_values`. Additionally, you may need to verify that the `generate_bins_dt64` function is handling the adjusted bin edges correctly to generate the `bins` array accurately.
 
 
 ## Summary of the GitHub Issue Related to the Bug
 
-## GitHub Issue: AmbiguousTimeError on clock change day in Cuba
+GitHub Bug Title:
+groupby daily fails with AmbiguousTimeError on clock change day
 
-### Description:
-The groupby function with daily frequency fails with an AmbiguousTimeError on a clock change day in Cuba, causing unexpected behavior.
+Description:
+When using pd.Grouper to group data with a daily frequency, the operation fails with an AmbiguousTimeError on long clock-change days in certain timezones.
 
-### Code Sample:
-```
-import pandas as pd
-from datetime import datetime
+Expected Output:
+The call to groupby should return groups for each day, and handle ambiguous timestamps resulting from a clock change day correctly.
 
-start = datetime(2018, 11, 3, 12)
-end = datetime(2018, 11, 5, 12)
-index = pd.date_range(start, end, freq="1H")
-index = index.tz_localize('UTC').tz_convert('America/Havana')
-data = list(range(len(index)))
-dataframe = pd.DataFrame(data, index=index)
-groups = dataframe.groupby(pd.Grouper(freq='1D'))
-```
-
-### Problem:
-On a long clock-change day in Cuba, e.g 2018-11-04, midnight local time is an ambiguous timestamp. The `pd.Grouper` function does not handle this as expected and raises an `AmbiguousTimeError`.
-
-This issue is similar to #23742 but seems to be unresolved.
-
-### Expected Output:
-The call to groupby should return three groups (one for each day, 3rd, 4th, and 5th of November). The group for the 4th of November should be labeled as '2018-11-04 00:00:00-04:00' (the first midnight, before the clock change) and should contain the 25 hourly data points for this day.
-
-### Environment:
-- Python: 3.6.8
+Environment:
+- python: 3.6.8.final.0
 - pandas: 0.24.2
-- Operating System: Linux (x86_64)
+- numpy: 1.15.4
 
 
 1. Analyze the buggy function and it's relationship with the buggy class, related functions, test code, corresponding error message, the actual input/output variable information, the github issue.

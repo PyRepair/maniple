@@ -1,9 +1,4 @@
-The root cause of the bug is that the `copy` function doesn't handle the case when `self.columns` is `None`. This results in a `TypeError` when trying to use `len` on a `NoneType` object.
-
-To fix this issue, we need to modify the `copy` function to check if `self.columns` is not `None` before trying to compute the length of the columns.
-
-Here is the corrected `copy` function that addresses the bug:
-
+# The source code of the corrected function
 ```python
 # The relative path of the buggy file: luigi/contrib/redshift.py
 
@@ -28,18 +23,19 @@ class S3CopyToTable(rdbms.CopyToTable, _CredentialsMixin):
       configuration or environment variables.
     """
 
+    # The corrected version of the buggy function
     def copy(self, cursor, f):
         """
         Defines copying from s3 into redshift.
-    
+
         If both key-based and role-based credentials are provided, role-based will be used.
         """
         logger.info("Inserting file: %s", f)
         colnames = ''
-        if self.columns is not None and len(self.columns) > 0:
+        if self.columns:
             colnames = ",".join([x[0] for x in self.columns])
             colnames = '({})'.format(colnames)
-    
+
         cursor.execute("""
          COPY {table} {colnames} from '{source}'
          CREDENTIALS '{creds}'
@@ -51,8 +47,57 @@ class S3CopyToTable(rdbms.CopyToTable, _CredentialsMixin):
             creds=self._credentials(),
             options=self.copy_options)
         )
+
+# This function from the same file, but not the same class, is called by the corrected function
+def _credentials(self):
+    # Please ignore the body of this function
+
+# This function from the same file, but not the same class, is called by the corrected function
+def copy_options(self):
+    # Please ignore the body of this function
+
+    # This function from the same class is called by the corrected function
+    def copy_options(self):
+        # Please ignore the body of this function
+
+# A failing test function for the corrected function
+# The relative path of the failing test file: test/contrib/redshift_test.py
+
+    @mock.patch("luigi.contrib.redshift.RedshiftTarget")
+    def test_s3_copy_with_nonetype_columns(self, mock_redshift_target):
+        task = DummyS3CopyToTableKey(columns=None)
+        task.run()
+
+        # The mocked connection cursor passed to
+        # S3CopyToTable.copy(self, cursor, f).
+        mock_cursor = (mock_redshift_target.return_value
+                                           .connect
+                                           .return_value
+                                           .cursor
+                                           .return_value)
+
+        # `mock_redshift_target` is the mocked `RedshiftTarget` object
+        # returned by S3CopyToTable.output(self).
+        mock_redshift_target.assert_called_once_with(
+            database=task.database,
+            host=task.host,
+            update_id=task.task_id,
+            user=task.user,
+            table=task.table,
+            password=task.password,
+        )
+
+        # To get the proper intendation in the multiline `COPY` statement the
+        # SQL string was copied from redshift.py.
+        mock_cursor.execute.assert_called_with("""
+         COPY {table} {colnames} from '{source}'
+         CREDENTIALS '{creds}'
+         {options}
+         ;""".format(
+            table='dummy_table',
+            colnames='',
+            source='s3://bucket/key',
+            creds='aws_access_key_id=key;aws_secret_access_key=secret',
+            options='')
+        )
 ```
-
-With this correction, the issue reported in the GitHub thread will be resolved, and the `TypeError` caused by passing `None` for the columns parameter will be avoided. The updated `copy` function checks if `self.columns` is not `None` before using `len` on it. The updated code should pass the failing test and resolve the issue.
-
-Please replace the existing `copy` function with the corrected version provided above to address the bug.

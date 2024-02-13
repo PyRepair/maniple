@@ -1,8 +1,15 @@
-# GitHub Bug Issue Title
-BUG/API: pivot_table with multi-index columns causing AttributeError
+GitHub Bug Title:
+TypeError for pivot_table function with multi-index columns only
 
-## Description
-The output is asymmetrical between rows/columns and single/multi case. The error is caused by an AttributeError, resulting in no error for a symmetrical output between rows/columns and single/multi case.
+Description:
+When using the pivot_table function with multi-index columns, a TypeError occurs, and it does not work symmetrically between rows/columns and single/multi case.
 
-## Additional Information
-- Output of pd.show_versions(): pandas 0.20.2
+Expected Output:
+No error should occur when using the pivot_table function with multi-index columns, and it should work symmetrically between rows/columns and single/multi case.
+
+Environment:
+- Python: 3.7.3.final.0
+- numpy: 1.18.1
+- matplotlib: 3.1.2
+- scipy: 1.3.0
+- xlrd: 1.2.0

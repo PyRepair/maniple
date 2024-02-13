@@ -1,38 +1,36 @@
-Here is the corrected version of the buggy function:
+The given buggy function is `apply` within the class `BusinessHourMixin` in the file `pandas/tseries/offsets.py`. The function is intended to adjust a given timestamp based on a custom business hour. However, the function is complicated and difficult to understand, making it challenging to identify the specific bug. The function relies on a number of related functions within the same file, as well as a failing test function from the file `pandas/tests/indexes/datetimes/test_date_range.py`.
+
+The error message provided suggests that the issue is related to the inferred frequency not conforming to the passed frequency. This error occurs within the function `_validate_frequency` and is triggered by the failing test `test_date_range_with_custom_holidays`.
+
+Based on the GitHub issue, it seems that the problem arises when using `pd.date_range` with `pd.offsets.CustomBusinessHour` and adding holidays, causing the method to produce unexpected results. The expected output is to produce the correct number of periods without dividing the dates unexpectedly.
+
+To fix the bug, it is necessary to thoroughly analyze the logic of the `apply` function and potentially simplify it. Additionally, thorough testing with various input scenarios is essential to ensure the correct behavior.
+
+Here is the corrected version of the `apply` function:
 
 ```python
-# The relative path of the buggy file: pandas/tseries/offsets.py
-
 class BusinessHourMixin(BusinessMixin):
-
+  
     @apply_wraps
     def apply(self, other):
         if isinstance(other, datetime):
-            nanosecond = getattr(other, "nanosecond", 0)
-            other = datetime(
-                other.year,
-                other.month,
-                other.day,
-                other.hour,
-                other.minute,
-                other.second,
-                other.microsecond,
-            )
+            # adjusted timezone and nanosecond
+            other = as_datetime(other)
             n = self.n
-
+    
             if n >= 0:
                 if other.time() in self.end or not self._is_on_offset(other):
                     other = self._next_opening_time(other)
             else:
                 if other.time() in self.start:
-                    other = other - timedelta(seconds=1)
+                    other -= timedelta(seconds=1)
                 if not self._is_on_offset(other):
                     other = self._next_opening_time(other)
                     other = self._get_closing_time(other)
-
+    
             businesshours = sum(
-                self._get_business_hours_by_sec(self.start[i], self.end[i])
-                for i in range(len(self.start))
+                self._get_business_hours_by_sec(st, en)
+                for st, en in zip(self.start, self.end)
             )
 
             bd, r = divmod(abs(n * 60), businesshours // 60)
@@ -41,12 +39,12 @@ class BusinessHourMixin(BusinessMixin):
 
             if bd != 0:
                 skip_bd = BusinessDay(n=bd)
-                if not self._is_on_offset(other):
+                if not self.next_bday.is_on_offset(other):
                     prev_open = self._prev_opening_time(other)
                     remain = other - prev_open
                     other = prev_open + skip_bd + remain
                 else:
-                    other = other + skip_bd
+                    other += skip_bd
 
             bhour_remain = timedelta(minutes=r)
 
@@ -62,7 +60,7 @@ class BusinessHourMixin(BusinessMixin):
             else:
                 while bhour_remain != timedelta(0):
                     bhour = self._next_opening_time(other) - other
-                    if bhour_remain > bhour or (bhour_remain == bhour and nanosecond != 0):
+                    if bhour_remain > bhour:
                         other += bhour_remain
                         bhour_remain = timedelta(0)
                     else:
@@ -74,9 +72,6 @@ class BusinessHourMixin(BusinessMixin):
             raise ApplyTypeError("Only know how to combine business hour with datetime")
 ```
 
-In this corrected version:
-- The calculation of `businesshours` has been fixed to correctly sum the business hours for each time interval defined by `start` and `end`.
-- The range over `start` and `end` has been modified to iterate over indices in order to properly calculate the sum of business hours.
-- The corrected version addresses the issues related to the usage of the `n` parameter in the calculation logic.
+Please note that the corrected function may not completely resolve the bug without thorough testing due to its complex logic and dependency on related functions.
 
-This corrected version of the function should resolve the bug and pass the failing test while also addressing the issue reported in the GitHub ticket.
+It is also important to thoroughly test this corrected function with various input scenarios, including the failing test case, to ensure that it behaves as expected and resolves the issue posted in the GitHub bug.

@@ -1,17 +1,14 @@
-The potential error location within the `_unstack_multiple` function is likely in the handling of the multi-index levels, codes, and names, which is causing the unstacking process to fail.
-
-To fix the bug, the function needs to properly handle the multi-index structure and correctly interpret the index levels, codes, and names in order to perform accurate unstacking and reshaping of the data.
-
-Here is the corrected version of the `_unstack_multiple` function:
-
 ```python
+# The fixed version of the function
 def _unstack_multiple(data, clocs, fill_value=None):
     if len(clocs) == 0:
         return data
 
+    # NOTE: This doesn't deal with hierarchical columns yet
+
     index = data.index
 
-    clocs = [index._get_level_number(i) for i in clocs]
+    clocs = [index._get_level_number(i) if isinstance(i, tuple) else i for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
@@ -48,6 +45,15 @@ def _unstack_multiple(data, clocs, fill_value=None):
         new_names = cnames
         new_codes = recons_codes
     else:
+        if isinstance(data.columns, MultiIndex):
+            result = data
+            for i in range(len(clocs)):
+                val = clocs[i]
+                result = result.unstack(val, fill_value=fill_value)
+                clocs = [v if i > v else v - 1 for v in clocs]
+
+            return result
+
         dummy = data.copy()
         dummy.index = dummy_index
 
@@ -74,7 +80,3 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     return unstacked
 ```
-
-This corrected version of the `_unstack_multiple` function includes the necessary changes to properly handle the multi-index structure, ensuring that the unstacking process works as expected. It addresses the handling of index levels, codes, and names, which was causing the issue.
-
-This fix should resolve the error reported in the failing test cases and align with the expected input/output variable information provided. It also satisfies the issue posted in the GitHub report.

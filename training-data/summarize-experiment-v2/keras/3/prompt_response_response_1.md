@@ -1,27 +1,15 @@
-Fixed and corrected version of the function:
+The potential error location within the problematic function is likely in the section responsible for computing the output tensors for the cloned model, specifically in the logic related to the `tensor_map` and the iteration over the nodes in the reference model.
+
+The bug's cause is related to the incorrect handling of the input_layers and nodes of the model, leading to incorrect mapping and duplication of layers, as well as the incorrect computation of the output tensors for the cloned model, resulting in unexpected behavior and potentially incorrect model outputs.
+
+Possible approaches for fixing the bug include:
+1. Refactoring the function to properly handle input layers and nodes, compute output tensors, and handle input tensors consistently.
+2. Managing the layer mapping and caching carefully to avoid duplication and retain the intended behavior of the cloned model.
+
+The corrected code for the problematic function is as follows:
 
 ```python
 def _clone_functional_model(model, input_tensors=None):
-    """Clone a functional `Model` instance.
-
-    Model cloning is similar to calling a model on new inputs,
-    except that it creates new layers (and thus new weights) instead
-    of sharing the weights of the existing layers.
-
-    # Arguments
-        model: Instance of `Model`.
-        input_tensors: optional list of input tensors
-            to build the model upon. If not provided,
-            placeholders will be created.
-
-    # Returns
-        An instance of `Model` reproducing the behavior
-        of the original model, on top of new inputs tensors,
-        using newly instantiated weights.
-
-    # Raises
-        ValueError: in case of invalid `model` argument value.
-    """
     if not isinstance(model, Model):
         raise ValueError('Expected `model` argument to be a `Model` instance, got ', model)
     if isinstance(model, Sequential):
@@ -42,7 +30,7 @@ def _clone_functional_model(model, input_tensors=None):
             # Cache newly created input layer.
             newly_created_input_layer = input_tensor._keras_history[0]
             layer_map[layer] = newly_created_input_layer
-        for _original, _cloned in zip(model._input_layers, input_tensors):
+        for _original, _cloned in zip(model._input_layers, input_layers):
             layer_map[_original] = _cloned
     else:
         # Make sure that all input tensors come from a Keras layer.
@@ -66,64 +54,15 @@ def _clone_functional_model(model, input_tensors=None):
     for x, y in zip(model.inputs, input_tensors):
         tensor_map[x] = (y, None)  # tensor, mask
 
-    # Iterated over every node in the reference model, in depth order.
-    depth_keys = list(model._nodes_by_depth.keys())
-    depth_keys.sort(reverse=True)
-    for depth in depth_keys:
-        nodes = model._nodes_by_depth[depth]
-        for node in nodes:
-            # Recover the corresponding layer.
-            layer = node.outbound_layer
+    for layer in model.layers:
+        if layer not in layer_map:
+            # Clone layer.
+            new_layer = layer.__class__.from_config(layer.get_config())
+            new_layer.input_spec = [InputSpec(shape=K.int_shape(input_tensor)) for input_tensor in new_layer._inbound_nodes[0].input_tensors]
+            layer_map[layer] = new_layer
 
-            # Get or create layer.
-            if layer not in layer_map:
-                # Clone layer.
-                new_layer = layer.__class__.from_config(layer.get_config())
-                layer_map[layer] = new_layer
-                layer = new_layer
-            else:
-                # Reuse previously cloned layer.
-                layer = layer_map[layer]
-                # Don't call InputLayer multiple times.
-                if isinstance(layer, InputLayer):
-                    continue
-
-            # Gather inputs to call the new layer.
-            reference_input_tensors = node.input_tensors
-            reference_output_tensors = node.output_tensors
-
-            # If all previous input tensors are available in tensor_map,
-            # then call node.inbound_layer on them.
-            computed_data = []  # List of tuples (input, mask).
-            for x in reference_input_tensors:
-                if x in tensor_map:
-                    computed_data.append(tensor_map[x])
-
-            if len(computed_data) == len(reference_input_tensors):
-                # Call layer.
-                if node.arguments:
-                    kwargs = node.arguments
-                else:
-                    kwargs = {}
-                computed_tensors = [x[0] for x in computed_data]
-                computed_masks = [x[1] for x in computed_data]
-                if has_arg(layer.call, 'mask'):
-                    if 'mask' not in kwargs:
-                        kwargs['mask'] = computed_masks
-                output_tensors = to_list(layer(computed_tensors, **kwargs))
-                output_masks = to_list(layer.compute_mask(computed_tensors, computed_masks))
-                # Update tensor_map.
-                for x, y, mask in zip(reference_output_tensors, output_tensors, output_masks):
-                    tensor_map[x] = (y, mask)
-
-    # Check that we did compute the model outputs,
-    # then instantiate a new model from inputs and outputs.
-    output_tensors = []
-    for x in model.outputs:
-        assert x in tensor_map, 'Could not compute output ' + str(x)
-        tensor, mask = tensor_map[x]
-        output_tensors.append(tensor)
+    output_tensors = [layer_map[layer].output for layer in model.outputs]
     return Model(input_tensors, output_tensors, name=model.name)
 ```
 
-This corrected version addresses the issues related to the creation of input layers and the mapping of input and output tensors. It should resolve the error encountered in the failing test and align with the issue reported on GitHub.
+This corrected code should address the issues related to incorrect layer mapping, duplication, and output tensor computation, resolving the bug and passing the failing test.

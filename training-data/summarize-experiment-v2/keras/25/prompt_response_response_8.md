@@ -1,5 +1,6 @@
+Here is the corrected version of the _preprocess_numpy_input function:
+
 ```python
-# The corrected function
 def _preprocess_numpy_input(x, data_format, mode):
     """Preprocesses a Numpy array encoding a batch of images.
 
@@ -29,7 +30,11 @@ def _preprocess_numpy_input(x, data_format, mode):
         x /= 255.
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
-    else:
+        x -= mean
+        x /= std
+        return x
+
+    if mode == 'caffe':
         if data_format == 'channels_first':
             # 'RGB'->'BGR'
             if x.ndim == 3:
@@ -40,18 +45,10 @@ def _preprocess_numpy_input(x, data_format, mode):
             # 'RGB'->'BGR'
             x = x[..., ::-1]
         mean = [103.939, 116.779, 123.68]
-        std = None
+        x -= mean
+        return x
 
-    # Zero-center by mean pixel
-    if data_format == 'channels_first':
-        for i in range(len(x)):
-            x[:,:,:,i] -= mean[i]
-            if std is not None:
-                x[:,:,:,i] /= std[i]
-    else:
-        for i in range(3):
-            x[..., i] -= mean[i]
-            if std is not None:
-                x[..., i] /= std[i]
     return x
 ```
+
+This corrected version of the function should now pass the failing test cases and satisfy the expected input/output variable information.

@@ -1,23 +1,16 @@
-# Bug Title
-DataFrame.equals() returns True for identical blocks with different locations
+GitHub Bug Title:
+DataFrame.equals() returns True in case of identical blocks with different locations
 
-## Description
-When using the DataFrame.equals() method on two DataFrames with identical blocks but different locations, it incorrectly returns True instead of False. This behavior is unexpected and needs to be fixed.
+Description:
+The DataFrame.equals() method returns True when comparing two DataFrames with identical blocks but with different locations. This behavior is unexpected and should return False in such cases.
 
-## Code Sample
-```python
-import pandas as pd
+Expected Output:
+When using the equals() method to compare two DataFrames with identical blocks but different locations, the method should return False.
 
-df3 = pd.DataFrame({'a': [1, 2], 'b': ['s', 'd']})
-df4 = pd.DataFrame({'a': ['s', 'd'], 'b': [1, 2]})
-df3.equals(df4)
-```
-
-## Expected Output
-I expected the DataFrame.equals() method to return False, but it is returning True.
-
-## Environment
-- Python version: 3.6.8
-- Pandas version: 0.25.0
-- Numpy version: 1.16.4
-- Operating System: Windows 10
+Environment:
+- Python: 3.6.8
+- pandas: 0.25.0
+- numpy: 1.16.4
+- scipy: Not available
+- matplotlib: 3.1.0
+- xlrd: 1.2.0

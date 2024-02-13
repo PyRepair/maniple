@@ -1,4 +1,4 @@
-The error message is a TypeError, specifically an unsupported operand type(s) for +: 'NoneType' and 'int', at 'luigi/scheduler.py:245'. The failing test is 'test_worker_prune_after_init' which specifically calls the 'prune' method on a luigi.scheduler.Worker object. The exact line in the code where the error is originating from is 'if self.last_active + config.worker_disconnect_delay < time.time():'. This error occurs because 'last_active' is initialized to 'None' when the 'Worker' object is being created.
+This error message indicates that there is a TypeError, specifically due to an unsupported operand type for the addition operation in the method `prune` of the `luigi.scheduler.Worker` class. The fault location is within the `prune` method within the `luigi/scheduler.py` file on line 245.
 
-Simplified error message:
-TypeError: unsupported operand type(s) for +: 'NoneType' and 'int' in luigi/scheduler.py at line 245
+The simplified error message is: 
+"TypeError: unsupported operand type(s) for +: 'NoneType' and 'int' in prune method of luigi/scheduler.py at line 245."

@@ -1,73 +1,58 @@
-Based on the analysis, it appears that the issue lies in the `tensor_map` and `layer_map` logic in the `_clone_functional_model` function. The inconsistency in mappings between layers and tensors appears to be causing the failure of the swap layer functionality.
+Based on the analysis of the buggy function and the failing test, it seems that the bug is located in the `_clone_functional_model` function. The error occurs when the output tensor `Tensor("swap_layer_1/Identity:0", shape=(?, 4), dtype=float32)` is not found in the `tensor_map`, causing the assertion to fail.
 
-To resolve this issue, the logic for creating and caching input layers, as well as the association of layers with corresponding input and output tensors needs to be carefully reviewed and corrected.
+It appears that the issue is related to how the function handles the computation and mapping of output tensors for the cloned model. The incorrect handling of input layers and nodes may also contribute to the incorrect behavior of the function.
+
+To fix the bug, the function needs to be refactored to properly handle input layers and nodes, compute output tensors, and manage the layer mapping and caching. Additionally, the inconsistency in handling input layers, input tensors, and input layers should be addressed to ensure the correct behavior of the cloned model.
 
 Here's the corrected version of the `_clone_functional_model` function:
 
 ```python
 def _clone_functional_model(model, input_tensors=None):
-    """Clone a functional `Model` instance.
-
-    Model cloning is similar to calling a model on new inputs,
-    except that it creates new layers (and thus new weights) instead
-    of sharing the weights of the existing layers.
-
-    # Arguments
-        model: Instance of `Model`.
-        input_tensors: optional list of input tensors
-            to build the model upon. If not provided,
-            placeholders will be created.
-
-    # Returns
-        An instance of `Model` reproducing the behavior
-        of the original model, on top of new inputs tensors,
-        using newly instantiated weights.
-
-    # Raises
-        ValueError: in case of invalid `model` argument value.
-    """
     if not isinstance(model, Model):
-        raise ValueError('Expected `model` argument '
-                         'to be a `Model` instance, got ', model)
+        raise ValueError('Expected `model` argument to be a `Model` instance, got ', model)
     if isinstance(model, Sequential):
-        raise ValueError('Expected `model` argument '
-                         'to be a functional `Model` instance, '
-                         'got a `Sequential` instance instead:', model)
+        raise ValueError('Expected `model` argument to be a functional `Model` instance, got a `Sequential` instance instead:', model)
 
-    layer_map = {}  # Cache for created layers.
-    tensor_map = {}  # Map {reference_tensor: (corresponding_tensor, mask)}
+    input_layers = []
+    layer_map = {}
+    tensor_map = {}
+
     if input_tensors is None:
-        # Create placeholders to build the model on top of.
-        input_layers = []
-        input_tensors = []
-        for layer in model.inputs:
-            input_tensor = Input(batch_shape=layer.get_shape(),
-                                 dtype=layer.dtype,
-                                 name=layer.name)
-            input_tensors.append(input_tensor)
-            # Cache newly created input layer.
-            newly_created_input_layer = input_tensor._keras_history[0]
-            layer_map[layer] = newly_created_input_layer
-    else:
-        for i, x in enumerate(input_tensors):
-            name = model.inputs[i].name
-            input_tensor = Input(tensor=x, name='input_wrapper_for_' + name)
-            input_tensors[i] = input_tensor
-            # Cache newly created input layer.
-            original_input_layer = x._keras_history[0]
-            newly_created_input_layer = input_tensor._keras_history[0]
-            layer_map[original_input_layer] = newly_created_input_layer
+        input_tensors = [Input(batch_shape=layer.input.shape[1:], dtype=layer.input.dtype) for layer in model.input_layers]
 
-    for x, y in zip(model.inputs, input_tensors):
-        tensor_map[x] = y
+    for original_layer, input_tensor in zip(model.input_layers, input_tensors):
+        layer_map[original_layer] = input_tensor
 
-    # Create output tensors
-    output_tensors = []
-    for layer in model.outputs:
-        output_tensor = layer
-        output_tensors.append(output_tensor)
+    for node in model.nodes:
+        layer = node.outbound_layer
 
+        if layer not in layer_map:
+            new_layer = layer.__class__.from_config(layer.get_config())
+            layer_map[layer] = new_layer
+            
+        layer = layer_map[layer]
+        if isinstance(layer, InputLayer):
+            continue
+        
+        reference_input_tensors = node.input_tensors
+        computed_data = []
+        
+        for x in reference_input_tensors:
+            if x in tensor_map:
+                computed_data.append(tensor_map[x])
+
+        if len(computed_data) == len(reference_input_tensors):
+            if node.arguments:
+                kwargs = node.arguments
+            else:
+                kwargs = {}
+
+            output_tensors = to_list(layer(*[x[0] for x in computed_data], **kwargs))
+            for x, y in zip(node.output_tensors, output_tensors):
+                tensor_map[x] = y
+
+    output_tensors = [tensor_map[x] for x in model.output_tensors]
     return Model(input_tensors, output_tensors, name=model.name)
 ```
 
-This corrected version addresses the issues with layer and tensor mappings, as well as input layer creation. It should now pass the failing test and resolve the issue mentioned in the GitHub post.
+This corrected version aims to properly handle input layers, compute output tensors, and manage the layer mapping and caching. It should pass the failing test and resolve the issue reported in the GitHub bug.

@@ -1,6 +1,9 @@
-The original error message has multiple stack frames and specific error locations associated with the failing test that can make it confusing to understand for a workaround.
+The provided error message is a stack trace.
+- The failing test function `test_force_current` is trying to create a new `IOLoop` instance with `make_current=True`.
+- The stack trace shows that the until that raises the exception is inside the `initialize` function in the `tornado/ioloop.py` file, and more specifically, it indicates that the exception is being raised in `tornado/ioloop.py` at line 253.
+- The original error message is: `RuntimeError: current IOLoop already exists`.
 
-The bug is located in ioloop.py, within the `initialize` method of the IOLoop class and specifically within the `if make_current` conditional block. The error `RuntimeError: current IOLoop already exists` is raised when the IOLoop current instance already exists.
-
-A simplified version of the original error message could be:
-"Error at line 253 in ioloop.py: RuntimeError - current IOLoop already exists."
+Simplified error message:
+```
+Error: current IOLoop already exists
+```

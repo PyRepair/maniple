@@ -1,7 +1,4 @@
-# The corrected and updated function
 ```python
-# The relative path of the buggy file: pandas/core/internals/managers.py
-
 class BlockManager(PandasObject):
     """
     Core internal data structure to implement DataFrame, Series, etc.
@@ -31,6 +28,7 @@ class BlockManager(PandasObject):
     apply(func, axes, block_filter_fn)
     
     get_bool_data
+  
     get_numeric_data
     
     get_slice(slice_like, axis)
@@ -53,8 +51,7 @@ class BlockManager(PandasObject):
     -----
     This is *not* a public API class
     """
-    
-    # this is the buggy function you need to fix
+
     def equals(self, other):
         self_axes, other_axes = self.axes, other.axes
         if len(self_axes) != len(other_axes):
@@ -65,72 +62,24 @@ class BlockManager(PandasObject):
         other._consolidate_inplace()
         if len(self.blocks) != len(other.blocks):
             return False
-    
+
         # canonicalize block order, using a tuple combining the type
         # name and then mgr_locs because there might be unconsolidated
         # blocks (say, Categorical) which can only be distinguished by
         # the iteration order
         def canonicalize(block):
-            return (block.dtype.name, block.mgr_locs.as_array.tolist())
-    
+            return (block.dtype, tuple(block.mgr_locs))
+
         self_blocks = sorted(self.blocks, key=canonicalize)
         other_blocks = sorted(other.blocks, key=canonicalize)
         return all(
             block.equals(oblock) for block, oblock in zip(self_blocks, other_blocks)
         )
-        
 
-    # The declaration of the class containing the buggy function
-
-
-# This function from the same file, but not the same class, is called by the buggy function
-def as_array(self, transpose=False, items=None):
-    # Please ignore the body of this function
-
-# This function from the same file, but not the same class, is called by the buggy function
-def _consolidate_inplace(self):
-    # Please ignore the body of this function
-
-# This function from the same file, but not the same class, is called by the buggy function
-def equals(self, other):
-    # Please ignore the body of this function
-
-# This function from the same file, but not the same class, is called by the buggy function
-def dtype(self):
-    # Please ignore the body of this function
-
-# This function from the same file, but not the same class, is called by the buggy function
-def _consolidate_inplace(self):
-    # Please ignore the body of this function
-
-# This function from the same file, but not the same class, is called by the buggy function
-def canonicalize(block):
-    # Please ignore the body of this function
-
-    # This function from the same class is called by the buggy function
-    def as_array(self, transpose=False, items=None):
-        # Please ignore the body of this function
-
-    # This function from the same class is called by the buggy function
-    def _consolidate_inplace(self):
-        # Please ignore the body of this function
-
-    # This function from the same class is called by the buggy function
-    def equals(self, other):
-        # Please ignore the body of this function
-
-    # This function from the same class is called by the buggy function
-    def canonicalize(block):
-        # Please ignore the body of this function
-
-
-# The failing test function for the buggy function
-```python
-# The relative path of the failing test file: pandas/tests/internals/test_internals.py
-
+# The failing test case
 def test_dataframe_not_equal():
     # see GH28839
     df1 = pd.DataFrame({"a": [1, 2], "b": ["s", "d"]})
     df2 = pd.DataFrame({"a": ["s", "d"], "b": [1, 2]})
-    assert not df1.equals(df2)
+    assert df1.equals(df2) is False
 ```

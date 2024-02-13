@@ -132,58 +132,43 @@ def test_python_tuple_param_as_form():
 
 Here is a summary of the test cases and error messages:
 
-The error messages extracted from the failing tests indicate an assertion exception. You tried to send a request to a server and expected the response status code to be 200. However, the assertion checks failed because the actual response status code was 422.
-
-The failing tests in the files `test_forms_from_non_typing_sequences.py` are closely related to the fault location since they trigger the execution of the `request_body_to_args` function from `fastapi/dependencies/utils.py`.
-
-The simplified error message is as follows:
-```
-E       assert 422 == 200
-E         +422
-E         -200
-...
-```
-This message illustrates a simple assertion error that the expected response status code of 200 does not match the actual response status code of 422.
+The failing tests have caused the error "assertion error" to raise. The tests expected a response status code of 200, however, receives the response status code: 422. This error message comes from the test file `test_forms_from_non_typing_sequences.py` at lines 29, 37, and 45, respectively. The error indicates that the `response.status_code` is 422 and the expected code is 200. Therefore, the simplification of these messages is "assertion error: expected 200 but received 422", which indicates that the error occurred on the line where the assertion was made.
 
 
 ## Summary of Runtime Variables and Types in the Buggy Function
 
-The discrepancies in the test cases are due to the incorrect handling of input parameters with different types within the given function. The function is expecting the input parameters to have a certain type (e.g., list, set, tuple) and is attempting to convert the input data to match this expected type. However, the data conversion process is not functioning properly, leading to incorrect output values.
+The function request_body_to_args is responsible for extracting values from the received body, validating them against the required parameters, and returning a dictionary of valid values and a list of errors.
 
-The key issue seems to be related to the conversion of the input data into the expected type. Specifically, the incorrect assignment of input values to the `value` variable inside the function is leading to discrepancies in the output. This discrepancy arises from the incorrect handling of different data types (e.g., list, set, tuple) within the function's conversion logic, which results in incorrect output values for each test case.
+From the provided cases, we can observe that the function is not handling the different shapes of fields (e.g., list, set, and tuple) correctly, and is not consistent with the received body. Additionally, the function is not properly considering the type of received_body, leading to incorrect handling of the field values.
 
-To fix the bug, the function should be updated to handle the different input data types (e.g., list, set, tuple) and convert them into the appropriate data structure that matches the expected type of the input parameters. This will ensure that the function returns the correct values for each test case, regardless of the input parameter type.
+To fix these issues, the function needs to handle the different field shapes appropriately and account for the type of received_body. Additionally, the function should validate the values against the parameters and handle file uploads and empty values as needed. With these changes, the function should properly extract values, validate them, and return the correct values and error lists.
 
 
 ## Summary of Expected Parameters and Return Values in the Buggy Function
 
-Summary:
-The function is failing because it is not properly handling the scenario where the received data for the 'items' field does not match the specified type (list, set, tuple) defined in the required_params. This is leading to the instantiation of ErrorWrapper instances with incorrect exception types. The function needs to be modified to properly detect and handle these type errors.
+In this code, there's a bug in the `request_body_to_args` function that needs to be fixed. The function takes in a list of required parameters and a received body, and then processes the body to extract values and errors based on the required parameters.
+
+Based on the expected test cases provided, it seems that the function is not handling the required parameters and received body properly. The expected output shows that the function should construct `values` and `errors` based on the provided `required_params` and `received_body`.
+
+To fix the bug, the function needs to properly process the received body and handle various types of field shapes, such as lists, sets, and tuples. The function should also correctly validate the type of the received value, construct the `values` dictionary, and report any errors in the `errors` list.
+
+The function should be modified to address the issues with the processing of required parameters and received body, and ensure that it returns the expected `values` and `errors` based on the given input parameters.
 
 
-# A GitHub issue title for this bug
-```text
+## Summary of the GitHub Issue Related to the Bug
+
+GitHub Bug Title:
 Support repeated key=value in form data
-```
 
-## The GitHub issue's detailed description
-```text
-Is your feature request related to a problem
-Yes.
+Description:
+When using URL encoded data with repeated keys, only the last key=value pair is being considered. This does not work as expected when defining a variable as a list. The request.form() method should collect repeated keys and assign their values as a list to the same key before validation happens.
 
-Given some URL encoded data like this...
+Expected Output:
+FastAPI should collect repeated keys in the 2-tuple list that request.form() gives and assign those values as a list to the same key before validation happens.
 
-choices=parrot&choices=spider
-...only the last key=value wins.
+Environment:
+- Python: 3.7.3.final.0
 
-This does not work like I expected:
-
-choices: list = Form(...)
-You can only validate against the last value.
-
-The solution you would like
-Perhaps FastAPI should collect repeated keys in the 2-tuple list that request.form() gives and assign those values as a list to the same key before validation happens.
-```
 
 1. Analyze the buggy function and it's relationship with the test code, corresponding error message, the actual input/output variable information, the expected input/output variable information, the github issue.
 2. Identify the potential error location within the problematic function.

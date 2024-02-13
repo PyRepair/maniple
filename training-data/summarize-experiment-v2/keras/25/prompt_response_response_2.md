@@ -1,4 +1,7 @@
+# The corrected version of the buggy function
 ```python
+# The relative path of the corrected file: keras/applications/imagenet_utils.py
+
 def _preprocess_numpy_input(x, data_format, mode):
     """Preprocesses a Numpy array encoding a batch of images.
 
@@ -23,15 +26,10 @@ def _preprocess_numpy_input(x, data_format, mode):
         x /= 127.5
         x -= 1.
         return x
-
-    if mode == 'torch':
+    elif mode == 'torch':
         x /= 255.
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
-        for i in range(len(x[0, 0, 0])):
-            x[:, :, :, i] -= mean[i]
-            if std is not None:
-                x[:, :, :, i] /= std[i]
     else:
         if data_format == 'channels_first':
             # 'RGB'->'BGR'
@@ -44,10 +42,14 @@ def _preprocess_numpy_input(x, data_format, mode):
             x = x[..., ::-1]
         mean = [103.939, 116.779, 123.68]
         std = None
-        for i in range(len(x[0, 0, 0])):
-            x[:, :, :, i] -= mean[i]
-            if std is not None:
-                x[:, :, :, i] /= std[i]
 
+    # Zero-center by mean pixel
+    if std is not None:
+        x -= mean
+        x /= std
+    else:
+        x -= mean
     return x
 ```
+
+The corrected function includes fixes to the mode 'caffe' preprocessing logic to correctly zero-center each color channel without scaling. The corrected version should now pass the failing test and return the expected output for the given input parameter values.

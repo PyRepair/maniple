@@ -1,19 +1,20 @@
-The bug is caused by the command used to retrieve the version of the Fish shell. The command is incorrect and leads to a wrong version string being returned. This causes the failing test to compare the incorrect version string to the expected one, resulting in the test failure.
+The bug in the `info` function of the `Fish` class is caused by incorrect usage of the `Popen` function, as well as incorrect shell command and output parsing. The function is attempting to retrieve the version of the Fish shell by running a command and capturing the output. However, the `Popen` function is not being used correctly, and the output is being mocked, resulting in incorrect values.
 
-To fix the bug, the command used to retrieve the version of the Fish shell should be updated to output the correct version string.
+To fix this bug, the `Popen` function should be used correctly to execute the command and capture the actual output, and the output parsing should be adjusted to extract the version number accurately.
 
-Here's the corrected code for the problematic function:
+To resolve the issue, the corrected version of the function should be as follows:
 
 ```python
-# The relative path of the buggy file: thefuck/shells/fish.py
-
+# The corrected version of the function
 class Fish(Generic):
     def info(self):
         """Returns the name and version of the current shell"""
-        proc = Popen(['fish', '--version'],
-                     stdout=PIPE, stderr=DEVNULL)
-        version = proc.stdout.read().decode('utf-8').strip()
-        return u'Fish Shell {}'.format(version)
+        proc = Popen(['fish', '--version'], stdout=PIPE, stderr=DEVNULL)
+        version = proc.communicate()[0].decode('utf-8').strip()
+        version = version.replace("fish, version ", "")
+        return f'Fish Shell {version}'
 ```
 
-This fix updates the command to retrieve the Fish shell version by using `['fish', '--version']`, which should output the correct version string. This corrected function should now pass the failing test and satisfy the expected input/output variable information provided. Additionally, it should also resolve the issue posted in GitHub.
+This corrected version of the function uses `Popen` to execute the correct command to retrieve the version of the Fish shell (`fish --version`), and then it captures the output using `communicate()` and parses the version from the output accurately.
+
+The corrected version of the function should pass the failing test, satisfy the expected input/output variable information, and successfully resolve the issue posted in GitHub.

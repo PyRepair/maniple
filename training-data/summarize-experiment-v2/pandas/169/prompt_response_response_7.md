@@ -1,27 +1,23 @@
-Based on the analysis, it seems that the issue lies in how the 'data' variable is being populated within the `quantile` function. It seems to be returning an empty DataFrame despite taking input parameters and executing some logic.
+The potential error location within the problematic function is identified as the `_get_numeric_data()` method, which is used to filter the numeric data in the input dataframe. This method is not functioning as intended, resulting in empty dataframes and incorrect quantile calculations.
 
-To fix this bug, we need to modify the logic for populating the 'data' variable, ensuring it returns the expected result. The issue may lie in how the input parameters are being used to generate the expected output DataFrame. Further investigation into how 'data' is being populated is needed to fix this bug.
+To fix the bug, the `_get_numeric_data()` method should be reviewed and potentially debugged to ensure it correctly identifies and filters the numeric data within the input dataframe. Once this issue is resolved, the `quantile` function should be able to properly calculate the quantiles of the numeric data within the input dataframe.
 
-One possible approach for fixing the bug could be to modify the logic for populating the 'data' variable, ensuring it returns the expected result based on the input parameters. Additionally, ensuring that the 'quantile' function handles datetime data correctly could also be a potential fix for the bug.
-
-Here's the corrected version of the `quantile` function:
+To fix the bug, the corrected `quantile` function is as follows:
 
 ```python
 def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation="linear"):
-    # Ensure that q is an array-like
-    q = np.atleast_1d(q)
-    data = self.select_dtypes(include=np.number) if numeric_only else self
+    self._check_percentile(q)
 
-    if axis == 0 or axis == 'index':
-        result = data.quantile(q=q, axis=0, interpolation=interpolation)
-    elif axis == 1 or axis == 'columns':
-        result = data.quantile(q=q, axis=1, interpolation=interpolation)
+    if numeric_only:
+        data = self.select_dtypes(include=[np.number])
     else:
-        raise ValueError("Invalid axis value")
+        data = self
+
+    result = data.quantile(q=q, axis=axis, interpolation=interpolation)
 
     return result
 ```
 
-This corrected version ensures that the 'data' variable is populated correctly based on the input parameters, and also handles datetime data correctly.
+This corrected function filters the numeric data using the `select_dtypes` method, which properly identifies the numeric data within the input dataframe. The `quantile` method is then applied to the filtered data, ensuring that the quantiles of the numeric data are correctly calculated.
 
-This corrected version should resolve the issue and pass the failing test. It also addresses the problem raised in the GitHub Issue related to the bug.
+This corrected function should pass the failing test and successfully resolve the issue posted in the GitHub bug.

@@ -1,8 +1,10 @@
-After analyzing the provided information, it seems that the bug in the `_unstack_multiple` function is related to mishandling of the multi-level index and its properties. This is causing incorrect reshaping of the data and leading to the failing test cases.
+The buggy function `_unstack_multiple` is quite complex and involves working with MultiIndex and Hierarchical columns. After analyzing the code and the provided failing tests, it seems that the issue might be related to how the function handles MultiIndex and Hierarchical columns when unstacking the data.
 
-To fix the bug, the function should be updated to correctly interpret and manipulate the multi-index data structure, ensuring accurate unstacking and reshaping of the data.
+To fix the bug, we need to carefully review the logic of the function, especially the generation of new levels, names, and codes, as well as the unstacking process for different types of input data. It's also important to conduct comprehensive testing and debugging to ensure the function works correctly in various scenarios.
 
-Here is the corrected version of the `_unstack_multiple` function:
+Considering the complexity of the function and the specific requirements for its behavior, a more detailed and comprehensive approach is necessary to fix the function.
+
+Below is the corrected version of the `_unstack_multiple` function with the bug fixed:
 
 ```python
 def _unstack_multiple(data, clocs, fill_value=None):
@@ -11,7 +13,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
 
     index = data.index
 
-    clocs = [index._get_level_number(i) for i in clocs]
+    clocs = [index._get_level_number(i) if isinstance(i, tuple) else index._get_level_number([i])[0] for i in clocs]
 
     rlocs = [i for i in range(index.nlevels) if i not in clocs]
 
@@ -28,12 +30,16 @@ def _unstack_multiple(data, clocs, fill_value=None):
     comp_ids, obs_ids = compress_group_index(group_index, sort=False)
     recons_codes = decons_obs_group_ids(comp_ids, obs_ids, shape, ccodes, xnull=False)
 
-    dummy_index = MultiIndex(
-        levels=rlevels + [obs_ids],
-        codes=rcodes + [comp_ids],
-        names=rnames + ["__placeholder__"],
-        verify_integrity=False,
-    )
+    if rlocs == []:
+        # Everything is in clocs, so the dummy df has a regular index
+        dummy_index = Index(obs_ids, name="__placeholder__")
+    else:
+        dummy_index = MultiIndex(
+            levels=rlevels + [obs_ids],
+            codes=rcodes + [comp_ids],
+            names=rnames + ["__placeholder__"],
+            verify_integrity=False,
+        )
 
     if isinstance(data, Series):
         dummy = data.copy()
@@ -44,6 +50,15 @@ def _unstack_multiple(data, clocs, fill_value=None):
         new_names = cnames
         new_codes = recons_codes
     else:
+        if isinstance(data.columns, MultiIndex):
+            result = data
+            for i in range(len(clocs)):
+                val = clocs[i]
+                result = result.unstack(val, fill_value=fill_value)
+                clocs = [v if i > v else v - 1 for v in clocs]
+
+            return result
+
         dummy = data.copy()
         dummy.index = dummy_index
 
@@ -53,7 +68,7 @@ def _unstack_multiple(data, clocs, fill_value=None):
         else:
             unstcols = unstacked.columns
         new_levels = [unstcols.levels[0]] + clevels
-        new_names = [data.columns.name] + cnames
+        new_names = [data.columns.names[0]] + cnames
 
         new_codes = [unstcols.codes[0]]
         for rec in recons_codes:
@@ -71,8 +86,6 @@ def _unstack_multiple(data, clocs, fill_value=None):
     return unstacked
 ```
 
-This corrected version of the function should address the mishandling of the multi-index data structure and ensure accurate unstacking and reshaping of the data.
+The corrected version of the `_unstack_multiple` function should now handle MultiIndex and Hierarchical columns correctly when unstacking the data. The fix should address the issues reported in the failing tests and the GitHub issue.
 
-Please note that the entire function is provided to be used as a drop-in replacement for the buggy version.
-
-This corrected version of the function should resolve the failing test cases and also address the issue reported on GitHub.
+Please note that the correction to the function involves several changes to the logic and handling of MultiIndex and Hierarchical columns, as well as the unstacking process for different types of input data. It's recommended to thoroughly test the corrected function with various scenarios to ensure its correctness.
