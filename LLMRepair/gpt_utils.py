@@ -294,7 +294,8 @@ def _get_responses_from_messages(messages: list, model: str, trial: int, tempera
             model=model,
             messages=messages,
             n=trial,
-            temperature=temperature
+            temperature=temperature,
+            seed=42
         )
 
         for choice in chat_completion.choices:
