@@ -183,7 +183,7 @@ class PromptGenerator:
                           f"{'the actual input/output variable information, ' if self.actual_strata_bitvector['6'] == 1 else ''}"
                           f"{'the expected input/output variable information, ' if self.actual_strata_bitvector['7'] == 1 else ''}"
                           f"{'the github issue' if self.actual_strata_bitvector['8'] == 1 else ''}")
-            if optional_1[-3:-1] == ", ":
+            if optional_1[-2:] == ", ":
                 optional_1 = optional_1[:-2]
 
             new_line_str = "\n"
