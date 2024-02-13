@@ -11,11 +11,11 @@ def generate_variable_angelic_info(facts: dict, bitvector: dict = None) -> str:
 
     place_holder = ""
     if bitvector["2.1.3"] == 1 and bitvector["2.1.4"] == 1:
-        place_holder = "value and type"
+        place_holder = "values and types"
     elif bitvector["2.1.3"] == 1:
-        place_holder = "value"
+        place_holder = "values"
     elif bitvector["2.1.4"] == 1:
-        place_holder = "type"
+        place_holder = "types"
 
     content = content + f"# Expected {place_holder} of variables during the failing test execution\n"
     content = content + f"Each case below includes input parameter {place_holder}, and the expected {place_holder} of relevant variables at the function's return. If an input parameter is not reflected in the output, it is assumed to remain unchanged. A corrected function must satisfy all these cases.\n\n"
@@ -27,6 +27,7 @@ def generate_variable_angelic_info(facts: dict, bitvector: dict = None) -> str:
         angelic_types: list = variable_angelic_type_test_cases[test_case_index]
 
         content = content + f"### Input parameter {place_holder}\n"
+        content = content + f"### The {place_holder} of buggy function's parameters\n"
 
         input_parameter_values: dict = angelic_values[0]
         input_parameter_types: dict = angelic_types[0]
@@ -78,11 +79,11 @@ def generate_variable_runtime_info(facts: dict, bitvector: dict = None) -> str:
 
     place_holder = ""
     if bitvector["2.1.5"] == 1 and bitvector["2.1.6"] == 1:
-        place_holder = "value and type"
+        place_holder = "values and types"
     elif bitvector["2.1.5"] == 1:
-        place_holder = "value"
+        place_holder = "values"
     elif bitvector["2.1.6"] == 1:
-        place_holder = "type"
+        place_holder = "types"
 
     content = content + f"# Runtime {place_holder} of variables inside the buggy function\n"
 
