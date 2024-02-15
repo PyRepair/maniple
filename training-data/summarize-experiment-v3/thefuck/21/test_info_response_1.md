@@ -1,0 +1,1 @@
+The failing test 'test_not_match' encountered an 'IndexError' at line 8 of the 'git_fix_stash.py' file. The error occurred in the 'match' function which is decorated by 'git_support' at line 32 of 'git.py'. The failing assertion failed to match the command script and its stderr with the expected condition, which resulted in the 'IndexError: list index out of range'.

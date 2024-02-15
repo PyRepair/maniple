@@ -1,0 +1,23 @@
+{
+    "fastapi": [
+        {
+            "bugID": 6,
+            "start_line": 617,
+            "file_name": "fastapi/dependencies/utils.py",
+            "replace_code": "async def request_body_to_args(\n    required_params: List[ModelField],\n    received_body: Optional[Union[Dict[str, Any], FormData]]\n) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:\n    values = {}\n    errors = []\n  \n    if required_params and received_body is not None:\n        for field in required_params:\n            value: Any = None\n            field_info = get_field_info(field)\n            loc = (\"body\", field.alias)\n            \n            if isinstance(received_body, FormData):\n                raw_value = received_body.getlist(field.alias)\n                if len(raw_value) == 1 and not isinstance(raw_value[0], list):\n                    raw_value = raw_value[0]\n\n                value = field.validate(raw_value, values, loc=loc)\n\n                if value is None:\n                    if field.required:\n                        errors.append(\n                            ErrorWrapper(MissingError(), loc=loc)\n                        )\n                    else:\n                        values[field.name] = deepcopy(field.default)\n                else:\n                    values[field.name] = value\n            else:\n                errors.append(\n                    ErrorWrapper(\n                        MissingError(),\n                        loc=loc,\n                        config=BaseConfig\n                    )\n                )\n\n    return values, errors",
+            "import_list": [
+                "from typing import Any, Dict, List, Optional, Tuple",
+                "import asyncio",
+                "from copy import deepcopy",
+                "from fastapi import params",
+                "from fastapi.utils import PYDANTIC_1, get_field_info",
+                "from pydantic import BaseConfig",
+                "from pydantic.error_wrappers import ErrorWrapper",
+                "from pydantic.errors import MissingError",
+                "from pydantic.fields import Field as ModelField",
+                "from pydantic.utils import lenient_issubclass",
+                "from starlette.datastructures import FormData, UploadFile"
+            ]
+        }
+    ]
+}

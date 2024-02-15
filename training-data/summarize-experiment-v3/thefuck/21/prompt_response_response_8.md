@@ -1,0 +1,9 @@
+```python
+from thefuck.specific.git import git_support
+
+@git_support
+def match(command):
+    return (len(command.script.split()) > 1
+            and command.script.split()[1] == 'stash'
+            and 'usage:' in command.stderr)
+```

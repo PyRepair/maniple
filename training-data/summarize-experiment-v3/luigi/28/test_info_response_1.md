@@ -1,0 +1,1 @@
+The stack traces closely related to the fault location are: 1) test_table_exists function in the file test/contrib/hive_test.py, and 2) test_apacheclient_table_exists function in the same file. The simplified error message in both cases is AssertionError: False is not true.

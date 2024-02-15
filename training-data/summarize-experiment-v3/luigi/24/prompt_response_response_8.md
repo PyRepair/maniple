@@ -1,0 +1,53 @@
+```python
+# The relative path of the buggy file: luigi/contrib/spark.py
+
+
+class SparkSubmitTask(luigi.Task):
+    """
+    Template task for running a Spark job
+    
+    Supports running jobs on Spark local, standalone, Mesos or Yarn
+    
+    See http://spark.apache.org/docs/latest/submitting-applications.html
+    for more information
+    """
+
+
+def _dict_arg(self, name, value):
+    command = []
+    if value and isinstance(value, dict):
+        for prop, val in value.items():
+            command += [name, '"{0}={1}"'.format(prop, val)]
+    return command
+
+
+def name(self):
+    # Please ignore the body of this function
+
+# This function from the same file, but not the same class, is called by the buggy function
+
+
+def test_run(self, proc):
+    setup_run_process(proc)
+    job = TestSparkSubmitTask()
+    job.run()
+
+    self.assertEqual(proc.call_args[0][0],
+                     ['ss-stub', '--master', 'yarn-client', '--deploy-mode', 'client', '--name', 'AppName',
+                      '--class', 'org.test.MyClass', '--jars', 'jars/my.jar', '--py-files', 'file1.py,file2.py',
+                      '--files', 'file1,file2', '--archives', 'archive1,archive2', '--conf', 'Prop=Value',
+                      '--properties-file', 'conf/spark-defaults.conf', '--driver-memory', '4G', '--driver-java-options', '-Xopt',
+                      '--driver-library-path', 'library/path', '--driver-class-path', 'class/path', '--executor-memory', '8G',
+                      '--driver-cores', '8', '--supervise', '--total-executor-cores', '150', '--executor-cores', '10',
+                      '--queue', 'queue', '--num-executors', '2', 'file', 'arg1', 'arg2'])
+
+
+def test_defaults(self, proc):
+    proc.return_value.returncode = 0
+    job = TestDefaultSparkSubmitTask()
+    job.run()
+    self.assertEqual(proc.call_args[0][0],
+                     ['ss-stub', '--master', 'spark://host:7077', '--jars', 'jar1.jar,jar2.jar',
+                      '--py-files', 'file1.py,file2.py', '--files', 'file1,file2', '--archives', 'archive1',
+                      '--conf', 'prop1=val1', 'test.py'])
+```

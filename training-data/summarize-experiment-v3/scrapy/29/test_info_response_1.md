@@ -1,0 +1,1 @@
+The failing test test_request_httprepr_for_non_http_request in file tests/test_utils_request.py, line 76, calls the function request_httprepr from scrapy/utils/request.py, line 82, which results in a TypeError for input type NoneType in the to_bytes function from scrapy/utils/python.py, leading to a failure.

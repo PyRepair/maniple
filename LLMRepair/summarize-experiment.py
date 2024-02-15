@@ -1,4 +1,5 @@
 import json
+from multiprocessing import process
 import pickle
 import threading
 from pathlib import Path
@@ -10,9 +11,9 @@ from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_re
 from utils import print_in_red, print_in_yellow, iter_bugid_folders, divide_list, print_in_green
 
 total_usage = 0
-n_partitions = 16  # number of threads
-compression_cap = 500  # token size cap
-database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v2"
+n_partitions = 1  # number of threads
+compression_cap = 0  # token size cap
+database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v3"
 
 LOG_MODE = n_partitions == 1
 
@@ -33,62 +34,87 @@ def log(*args, sep=' ', end='\n', file=None):
 
 
 class Processor:
-    def __init__(self, bug_folder: Path):
+    def __init__(self, bug_folder: Path, bugid: str):
         self.bug_folder = bug_folder
+
         with open(bug_folder / "facts-in-prompt.json") as f:
             self.facts_in_prompt = json.load(f)
+
+        with open(bug_folder / "bug-data.json") as f:
+            json_data = json.load(f)
+            __tmp0 = list(json_data[bugid].values())[0]
+            self.function_source_code = __tmp0["buggy_functions"][0]["function_code"]
+            self.file_path = list(json_data[bugid].keys())[0]
+
+        with open(bug_folder / "facts.json") as f:
+            self.fact_data = json.load(f)
+        
         prompt_instruction_folder = Path.cwd() / "prompt_instructions"
-        self._stacktrace_instruction = (prompt_instruction_folder / "stacktrace.md").read_text()
-        self._issue_description_instruction = (prompt_instruction_folder / "issue_description.md").read_text()
-        self._runtime_value_instruction = (prompt_instruction_folder / "runtime_value.md").read_text()
-        self._angelic_value_instruction = (prompt_instruction_folder / "angelic_value.md").read_text()
+        self._stacktrace_instruction = (prompt_instruction_folder / "stacktrace_v2.md").read_text()
+        self._issue_description_instruction = (prompt_instruction_folder / "issue_description_v2.md").read_text()
+        self._runtime_value_instruction = (prompt_instruction_folder / "runtime_value_v2.md").read_text()
+        self._angelic_value_instruction = (prompt_instruction_folder / "angelic_value_v2.md").read_text()
+
+        title = "## The error message from the failing test"
+        error_messages = self.facts_in_prompt["5"].split(title)
+        error_messages = [d.strip() for d in error_messages if d.strip() != ""]
+        error_messages = [f"{title}\n{d}" for d in error_messages]
+        
+        title = "# A failing test function for the buggy function"
+        test_cases = self.facts_in_prompt["4"].split(title)
+        test_cases = [d.strip() for d in test_cases if d.strip() != ""]
+        test_cases = [f"# Test case {i + 1} for the buggy function\n{d}" for i, d in enumerate(test_cases)]
+        
+        self.test_and_error_message = "\n\n\n".join([
+            f"{a}\n\n{b}" for a, b in zip(test_cases, error_messages)
+        ])
+
+    @property
+    def source_code_without_imports(self):
+        prompt = "## The source code of the buggy function\n\n"
+        prompt += "```python\n"
+        prompt += self.function_source_code
+        prompt += "\n```"
+        return prompt
+
+    @property
+    def source_code_with_imports(self):
+        prompt = "## The source code of the buggy function\n\n"
+        if self.facts_in_prompt["1.3.3"] != "":
+            prompt += self.facts_in_prompt["1.3.3"]
+        prompt += f"The buggy function is under file: `{self.file_path}`\n\n\n"
+        prompt += "```python\n"
+        prompt += self.function_source_code
+        prompt += "\n```\n\n\n"
+        return prompt
 
     @property
     def stack_trace_summary_prompt(self):
-        prompt = self._stacktrace_instruction
-        prompt += "\n\n\n"
-        prompt += self.facts_in_prompt["source_code_section"].strip()
-        prompt += "\n\n\n"
-        prompt += self.facts_in_prompt["4"].strip()
-        prompt += "\n\n\n"
-        prompt += self.facts_in_prompt["5"].strip()
-        return prompt
+        return self._stacktrace_instruction.format(
+            self.source_code_without_imports,
+            self.test_and_error_message
+        )
 
     @property
     def issue_description_prompt(self):
-        if self.facts_in_prompt["8"] == "":
-            return ""
-        prompt = self._issue_description_instruction
-        prompt += "\n\n\n"
-        prompt += self.facts_in_prompt["source_code_section"].strip()
-        prompt += "\n\n\n"
-        prompt += self.facts_in_prompt["8"].strip()
-        return prompt
+        return self._issue_description_instruction.format(
+            self.source_code_without_imports,
+            self.facts_in_prompt["8"].strip()
+        )
 
     @property
     def runtime_value_prompt(self):
-        if self.facts_in_prompt["6"] == "":
-            return ""
-        prompt = self._runtime_value_instruction
-        prompt += "\n\n\n\n"
-        prompt += self.facts_in_prompt["source_code_section"].strip()
-        prompt += "\n\n\n"
-        prompt += self.facts_in_prompt["6"].strip()
-        prompt += "\n\n# Explanation:"
-        return prompt
+        return self._runtime_value_instruction.format(
+            self.source_code_without_imports,
+            self.facts_in_prompt["6"].strip()
+        )
 
     @property
     def angelic_value_prompt(self):
-        if self.facts_in_prompt["7"] == "":
-            return ""
-        prompt = self._angelic_value_instruction
-        prompt += "\n\n\n\n"
-        prompt += self.facts_in_prompt["source_code_section"].strip()
-        prompt += "\n\n\n"
-        prompt += self.facts_in_prompt["7"].strip()
-        prompt += "\n\n# Explanation:"
-        return prompt
-
+        return self._angelic_value_instruction.format(
+            self.source_code_without_imports,
+            self.facts_in_prompt["7"].strip()
+        )
 
 def count_tokens(prompt: str) -> int:
     encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
@@ -96,22 +122,46 @@ def count_tokens(prompt: str) -> int:
 
 
 def construct_prompt(processor: Processor) -> str:
-    prompt = "Please fix the buggy function provided below and output a corrected version. When outputting the fix, output the entire function so that the output can be used as a drop-in replacement for the buggy version of the function.\n\n\n"
-    prompt += processor.facts_in_prompt["1"]
-    prompt += processor.facts_in_prompt["2"]
-    prompt += processor.facts_in_prompt["3"]
-    prompt += processor.facts_in_prompt["4"]
+    # initial instruction
+    prompt = "Please fix the buggy function provided below and output a corrected version.\n\n\n"
+    prompt += processor.facts_in_prompt["9"]
+    prompt += "\n\n\n"
+
+    # process buggy function and its imports
+    prompt += processor.source_code_with_imports
+
+    # process class declaration
+    if processor.fact_data["1.2.1"] != "":
+        prompt += "## The class declaration of the buggy function\n\n"
+        prompt += "Below is the class declaration containing the buggy function.\n"
+        prompt += f"```python\n{processor.fact_data['1.2.1']}\n```\n\n\n"
+        if processor.fact_data["1.2.2"] != "":
+            prompt += "Below is the class docstring for class declaration.\n"
+            prompt += f"```python\n{processor.fact_data['1.2.2']}\n```\n\n\n"
+        if processor.fact_data["1.2.3"] != "":
+            prompt += "Below are method signatures used by the buggy function.\n"
+            values = '\n'.join(processor.fact_data['1.2.3'])
+            prompt += f"```python\n{values}\n```\n\n\n"
+
+    print(prompt)
+    exit()
+
+    
+
+    
     prompt += resolve_stacktrace(processor)
     prompt += resolve_runtime_value(processor)
     prompt += resolve_angelic_value(processor)
     prompt += resolve_github_issue(processor)
-    prompt += processor.facts_in_prompt["9"]
     return prompt
 
 
 def resolve_stacktrace(processor: Processor):
+    if processor.facts_in_prompt["4"] == "" or processor.facts_in_prompt["5"] == "":
+        log_red("No test info")
+        return ""
+    
     stacktrace_summary_prompt = processor.stack_trace_summary_prompt
-
     num_tokens = count_tokens(stacktrace_summary_prompt)
     if num_tokens > 16_000:
         log_red(f"Test info summary is too long. Tokens: {num_tokens}")
@@ -128,7 +178,7 @@ def resolve_stacktrace(processor: Processor):
                                                            pkl_file=processor.bug_folder / "test_info_response.pkl")[0]
     log("->", count_tokens(error_message_summary))
 
-    result = "Here is a summary of the test cases and error messages:\n\n"
+    result = "## Summary of the test cases and error messages\n\n"
     result += error_message_summary
     result += "\n\n\n"
 
@@ -136,12 +186,11 @@ def resolve_stacktrace(processor: Processor):
 
 
 def resolve_runtime_value(processor: Processor):
-    runtime_value_prompt = processor.runtime_value_prompt
-
-    if runtime_value_prompt == "":
+    if processor.facts_in_prompt["6"] == "":
         log_red("No runtime value")
         return ""
-
+    
+    runtime_value_prompt = processor.runtime_value_prompt
     num_tokens = count_tokens(runtime_value_prompt)
     if num_tokens > 16_000:
         log_red(f"Runtime value summary is too long. Tokens: {num_tokens}")
@@ -166,12 +215,11 @@ def resolve_runtime_value(processor: Processor):
 
 
 def resolve_angelic_value(processor: Processor):
-    angelic_value_prompt = processor.angelic_value_prompt
-
-    if angelic_value_prompt == "":
+    if processor.facts_in_prompt["7"] == "":
         log_red("No angelic value")
         return ""
-
+    
+    angelic_value_prompt = processor.angelic_value_prompt
     num_tokens = count_tokens(angelic_value_prompt)
     if num_tokens > 16_000:
         log_red(f"Angelic value summary is too long. Tokens: {num_tokens}")
@@ -196,12 +244,11 @@ def resolve_angelic_value(processor: Processor):
 
 
 def resolve_github_issue(processor: Processor):
-    github_issue_prompt = processor.issue_description_prompt
-
-    if github_issue_prompt == "":
+    if processor.facts_in_prompt["8"] == "":
         log_red("No GitHub issue")
         return ""
-
+    
+    github_issue_prompt = processor.issue_description_prompt
     num_tokens = count_tokens(github_issue_prompt)
     if num_tokens > 16_000:
         log_red(f"GitHub issue summary is too long. Tokens: {num_tokens}")
@@ -265,8 +312,11 @@ def process_each_bug(bugid: str, project_folder: Path, bugid_folder: Path):
     global total_usage
     global database_folder_path
 
+    if bugid != "pandas:112":
+        return
+
     print_in_green(f"Processing {bugid}...")
-    facts_proc = Processor(bug_folder=bugid_folder)
+    facts_proc = Processor(bug_folder=bugid_folder, bugid=bugid)
 
     prompt = construct_prompt(facts_proc)
     with open(bugid_folder / "prompt.md", "w") as f:
