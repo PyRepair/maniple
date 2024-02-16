@@ -5,6 +5,7 @@ import json
 import os.path
 import threading
 from pathlib import Path
+import re
 
 from openai import OpenAI
 from typing import List
@@ -148,6 +149,8 @@ class PromptGenerator:
 
     def generate_prompt(self):
         self.prompt += self.template["preface"]
+        if self.actual_bitvector["cot"] == 1:
+            self.generate_cot()
         self.prompt += "\n\n"
 
         # source code section contains fix strata 1, optional strata 2, optional strata 3
@@ -168,11 +171,6 @@ class PromptGenerator:
         if self.actual_bitvector["3.1.1"] != 0 and self.actual_bitvector["3.1.2"] != 0:
             self.generate_issue_section()
             self.prompt += "\n\n"
-
-        self.append_template("# Bug fixing instructions\n\n", -1)
-
-        if self.actual_bitvector["cot"] == 1:
-            self.generate_cot()
 
         self.collect_fact_content_in_prompt()
 
@@ -240,7 +238,8 @@ class PromptGenerator:
             if optional_3[-3:] == ", \n":
                 optional_3 = optional_3[:-3] + "\n"
 
-            self.append_template(f"""{"1. Analyze the buggy function and its relationship with the " + optional_1 + "." if optional_1 != "" else "1. Analyze the buggy function."}
+            self.append_template(f"""Your output should follow these steps:
+{"1. Analyze the buggy function and its relationship with the " + optional_1 + "." if optional_1 != "" else "1. Analyze the buggy function."}
 2. Identify a potential error location within the buggy function.
 3. Elucidate the bug's cause using:
 {optional_2}
@@ -418,6 +417,8 @@ class PromptGenerator:
                 return
 
         with open(os.path.join(self.output_dir, "facts-in-prompt.json"), "w") as prompt_facts_file:
+            source_code_pattern = r"# The source code of the buggy function\n```python\n(.*?)```"
+            match = re.search(source_code_pattern, self.prompt, re.DOTALL)
             facts_content_strata = {
                 "1": self.strata_1_content,
                 "2": self.strata_2_content,
@@ -429,7 +430,8 @@ class PromptGenerator:
                 "8": self.strata_8_content,
                 "9": self.strata_9_content,
                 "1.3.3": self.strata_1_3_3_content,
-                "source_code_section": self.strata_1_content.replace(self.strata_1_3_3_content, "", 1)
+                "source_code_section": self.strata_1_content.replace(self.strata_1_3_3_content, "", 1),
+                "source_code_body": match.group(1)
                 if self.strata_1_3_3_content != "" else self.strata_1_content
             }
 
