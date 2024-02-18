@@ -151,6 +151,10 @@ def construct_prompt(processor: Processor) -> str:
 
 
 def resolve_related_functions(processor: Processor):
+    if processor.facts_in_prompt["2"] == "" or processor.facts_in_prompt["3"] == "":
+        log_red("No used function info")
+        return ""
+    
     related_functions_prompt = processor.related_functions_prompt
     num_tokens = count_tokens(related_functions_prompt)
     if num_tokens > 16_000:
