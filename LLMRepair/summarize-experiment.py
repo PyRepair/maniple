@@ -11,9 +11,9 @@ from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_re
 from utils import print_in_red, print_in_yellow, iter_bugid_folders, divide_list, print_in_green
 
 total_usage = 0
-n_partitions = 16  # number of threads
+n_partitions = 32  # number of threads
 compression_cap = 0  # token size cap
-database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v3"
+database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v1"
 
 LOG_MODE = n_partitions == 1
 
@@ -51,10 +51,10 @@ class Processor:
         
         prompt_instruction_folder = Path.cwd() / "prompt_instructions"
         self._related_functions_instruction = (prompt_instruction_folder / "related_functions_v2.md").read_text()
-        self._stacktrace_instruction = (prompt_instruction_folder / "stacktrace_v2.md").read_text()
-        self._issue_description_instruction = (prompt_instruction_folder / "issue_description_v2.md").read_text()
-        self._runtime_value_instruction = (prompt_instruction_folder / "runtime_value_v2.md").read_text()
-        self._angelic_value_instruction = (prompt_instruction_folder / "angelic_value_v2.md").read_text()
+        self._stacktrace_instruction = (prompt_instruction_folder / "stacktrace.md").read_text()
+        self._issue_description_instruction = (prompt_instruction_folder / "issue_description.md").read_text()
+        self._runtime_value_instruction = (prompt_instruction_folder / "runtime_value.md").read_text()
+        self._angelic_value_instruction = (prompt_instruction_folder / "angelic_value.md").read_text()
 
         title = "## The error message from the failing test"
         error_messages = self.facts_in_prompt["5"].split(title)

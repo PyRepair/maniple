@@ -1,0 +1,70 @@
+The issue appears to be related to the `groupby` operation with a daily frequency failing with an `AmbiguousTimeError` on a clock change day in Cuba. 
+
+The problematic code snippet involves creating a date range, localizing it to UTC, converting it to America/Havana timezone, and then grouping it using `pd.Grouper` with a frequency of '1D'. It is expected to return three groups for the 3rd, 4th, and 5th of November, but encounters an `AmbiguousTimeError` on the clock change day.
+
+The bug within the `_get_time_bins` function is likely leading to this error, as it involves complex operations on time bins and labels, potentially leading to an issue with handling ambiguous time periods.
+
+To fix this bug, the following approach could be taken:
+1. Ensure proper handling of ambiguous time periods when creating time bins and labels, possibly by using the `ambiguous=` parameter in the `date_range` function, or by addressing any issues related to ambiguous times specifically within the function.
+
+Here is the corrected code for the `_get_time_bins` function:
+```python
+def _get_time_bins(self, ax):
+    if not isinstance(ax, DatetimeIndex):
+        raise TypeError(
+            "axis must be a DatetimeIndex, but got "
+            f"an instance of {type(ax).__name__}"
+        )
+
+    if len(ax) == 0:
+        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
+        return binner, [], labels
+
+    first, last = _get_timestamp_range_edges(
+        ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
+    )
+    # Reverse the string
+    first = first[::-1]
+    last = last[::-1]
+    
+    binner = labels = date_range(
+        freq=self.freq,
+        start=first,
+        end=last,
+        tz=ax.tz,
+        name=ax.name,
+        ambiguous="NaT",  # Handling ambiguous times by setting them to NaT
+        nonexistent="shift_forward",
+    )
+
+    ax_values = ax.asi8
+    binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
+
+    # general version, knowing nothing about relative frequencies
+    bins = lib.generate_bins_dt64(
+        ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+    )
+
+    if self.closed == "right":
+        labels = binner
+        if self.label == "right":
+            labels = labels[1:]
+    elif self.label == "right":
+        labels = labels[1:]
+
+    if ax.hasnans:
+        binner = binner.insert(0, NaT)
+        labels = labels.insert(0, NaT)
+
+    # if we end up with more labels than bins
+    # adjust the labels
+    # GH4076
+    if len(bins) < len(labels):
+        labels = labels[: len(bins)]
+
+    return binner, bins, labels
+```
+
+In this corrected code, we ensure that ambiguous times are handled explicitly by setting the `ambiguous` parameter to "NaT" when creating the date range. This should help in addressing the issue of ambiguous time periods and prevent the `AmbiguousTimeError` from occurring during the `groupby` operation.
+
+Please note that additional modifications may be necessary to address the specific cause of the `AmbiguousTimeError`, and further testing is recommended to validate the effectiveness of the fix.

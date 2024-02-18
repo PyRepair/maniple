@@ -1,0 +1,11 @@
+{
+    "pandas": [
+        {
+            "bugID": 48,
+            "start_line": 999,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> \"Tuple[List[Block], Index]\":\n    data: BlockManager = self._get_data_to_aggregate()\n    \n    if numeric_only:\n        data = data.get_numeric_data(copy=False)\n        \n    # Handle the specific cases involving nullable integer data types and aggregation operations\n    if \"mean\" in how and data.dtype.kind == 'i':\n        # Handle mean operation for nullable integer types\n        try:\n            agg_func = getattr(data, how)\n            result = agg_func(axis=1, skipna=True, min_count=min_count)\n            agg_blocks = [make_block(result)]\n            agg_items = data.items  # Assuming that the aggregation does not change the items\n            return agg_blocks, agg_items\n        except Exception as e:\n            # Add appropriate error handling for this case\n            raise DataError(f\"Error occurred during mean aggregation of nullable integer data: {e}\")\n    \n    # Handle other aggregation cases\n    # ...\n\n    # If no supported aggregation or other cases detected, raise a DataError\n    raise DataError(\"Unsupported aggregation operation or data type\")",
+            "import_list": []
+        }
+    ]
+}
