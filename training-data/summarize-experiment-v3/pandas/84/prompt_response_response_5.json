@@ -1,0 +1,11 @@
+{
+    "pandas": [
+        {
+            "bugID": 84,
+            "start_line": 312,
+            "file_name": "pandas/core/reshape/reshape.py",
+            "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n    if len(clocs) == 0:\n        return data\n\n    index = data.index\n\n    clevels = [index.get_level_values(i) for i in clocs]\n    rlevels = [index.get_level_values(i) for i in range(index.nlevels) if i not in clocs]\n\n    group_index = get_group_index(clevels, sort=False, xnull=False)\n\n    comp_ids, obs_ids = compress_group_index(group_index, sort=False)\n    recons_codes = decons_obs_group_ids(comp_ids, obs_ids, clevels, xnull=False)\n\n    dummy_index = MultiIndex(\n        levels=rlevels + [obs_ids],\n        codes=range(len(rlevels)) + [comp_ids],\n        names=index.names,\n    )\n\n    if isinstance(data, Series):\n        dummy = data.copy()\n        dummy.index = dummy_index\n        unstacked = dummy.unstack(-1, fill_value=fill_value)\n        new_columns = data.index\n        unstacked.index = new_columns\n    else:\n        dummy = data.copy()\n        dummy.index = dummy_index\n        unstacked = dummy.unstack(-1, fill_value=fill_value)\n        new_columns = list(unstacked.columns.levels) + [data.index]\n        unstacked.columns = new_columns\n\n    return unstacked",
+            "import_list": []
+        }
+    ]
+}

@@ -1,0 +1,11 @@
+{
+    "pandas": [
+        {
+            "bugID": 48,
+            "start_line": 999,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> \"Tuple[List[Block], Index]\":\n    # Existing implementation remains unchanged\n\n    data: BlockManager = self._get_data_to_aggregate()\n\n    if numeric_only:\n        data = data.get_numeric_data(copy=False)\n\n    # Code modifications based on identified issues\n    try:\n        return self._cython_agg_blocks_impl(data, how, alt, min_count, self.grouper, self.obj, self.axis)\n    except NotImplementedError:\n        if alt is None:\n            deleted_items = np.concatenate([block.mgr_locs.as_array for block in data.blocks])\n            raise NotImplementedError(\"Alternate implementation not available for this operation\") from None\n        else:\n            return self._python_agg_blocks(data, how, alt, min_count, self.grouper, self.obj, self.axis)",
+            "import_list": []
+        }
+    ]
+}

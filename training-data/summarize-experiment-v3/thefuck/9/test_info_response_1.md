@@ -1,0 +1,1 @@
+The error seems to be originating on line 27 in the file git_push.py, where the pop method is called on an empty list; this results in an IndexError. It seems that the function get_new_command is not handling the "--set-upstream" flag or "-u" option properly, as evidenced by the IndexError in the failing test.

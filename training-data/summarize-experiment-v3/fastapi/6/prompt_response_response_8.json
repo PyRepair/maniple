@@ -1,0 +1,11 @@
+{
+    "fastapi": [
+        {
+            "bugID": 6,
+            "start_line": 617,
+            "file_name": "fastapi/dependencies/utils.py",
+            "replace_code": "async def request_body_to_args(\n    required_params: List[ModelField],\n    received_body: Optional[Union[Dict[str, Any], FormData]],\n) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:\n    values = {}\n    errors = []\n    for field in required_params:\n        value: Any = None\n        if received_body is not None:\n            if isinstance(received_body, FormData):\n                value = received_body.getlist(field.alias)\n            elif isinstance(received_body, dict):\n                value = received_body.get(field.alias)\n        if value is None:\n            if field.required:\n                errors.append(\n                    ErrorWrapper(\n                        MissingError(),\n                        loc=(\"body\", field.alias),\n                    )\n                )\n            else:\n                values[field.name] = deepcopy(field.default)\n        else:\n            v_, errors_ = field.validate(value, values, loc=(\"body\", field.alias))\n            if isinstance(errors_, ErrorWrapper):\n                errors.append(errors_)\n            elif isinstance(errors_, list):\n                errors.extend(errors_)\n            else:\n                values[field.name] = v_\n    return values, errors",
+            "import_list": []
+        }
+    ]
+}

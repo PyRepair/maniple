@@ -1,0 +1,11 @@
+{
+    "keras": [
+        {
+            "bugID": 3,
+            "start_line": 26,
+            "file_name": "keras/models.py",
+            "replace_code": "def _clone_functional_model(model, input_tensors=None):\n    # [Previous code...]\n\n    for x, y in zip(model.inputs, input_tensors):\n        tensor_map[x] = (y, None)  # tensor, mask\n\n    # Iterated over every node in the reference model, in depth order.\n    depth_keys = list(model._nodes_by_depth.keys())\n    depth_keys.sort(reverse=True)\n    for depth in depth_keys:\n        nodes = model._nodes_by_depth[depth]\n        for node in nodes:\n            # Recover the corresponding layer.\n            layer = node.outbound_layer\n\n            # Get or create layer.\n            if layer not in layer_map:\n                # Clone layer.\n                new_layer = layer.__class__.from_config(layer.get_config())\n                layer_map[layer] = new_layer\n                layer = new_layer\n            else:\n                # Reuse previously cloned layer.\n                layer = layer_map[layer]\n                # Don't call InputLayer multiple times.\n                if isinstance(layer, InputLayer):\n                    continue\n\n            # Gather inputs to call the new layer.\n            reference_input_tensors = node.input_tensors\n\n            # Get the output tensors of the layer\n            computed_tensors = layer(reference_input_tensors)\n\n            # Update tensor_map.\n            for x, y in zip(node.output_tensors, computed_tensors):\n                tensor_map[x] = (y, None)  # tensor, mask\n\n    # Create a list of output tensors for the new model\n    output_tensors = [tensor_map[x][0] for x in model.outputs]\n\n    return Model(input_tensors, output_tensors, name=model.name)",
+            "import_list": []
+        }
+    ]
+}

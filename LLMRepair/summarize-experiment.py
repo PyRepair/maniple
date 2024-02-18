@@ -11,7 +11,7 @@ from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_re
 from utils import print_in_red, print_in_yellow, iter_bugid_folders, divide_list, print_in_green
 
 total_usage = 0
-n_partitions = 1  # number of threads
+n_partitions = 16  # number of threads
 compression_cap = 0  # token size cap
 database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v3"
 
@@ -83,7 +83,7 @@ class Processor:
         prompt = "## The source code of the buggy function\n\n"
         if self.facts_in_prompt["1.3.3"] != "":
             prompt += self.facts_in_prompt["1.3.3"]
-        prompt += f"The buggy function is under file: `{self.file_path}`\n\n\n"
+        prompt += f"The buggy function is under file: `{self.file_path}`\n\nHere is the buggy function:\n"
         prompt += "```python\n"
         prompt += self.function_source_code
         prompt += "\n```\n\n\n"
@@ -139,19 +139,17 @@ def construct_prompt(processor: Processor) -> str:
 
     prompt += resolve_related_functions(processor)
 
-    print(prompt)
-    exit(0)
-
     prompt += resolve_stacktrace(processor)
     prompt += resolve_runtime_value(processor)
     prompt += resolve_angelic_value(processor)
 
+    log("Github issue...")
     prompt += processor.facts_in_prompt["8"] # github issue is not affecting performance the most
     return prompt
 
 
 def resolve_related_functions(processor: Processor):
-    if processor.facts_in_prompt["2"] == "" or processor.facts_in_prompt["3"] == "":
+    if processor.facts_in_prompt["2"] == "" and processor.facts_in_prompt["3"] == "":
         log_red("No used function info")
         return ""
     
@@ -334,9 +332,6 @@ def get_response_and_store_results(prompt: str, prompt_file: Path, response_file
 def process_each_bug(bugid: str, project_folder: Path, bugid_folder: Path):
     global total_usage
     global database_folder_path
-
-    if bugid != "pandas:122":
-        return
 
     print_in_green(f"Processing {bugid}...")
     facts_proc = Processor(bug_folder=bugid_folder, bugid=bugid)

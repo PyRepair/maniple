@@ -1,0 +1,11 @@
+{
+    "pandas": [
+        {
+            "bugID": 84,
+            "start_line": 312,
+            "file_name": "pandas/core/reshape/reshape.py",
+            "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n    if len(clocs) == 0:\n        return data\n\n    # NOTE: This doesn't deal with hierarchical columns yet\n\n    index = data.index\n\n    clevels = [index.levels[i] for i in clocs]\n    rlocs = [i for i in range(index.nlevels) if i not in clocs]\n\n    if rlocs == []:\n        # Everything is in clocs, so the dummy df has a regular index\n        dummy_index = Index(obs_ids, name=\"__placeholder__\")\n    else:\n        obs_ids = list(index)\n        dummy_index = MultiIndex(\n            levels=index.levels + [obs_ids],\n            codes=index.codes + [list(range(len(obs_ids)))],\n            names=index.names + [\"__placeholder__\"],\n            verify_integrity=False,\n        )\n\n    if isinstance(data, Series):\n        dummy = data.copy()\n        dummy.index = dummy_index\n\n        unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n    else:\n        dummy = data.copy()\n        dummy.index = dummy_index\n\n        unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n        if isinstance(unstacked, Series):\n            unstcols = unstacked.index\n        else:\n            unstcols = unstacked.columns\n\n    return unstacked",
+            "import_list": []
+        }
+    ]
+}

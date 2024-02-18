@@ -6,6 +6,10 @@ def log_action(action: str) -> None:
     # Details of this function are not the focal point
 
 class DocumentProcessor:
+    """
+    This class processes documents by appending text, removing text, and updating the title.
+    """
+
     def append_text(self, text: str) -> None:
         # The implementation details of this method are not our concern
 
@@ -24,13 +28,15 @@ class DocumentProcessor:
 ```
 
 ## Example Summary
-The buggy function `process_document` first calls the function `def remove_text(self, length: int) -> None`. This function likely takes a length parameter, which is presumably the number of characters to be removed from the start or end of the document.
+Class docstring: This class processes documents by appending text, removing text, and updating the title. The related functions `append_text`, `remove_text`, and `update_title` are likely used to perform these operations.
 
-Then, the buggy function calls the `def append_text(self, text: str) -> None` function. From the name of the function, we can infer that this function appends text to an existing document, which is maintained by the current class, `DocumentProcessor`.
+`def remove_text(self, length: int) -> None`: This function likely takes a length parameter, which is presumably the number of characters to be removed from the start or end of the document.
 
-After that, the buggy function calls `def update_title(self, new_title: str) -> None` function. This function likely changes the internal record of the class to store a new title name.
+`def append_text(self, text: str) -> None`: From the name of the function, we can infer that this function appends text to an existing document, which is maintained by the current class, `DocumentProcessor`.
 
-In the end, the function calls `log_action()`, which essentially prints a sequence of actions.
+`def update_title(self, new_title: str) -> None`: This function likely changes the internal record of the class to store a new title name.
+
+`log_action()` function call: Prints a sequence of actions.
 
 
 ## Buggy Function with Related Functions
