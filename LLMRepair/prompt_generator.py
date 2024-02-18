@@ -102,7 +102,6 @@ class PromptGenerator:
         self.strata_7_content = ""
         self.strata_8_content = ""
         self.strata_9_content = ""
-        self.strata_1_3_3_content = ""
 
         self.generate_prompt()
 
@@ -123,10 +122,6 @@ class PromptGenerator:
         return actual_strata_bitvector
 
     def append_template(self, content: str, strata: int):
-        if strata == 133:
-            self.strata_1_3_3_content += content
-            return
-
         self.prompt += content
         if strata == 1:
             self.strata_1_content += content
@@ -320,17 +315,11 @@ class PromptGenerator:
             self.append_template("\n", 4)
 
     def generate_buggy_code_section(self):
-        # if not (self.facts["used_imports"] is None or self.facts["used_imports"] == [] or self.facts["used_imports"] == ""):
         if self.facts["used_imports"] is not None:
             self.append_template(self.template["1.3.3"], 1)
             self.append_template("```python\n", 1)
             self.append_template(self.facts["used_imports"], 1)
             self.append_template("\n```\n\n", 1)
-
-            self.append_template(self.template["1.3.3"], 133)
-            self.append_template("```python\n", 133)
-            self.append_template(self.facts["used_imports"], 133)
-            self.append_template("\n```\n\n", 133)
 
         self.append_template(self.template["1.1.1"], 1)
 
@@ -402,6 +391,82 @@ class PromptGenerator:
 
         self.append_template("```", 1)
 
+    def generate_imports_body(self) -> str:
+        text = ""
+        if self.facts["used_imports"] is not None:
+            text += self.template["1.3.3"]
+            text += "```python\n"
+            text += self.facts["used_imports"]
+            text += "\n```\n\n"
+
+        return text
+
+    def generate_source_code_body(self) -> str:
+        text = ""
+
+        ignore_comment = "# Please ignore the body of this function"
+        has_function_in_file = False
+        has_class_declaration = False
+
+        if self.actual_bitvector["1.3.2"] == 1:
+            has_function_in_file = True
+            buggy_functions: List[str] = self.facts["1.3.2"]
+            for function_index in range(len(buggy_functions)):
+                text += self.template["1.3.2"]
+                text += "def " + buggy_functions[function_index] + ":\n    " + ignore_comment + "\n\n"
+
+        if self.actual_bitvector["1.2.1"] == 1:
+            has_class_declaration = True
+
+            text += self.template["1.2.1"]
+            text += self.facts["1.2.1"] + ":\n"
+
+            if self.actual_bitvector["1.2.2"] == 1:
+                class_docs: str = self.facts["1.2.2"]
+
+                text += "    \"\"\"\n"
+
+                for doc in class_docs.split('\n'):
+                    text += "    " + doc + "\n"
+
+                text += "    \"\"\""
+
+            text += "\n\n\n"
+
+        # Add class declaration if buggy class invoked method enabled
+        if self.actual_strata_bitvector["3"] == 1 and self.actual_strata_bitvector["2"] == 0 and self.facts["1.2.3"] != None:
+            has_class_declaration = True
+
+            text += self.template["1.2.1"]
+            text += self.facts["1.2.1"] + ":\n"
+
+        if (not has_function_in_file) and (not has_class_declaration):
+            indent = ""
+        elif has_function_in_file and (not has_class_declaration):
+            indent = ""
+        else:
+            indent = "    "
+
+        if self.actual_bitvector["1.2.3"] == 1:
+            buggy_functions: List[str] = self.facts["1.2.3"]
+            for function_index in range(len(buggy_functions)):
+                text += indent + self.template["1.2.3"]
+                text += indent + "def " + buggy_functions[function_index] + ":\n"
+                text += indent + "    " + ignore_comment + "\n\n"
+
+        if indent != "":
+            text += "\n\n"
+
+        text += indent + "# this is the buggy function you need to fix\n"
+
+        # if self.bitvector["1.1.1"] == 1 and self.bitvector["1.1.2"] == 1:
+
+        source_code: str = self.buggy_function_source_code
+        for statement in source_code.split('\n'):
+            text += indent + statement + "\n"
+
+        return text
+
     def write_prompt(self):
         prompt_file_name = ""
         for value in self.bitvector.values():
@@ -429,10 +494,8 @@ class PromptGenerator:
                 "7": self.strata_7_content,
                 "8": self.strata_8_content,
                 "9": self.strata_9_content,
-                "1.3.3": self.strata_1_3_3_content,
-                "source_code_section": self.strata_1_content.replace(self.strata_1_3_3_content, "", 1),
-                "source_code_body": match.group(1)
-                if self.strata_1_3_3_content != "" else self.strata_1_content
+                "1.3.3": self.generate_imports_body(),
+                "source_code_body": self.generate_source_code_body()
             }
 
             json.dump(facts_content_strata, prompt_facts_file, indent=4)

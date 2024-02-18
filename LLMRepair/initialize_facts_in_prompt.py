@@ -10,6 +10,8 @@ for file in os.listdir(bitvector_path):
         with open(os.path.join(bitvector_path, file), "r") as input_bitvector_file:
             bitvector_strata = json.load(input_bitvector_file)
 
+# print(bitvector_strata)
+
 projects = os.listdir(database_path)
 for project in projects:
     project_folder_path = os.path.join(database_path, project)
@@ -21,9 +23,16 @@ for project in projects:
         if not os.path.isdir(bug_dir_path):
             continue
 
+        # if project != "pandas":
+        #     continue
+        #
+        # if bid != "122":
+        #     continue
+
         try:
             prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
+
         except Exception as e:
-            print(project)
-            print(bid)
+            print(f"{project}:{bid} fail to extract facts in prompt")
+            print(e)
             print()
