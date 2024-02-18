@@ -50,6 +50,7 @@ class Processor:
             self.fact_data = json.load(f)
         
         prompt_instruction_folder = Path.cwd() / "prompt_instructions"
+        self._related_functions_instruction = (prompt_instruction_folder / "related_functions_v2.md").read_text()
         self._stacktrace_instruction = (prompt_instruction_folder / "stacktrace_v2.md").read_text()
         self._issue_description_instruction = (prompt_instruction_folder / "issue_description_v2.md").read_text()
         self._runtime_value_instruction = (prompt_instruction_folder / "runtime_value_v2.md").read_text()
@@ -87,7 +88,13 @@ class Processor:
         prompt += self.function_source_code
         prompt += "\n```\n\n\n"
         return prompt
-
+    
+    @property
+    def related_functions_prompt(self):
+        return self._related_functions_instruction.format(
+            self.facts_in_prompt["source_code_body"],
+        )
+    
     @property
     def stack_trace_summary_prompt(self):
         return self._stacktrace_instruction.format(
@@ -130,30 +137,42 @@ def construct_prompt(processor: Processor) -> str:
     # process buggy function and its imports
     prompt += processor.source_code_with_imports
 
-    # process class declaration
-    if processor.fact_data["1.2.1"] != "":
-        prompt += "## The class declaration of the buggy function\n\n"
-        prompt += "Below is the class declaration containing the buggy function.\n"
-        prompt += f"```python\n{processor.fact_data['1.2.1']}\n```\n\n\n"
-        if processor.fact_data["1.2.2"] != "":
-            prompt += "Below is the class docstring for class declaration.\n"
-            prompt += f"```python\n{processor.fact_data['1.2.2']}\n```\n\n\n"
-        if processor.fact_data["1.2.3"] != "":
-            prompt += "Below are method signatures used by the buggy function.\n"
-            values = '\n'.join(processor.fact_data['1.2.3'])
-            prompt += f"```python\n{values}\n```\n\n\n"
+    prompt += resolve_related_functions(processor)
 
     print(prompt)
-    exit()
+    exit(0)
 
-    
-
-    
     prompt += resolve_stacktrace(processor)
     prompt += resolve_runtime_value(processor)
     prompt += resolve_angelic_value(processor)
-    prompt += resolve_github_issue(processor)
+
+    prompt += processor.facts_in_prompt["8"] # github issue is not affecting performance the most
     return prompt
+
+
+def resolve_related_functions(processor: Processor):
+    related_functions_prompt = processor.related_functions_prompt
+    num_tokens = count_tokens(related_functions_prompt)
+    if num_tokens > 16_000:
+        log_red(f"Related functions summary is too long. Tokens: {num_tokens}")
+        return ""
+    
+    if num_tokens < compression_cap:
+        log("Preserving related functions. Tokens:", num_tokens)
+        return related_functions_prompt
+    
+    log("Generating related functions summary. Tokens:", num_tokens, end=" ")
+    related_functions_summary = get_response_and_store_results(prompt=related_functions_prompt,
+                                                              prompt_file=processor.bug_folder / "related_functions_prompt.md",
+                                                              response_file=processor.bug_folder / "related_functions_response.md",
+                                                              pkl_file=processor.bug_folder / "related_functions_response.pkl")[0]
+    log("->", count_tokens(related_functions_summary))
+
+    result = "## Summary of Related Functions\n\n"
+    result += related_functions_summary
+    result += "\n\n\n"
+
+    return result
 
 
 def resolve_stacktrace(processor: Processor):
@@ -312,7 +331,7 @@ def process_each_bug(bugid: str, project_folder: Path, bugid_folder: Path):
     global total_usage
     global database_folder_path
 
-    if bugid != "pandas:112":
+    if bugid != "pandas:122":
         return
 
     print_in_green(f"Processing {bugid}...")
