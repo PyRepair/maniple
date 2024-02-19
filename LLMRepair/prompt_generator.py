@@ -252,7 +252,7 @@ class PromptGenerator:
             issue_length = len(issue_descriptions)
 
         for issue_index in range(issue_length):
-            self.append_template("# A GitHub issue for this bug\n\n", 8)
+            self.append_template("## A GitHub issue for this bug\n\n", 8)
 
             if self.actual_bitvector["3.1.1"] == 1:
                 self.append_template(self.template["3.1.1"] + "```text\n", 8)
