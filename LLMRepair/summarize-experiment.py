@@ -11,9 +11,11 @@ from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_re
 from utils import print_in_red, print_in_yellow, iter_bugid_folders, divide_list, print_in_green
 
 total_usage = 0
-n_partitions = 32  # number of threads
+n_partitions = 1  # number of threads
 compression_cap = 0  # token size cap
+restricted_bugs = ["pandas:168"]  # list of bugids to restrict
 database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v1"
+
 
 LOG_MODE = n_partitions == 1
 
@@ -332,6 +334,9 @@ def get_response_and_store_results(prompt: str, prompt_file: Path, response_file
 def process_each_bug(bugid: str, project_folder: Path, bugid_folder: Path):
     global total_usage
     global database_folder_path
+
+    if restricted_bugs and bugid not in restricted_bugs:
+        return
 
     print_in_green(f"Processing {bugid}...")
     facts_proc = Processor(bug_folder=bugid_folder, bugid=bugid)

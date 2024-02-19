@@ -14,9 +14,12 @@ def f(x):
 # Example expected value and type of variables during the failing test execution
 
 ## Expected case 1
-### Input parameter value and type
+Input parameter value and type:
+
 x, value: `-5`, type: `int`
-### Expected value and type of variables right before the buggy function's return
+
+Expected value and type of variables right before the buggy function's return:
+
 y, value: `-5`, type: `int`
 
 ## Case 2
@@ -103,9 +106,10 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
 # Expected values and types of variables during the failing test execution
 Each case below includes input parameter values and types, and the expected values and types of relevant variables at the function's return. If an input parameter is not reflected in the output, it is assumed to remain unchanged. A corrected function must satisfy all these cases.
 
-## Expected case 1
-### Input parameter values and types
-### The values and types of buggy function's parameters
+### Expected case 1
+#### Input parameter values and types
+The values and types of buggy function's parameters
+
 right, value: `0   NaT
 1   NaT
 dtype: timedelta64[ns]`, type: `Series`
@@ -124,7 +128,8 @@ left.columns, value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
 left.index, value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
-### Expected values and types of variables right before the buggy function's return
+Expected values and types of variables right before the buggy function's return
+
 a, expected value: `   0  1
 0  1  2
 1  3  4`, type: `DataFrame`
