@@ -14,7 +14,7 @@ total_usage = 0
 n_partitions = 1  # number of threads
 compression_cap = 0  # token size cap
 restricted_bugs = ["pandas:168"]  # list of bugids to restrict
-database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v1"
+database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v4"
 
 
 LOG_MODE = n_partitions == 1
@@ -53,20 +53,20 @@ class Processor:
         
         prompt_instruction_folder = Path.cwd() / "prompt_instructions"
         self._related_functions_instruction = (prompt_instruction_folder / "related_functions_v2.md").read_text()
-        self._stacktrace_instruction = (prompt_instruction_folder / "stacktrace.md").read_text()
-        self._issue_description_instruction = (prompt_instruction_folder / "issue_description.md").read_text()
-        self._runtime_value_instruction = (prompt_instruction_folder / "runtime_value.md").read_text()
-        self._angelic_value_instruction = (prompt_instruction_folder / "angelic_value.md").read_text()
+        self._stacktrace_instruction = (prompt_instruction_folder / "stacktrace_v2.md").read_text()
+        self._issue_description_instruction = (prompt_instruction_folder / "issue_description_v2.md").read_text()
+        self._runtime_value_instruction = (prompt_instruction_folder / "runtime_value_v2.md").read_text()
+        self._angelic_value_instruction = (prompt_instruction_folder / "angelic_value_v2.md").read_text()
 
-        title = "## The error message from the failing test"
+        title = "### The error message from the failing test"
         error_messages = self.facts_in_prompt["5"].split(title)
         error_messages = [d.strip() for d in error_messages if d.strip() != ""]
         error_messages = [f"{title}\n{d}" for d in error_messages]
         
-        title = "# A failing test function for the buggy function"
+        title = "## A failing test function for the buggy function"
         test_cases = self.facts_in_prompt["4"].split(title)
         test_cases = [d.strip() for d in test_cases if d.strip() != ""]
-        test_cases = [f"# Test case {i + 1} for the buggy function\n{d}" for i, d in enumerate(test_cases)]
+        test_cases = [f"## Test case {i + 1} for the buggy function\n{d}" for i, d in enumerate(test_cases)]
         
         self.test_and_error_message = "\n\n\n".join([
             f"{a}\n\n{b}" for a, b in zip(test_cases, error_messages)
