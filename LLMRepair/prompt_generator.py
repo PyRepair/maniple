@@ -175,71 +175,58 @@ class PromptGenerator:
                           f"{'related functions, ' if self.actual_strata_bitvector['3'] == 1 else ''}"
                           f"{'test code, ' if self.actual_strata_bitvector['4'] == 1 else ''}"
                           f"{'corresponding error message, ' if self.actual_strata_bitvector['5'] == 1 else ''}"
-                          f"{'the actual input/output variable information, ' if self.actual_strata_bitvector['6'] == 1 else ''}"
-                          f"{'the expected input/output variable information, ' if self.actual_strata_bitvector['7'] == 1 else ''}"
-                          f"{'the github issue' if self.actual_strata_bitvector['8'] == 1 else ''}")
+                          f"{'the runtime input/output values, ' if self.actual_strata_bitvector['6'] == 1 else ''}"
+                          f"{'the expected input/output values, ' if self.actual_strata_bitvector['7'] == 1 else ''}"
+                          f"{'the GitHub issue' if self.actual_strata_bitvector['8'] == 1 else ''}")
             if optional_1[-2:] == ", ":
                 optional_1 = optional_1[:-2]
 
             new_line_str = "\n"
 
-            count = 98
-            optional_2 = "   (a) The buggy function, \n"
-            if self.actual_strata_bitvector['2'] == 1:
-                optional_2 += f"   ({chr(count)}) The buggy class docs, \n"
-                count += 1
+            optional_2 = "the buggy function, "
+            if self.actual_strata_bitvector['2'] == 1 and self.actual_bitvector["1.2.2"] == 1:
+                optional_2 += "the buggy class docs, "
 
             if self.actual_strata_bitvector['3'] == 1:
-                optional_2 += f"   ({chr(count)}) The related functions, \n"
-                count += 1
+                optional_2 += "the related functions, "
 
             if self.actual_strata_bitvector['4'] == 1:
-                optional_2 += f"   ({chr(count)}) The failing test, \n"
-                count += 1
+                optional_2 += "the failing test, "
 
             if self.actual_strata_bitvector['5'] == 1:
-                optional_2 += f"   ({chr(count)}) The corresponding error message, \n"
-                count += 1
+                optional_2 += "the corresponding error message, "
 
             if self.actual_strata_bitvector['6'] == 1:
-                optional_2 += f"   ({chr(count)}) The actual input/output variable values, \n"
-                count += 1
+                optional_2 += "the actual input/output variable values, "
 
             if self.actual_strata_bitvector['7'] == 1:
-                optional_2 += f"   ({chr(count)}) The expected input/output variable values, \n"
-                count += 1
+                optional_2 += "the expected input/output variable values, "
 
             if self.actual_strata_bitvector['8'] == 1:
-                optional_2 += f"   ({chr(count)}) The GitHub Issue information, \n"
-                count += 1
+                optional_2 += "the GitHub Issue information"
 
-            if optional_2[-3:] == ", \n":
-                optional_2 = optional_2[:-3] + "\n"
+            if optional_2[-2:] == ", ":
+                optional_2 = optional_2[:-2]
 
-            count = 97
             optional_3 = ""
             if self.actual_strata_bitvector['4'] == 1 or self.actual_strata_bitvector['5'] == 1:
-                optional_3 += f"   ({chr(count)}) the program passes the failing test, \n"
-                count += 1
+                optional_3 += "pass the failing test, "
 
             if self.actual_strata_bitvector['7'] == 1:
-                optional_3 += f"   ({chr(count)}) the function satisfies the expected input/output variable information provided, \n"
-                count += 1
+                optional_3 += "satisfy the expected input/output values, "
 
             if self.actual_strata_bitvector['8'] == 1:
-                optional_3 += f"   ({chr(count)}) successfully resolves the issue posted in GitHub, \n"
-                count += 1
+                optional_3 += "resolve the issue posted in GitHub"
 
-            if optional_3[-3:] == ", \n":
-                optional_3 = optional_3[:-3] + "\n"
+            if optional_3[-2:] == ", ":
+                optional_3 = optional_3[:-2]
 
-            self.append_template(f"""Your output should follow these steps:
-{"1. Analyze the buggy function and its relationship with the " + optional_1 + "." if optional_1 != "" else "1. Analyze the buggy function."}
-2. Identify a potential error location within the buggy function.
-3. Elucidate the bug's cause using:
-{optional_2}
-4. Suggest approaches for fixing the bug.
-{'5. Present the corrected code for the buggy function such that it satisfied the following:' + new_line_str + optional_3 if optional_3 != "" else "5. Present the corrected code"}
+            self.append_template(f"""Following these steps:
+{"1. Analyze the buggy function and its relationship with " + optional_1 + "." if optional_1 != "" else "1. Analyze the buggy function."}
+2. Identify potential error locations within the buggy function.
+3. Explain the cause of the bug using {optional_2}.
+4. Suggest a strategy for fixing the bug.
+{f'5. Given the buggy function below, provide a corrected version. The corrected version should {optional_3}.' if optional_3 != "" else "5. Given the buggy function below, provide a corrected version."}
 """, 9)
 
     def generate_issue_section(self):
