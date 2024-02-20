@@ -211,7 +211,7 @@ class GPTConnection:
                 responses["response_completions"] = responses["response_completions"] + next_query_responses["response_completions"]
 
         if len(responses["responses"]) > 0:
-            print_in_yellow(f"Tried {str(self.max_generation_count)} times still fail to get enough responses")
+            print_in_yellow(f"Tried 3 times still fail to get enough responses")
             responses["responses"] = responses["responses"][:trial]
 
             for response in responses["responses"]:
