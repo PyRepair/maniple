@@ -1,0 +1,4 @@
+Case 1: 
+The function is expected to take as input the tuple clocs containing value: `(('A', 'a'), 'B')` and type: `tuple`; a DataFrame `data` with the given shape, levels in the index and columns; and it's expected to return the value of variable `unstacked` as `[as mentioned in the example input]` with the specified type of `DataFrame`. All other values are expected to have their respective types as defined in the example input.
+
+[You can follow the examples from the previous code examples and populated expected values to summarize the expected values and types of variables during the failing test execution for the subsequent cases.]

@@ -11,9 +11,9 @@ from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_re
 from utils import print_in_red, print_in_yellow, iter_bugid_folders, divide_list, print_in_green
 
 total_usage = 0
-n_partitions = 1  # number of threads
+n_partitions = 32  # number of threads
 compression_cap = 0  # token size cap
-restricted_bugs = ["pandas:168"]  # list of bugids to restrict
+restricted_bugs = []  # list of bugids to restrict
 database_folder_path = Path.cwd().parent / "training-data" / "summarize-experiment-v4"
 
 
@@ -52,7 +52,7 @@ class Processor:
             self.fact_data = json.load(f)
         
         prompt_instruction_folder = Path.cwd() / "prompt_instructions"
-        self._related_functions_instruction = (prompt_instruction_folder / "related_functions_v2.md").read_text()
+        self._related_functions_instruction = (prompt_instruction_folder / "related_functions.md").read_text()
         self._stacktrace_instruction = (prompt_instruction_folder / "stacktrace_v2.md").read_text()
         self._issue_description_instruction = (prompt_instruction_folder / "issue_description_v2.md").read_text()
         self._runtime_value_instruction = (prompt_instruction_folder / "runtime_value_v2.md").read_text()

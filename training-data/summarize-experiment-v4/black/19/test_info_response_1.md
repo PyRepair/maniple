@@ -1,0 +1,2 @@
+Summary:
+The failing test occurs in the test_comment_in_decorator() function of the test_black.py file. The assertFormatEqual() method is returning an AssertionError, indicating that the expected output does not match the actual output. This discrepancy is related to handling comments within decorators and may be caused by the _maybe_empty_lines() function.

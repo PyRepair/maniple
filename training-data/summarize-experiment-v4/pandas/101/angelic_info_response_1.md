@@ -1,0 +1,3 @@
+Case 1: The expected value and type of the variable 'dtype' right before the function's return should be `dtype('int64')` and type `dtype`. The expected value and type of the variable 'dtype.kind' should be `'i'` and type `str`, and the expected value and type of the variable 'dtype.name' should be `'int64'` and type `str`.
+
+Case 2: The expected value and type of the variable 'dtype' right before the function's return should be `dtype('int64')` and type `dtype`. The expected value and type of the variable 'dtype.kind' should be `'i'` and type `str`, and the expected value and type of the variable 'dtype.name' should be `'int64'` and type `str`.

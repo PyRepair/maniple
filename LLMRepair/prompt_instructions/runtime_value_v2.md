@@ -1,8 +1,5 @@
-Your task is to assist a developer in analyzing runtime information of a buggy program. You will receive the source code of the function suspected to contain the bug, along with the values it produces. These values include the input parameters (with their values and types) and the output values and types of relevant variables at the function's return. If an input parameter is not reflected in the output, it is assumed to remain unchanged. Your role is not to fix or explain the bug but to print intput and output values and types that are relevant to the bug.
+Your task is to assist a developer in analyzing runtime information of a buggy program. You will receive the source code of the function suspected to contain the bug, along with the values it produces. These values include the input parameters (with their values and types) and the output values and types of relevant variables at the function's return. If an input parameter is not reflected in the output, it is assumed to remain unchanged. Your role is to summary the relevant input/output values and provide a rational for your choice by following the example below.
 
-# One-shot example:
-
-Given the source code and runtime information of a function, here's how you might summarize it:
 
 ## Example Source Code:
 ```python
@@ -36,6 +33,6 @@ Rational: for this input, the function computes the factorial of 0, which should
 
 {1}
 
-# Summary:
+## Summary:
 
 [Your summary here. You need to only copy runtime input/output values that are likely relevant to the bug, and provide a concise rational for your choice.]

@@ -1,0 +1,1 @@
+The error occurs in the `_try_convert_to_date` function of the `pandas/io/json/_json.py` file. Specifically, it fails upon trying to convert a boolean value to datetime, resulting in a `TypeError`. The failing test `test_readjson_bool_series` triggers the exception while trying to convert a boolean value from a JSON array to a datetime object, causing the test to fail.

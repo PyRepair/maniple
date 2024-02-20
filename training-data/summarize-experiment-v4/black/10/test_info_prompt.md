@@ -1,0 +1,79 @@
+Your task is to assist a developer in analyzing a stack trace of a failing test to identify a bug in a program. You will receive the source code of the function suspected to contain the bug, along with the code of the failing tests and the full error messages. Your role is not to fix the bug but to summarize what what stack frames or messages are closely related to the fault location in the buggy function, and simplify the original error message. You summary should be in a single paragraph.
+
+## The source code of the buggy function
+
+```python
+def _partially_consume_prefix(self, prefix, column):
+    lines = []
+    current_line = ""
+    current_column = 0
+    wait_for_nl = False
+    for char in prefix:
+        current_line += char
+        if wait_for_nl:
+            if char == '\n':
+                if current_line.strip() and current_column < column:
+                    res = ''.join(lines)
+                    return res, prefix[len(res):]
+
+                lines.append(current_line)
+                current_line = ""
+                current_column = 0
+                wait_for_nl = False
+        elif char == ' ':
+            current_column += 1
+        elif char == '\t':
+            current_column += 4
+        elif char == '\n':
+            # unexpected empty line
+            current_column = 0
+        else:
+            # indent is finished
+            wait_for_nl = True
+    return ''.join(lines), current_line
+
+```
+
+## Test case 1 for the buggy function
+```python
+# The relative path of the failing test file: tests/test_black.py
+
+    def test_comment_indentation(self) -> None:
+        contents_tab = "if 1:\n\tif 2:\n\t\tpass\n\t# comment\n\tpass\n"
+        contents_spc = "if 1:\n    if 2:\n        pass\n    # comment\n    pass\n"
+
+        self.assertFormatEqual(fs(contents_spc), contents_spc)
+        self.assertFormatEqual(fs(contents_tab), contents_spc)
+
+        contents_tab = "if 1:\n\tif 2:\n\t\tpass\n\t\t# comment\n\tpass\n"
+        contents_spc = "if 1:\n    if 2:\n        pass\n        # comment\n    pass\n"
+
+        self.assertFormatEqual(fs(contents_tab), contents_spc)
+        self.assertFormatEqual(fs(contents_spc), contents_spc)
+```
+
+### The error message from the failing test
+```text
+self = <test_black.BlackTestCase testMethod=test_comment_indentation>
+
+    def test_comment_indentation(self) -> None:
+        contents_tab = "if 1:\n\tif 2:\n\t\tpass\n\t# comment\n\tpass\n"
+        contents_spc = "if 1:\n    if 2:\n        pass\n    # comment\n    pass\n"
+    
+        self.assertFormatEqual(fs(contents_spc), contents_spc)
+>       self.assertFormatEqual(fs(contents_tab), contents_spc)
+
+tests/test_black.py:517: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_black.py:156: in assertFormatEqual
+    self.assertEqual(expected, actual)
+E   AssertionError: 'if 1:\n    if 2:\n        pass\n        # comment\n    pass\n' != 'if 1:\n    if 2:\n        pass\n    # comment\n    pass\n'
+E     if 1:
+E         if 2:
+E             pass
+E   -         # comment
+E   ? ----
+E   +     # comment
+E         pass
+
+```

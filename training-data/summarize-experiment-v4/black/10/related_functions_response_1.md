@@ -1,0 +1,3 @@
+Class method `_partially_consume_prefix(self, prefix, column)`: This function appears to process a prefix string by partially consuming it based on the provided column parameter. It seems to handle indentation, newlines, and whitespace characters to extract a portion of the prefix and return the remaining part.
+
+The related functions or variables that are used within this function are not explicitly mentioned in the provided code snippet. It would be helpful to explore any other related functions or variables that are utilized within this method to better analyze its interactions within the codebase.
