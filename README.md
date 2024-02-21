@@ -7,7 +7,7 @@ This repository contains several experiments assessing the performance of Large 
 
 ### Prerequisites
 Before installing the project, ensure you have the following prerequisites installed on your system:
-- Python 3.x: The script is written in Python, so you need to have Python 3.x installed. You can download it from [Python's official website](https://www.python.org/downloads/).
+- Python version 3.10 or higher.
 
 ### Installation
 
