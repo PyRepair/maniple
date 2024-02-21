@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 48,
+            "start_line": 999,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> \"DataFrame\":\n    data: BlockManager = self._get_data_to_aggregate()\n\n    if numeric_only:\n        data = data.get_numeric_data(copy=False)\n\n    # Create an empty DataFrame to store the aggregated results\n    agg_data = DataFrame()\n\n    no_result = object()\n    for locs, block in data.items():\n        # Handle nullable integer block values\n        if pd.api.types.is_integer_dtype(block.dtype):\n            result = self.grouper.aggregate(block.values, how, axis=1, min_count=min_count)\n            if result is not no_result:\n                result = maybe_convert_objects(result, convert_numeric=True)\n                result = maybe_downcast_to_dtype(result, min_count)\n\n                agg_obj = block.maybe_downcast(result, axis=1)\n\n                if alt is not None:\n                    result = alt(agg_obj, axis=self.axis)\n                    agg_data[block.mgr_locs] = PD.Series(result, index=block.mgr_locs)\n\n        elif pd.api.types.is_float_dtype(block.dtype):\n            # Handle other numeric types\n            result = self.grouper.aggregate(block.values, how, axis=1, min_count=min_count)\n\n            if result is not no_result:\n                result = maybe_convert_objects(result, convert_numeric=True)\n                result = maybe_downcast_to_dtype(result, min_count)\n                agg_obj = block.make_block(result)\n\n                agg_data[block.mgr_locs] = agg_obj\n\n    # Ensure that at least one result column\n    if agg_data.empty:\n        raise DataError(\"No numeric types to aggregate\")\n\n    # Reset the locs in the blocks to correspond to our current ordering\n    indexer = agg_data.index\n    agg_items = data.items.take(np.sort(indexer))\n    agg_data = agg_data.reindex(indexer)\n\n    return agg_data",
+            "import_list": []
+        }
+    ]
+}

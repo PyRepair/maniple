@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n        if not isinstance(other, datetime):\n            raise ApplyTypeError(\"Only know how to combine business hour with datetime\")\n\n        # Extract nanosecond, reset timezone and nanosecond\n        nanosecond = getattr(other, \"nanosecond\", 0)\n        other = other.replace(hour=0, minute=0, second=0, microsecond=0)\n\n        adjusted_time = other\n\n        # Handle positive and negative offsets\n        if self.n >= 0:\n            if adjusted_time.time() in self.end or not self._is_on_offset(adjusted_time):\n                adjusted_time = self._next_opening_time(adjusted_time)\n        else:\n            if adjusted_time.time() in self.start:\n                adjusted_time -= timedelta(seconds=1)\n            if not self._is_on_offset(adjusted_time):\n                adjusted_time = self._next_opening_time(adjusted_time)\n                adjusted_time = self._get_closing_time(adjusted_time)\n\n        # Calculate total business hours in a day\n        business_hours_per_day = sum(self._get_business_hours_by_sec(start, end) for start, end in zip(self.start, self.end))\n        \n        business_days, remaining_hours = divmod(abs(self.n * 60), business_hours_per_day // 60)\n        if self.n < 0:\n            business_days, remaining_hours = -business_days, -remaining_hours\n\n        # Adjust by business days\n        if business_days != 0:\n            business_day_offset = BusinessDay(n=business_days)\n            if not self.is_on_offset(other):\n                prev_open = self._prev_opening_time(adjusted_time)\n                remain = adjusted_time - prev_open\n                adjusted_time = prev_open + business_day_offset + remain\n            else:\n                adjusted_time += business_day_offset\n\n        bhour_remain = timedelta(minutes=remaining_hours)\n\n        # Adjust remaining business hours\n        while bhour_remain != timedelta(0):\n            if self.n >= 0:\n                business_hours = self._get_closing_time(self._prev_opening_time(adjusted_time)) - adjusted_time\n            else:\n                business_hours = self._next_opening_time(adjusted_time) - adjusted_time\n\n            if bhour_remain < business_hours:\n                adjusted_time += bhour_remain\n                bhour_remain = timedelta(0)\n            else:\n                bhour_remain -= business_hours\n                if self.n >= 0:\n                    adjusted_time = self._next_opening_time(adjusted_time + business_hours)\n                else:\n                    adjusted_time = self._get_closing_time(self._next_opening_time(adjusted_time + business_hours - timedelta(seconds=1)))\n\n        return adjusted_time",
+            "import_list": []
+        }
+    ]
+}

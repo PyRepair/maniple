@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        n = self.n\n        other_time = other.time()\n\n        # Calculate total business hours in a day\n        business_hours = (self.end[0].hour - self.start[0].hour) * 60\n\n        # Calculate the number of business days to adjust\n        business_days, remaining_business_hours = divmod(abs(n), business_hours)\n\n        if self.start[0].hour <= other_time.hour < self.end[0].hour:\n            # If the given time is within the business hours, apply adjustments\n            if n >= 0:\n                # Move to the end of business hours if the given time is not on the offset\n                if other_time not in self.end or not self._is_on_offset(other):\n                    other += timedelta(hours=(self.end[0].hour - other_time.hour))\n\n                # Adjust by the remaining business hours\n                if remaining_business_hours != 0:\n                    other += timedelta(minutes=remaining_business_hours)\n\n            else:\n                # Move to the start of business hours if the given time is not on the offset\n                if other_time not in self.start or not self._is_on_offset(other):\n                    other -= timedelta(hours=(other_time.hour - self.start[0].hour))\n\n                # Adjust by the remaining business hours\n                if remaining_business_hours != 0:\n                    other -= timedelta(minutes=remaining_business_hours)\n\n        else:\n            # If the given time is outside of business hours, adjust based on business days\n            if n > 0:\n                # Move to the next business day's opening time\n                other = self._next_opening_time(other)\n            else:\n                # Move to the previous business day's opening time\n                other = self._prev_opening_time(other)\n\n            # Adjust by the remaining business days\n            if business_days != 0:\n                other = self.next_bday(other)\n\n        return other\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

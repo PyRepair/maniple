@@ -1,0 +1,75 @@
+{
+    "fastapi": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 6,
+            "start_line": 617,
+            "file_name": "fastapi/dependencies/utils.py",
+            "replace_code": "async def request_body_to_args(\n    required_params: List[ModelField],\n    received_body: Optional[Union[Dict[str, Any], FormData]],\n) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:\n    values = {}\n    errors = []\n    for field in required_params:\n        if isinstance(received_body, FormData):\n            value = received_body.getlist(field.alias) if field.type_ == list else received_body.get(field.alias)\n        else:\n            value = received_body[field.alias] if field.alias in received_body else None\n\n        if value is None or value == \"\" or len(value) == 0:\n            if field.required:\n                errors.append(ErrorWrapper(MissingError(), loc=(\"body\", field.alias)))\n            else:\n                values[field.name] = deepcopy(field.default)\n            continue\n        \n        if isinstance(field.type_, list) and isinstance(value, list):\n            values[field.name] = value\n        elif isinstance(field.type_, set) and isinstance(value, list):\n            values[field.name] = set(value)\n        elif isinstance(field.type_, tuple) and isinstance(value, list):\n            values[field.name] = tuple(value)\n        else:\n            v_, errors_ = field.validate(value, values, loc=(\"body\", field.alias))\n            if isinstance(errors_, ErrorWrapper):\n                errors.append(errors_)\n            elif isinstance(errors_, list):\n                errors.extend(errors_)\n            else:\n                values[field.name] = v_\n    \n    return values, errors",
+            "import_list": []
+        }
+    ]
+}

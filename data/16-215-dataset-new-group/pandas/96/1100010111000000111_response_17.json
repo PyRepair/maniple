@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        n = self.n\n\n        # Adjust dates to start from the beginning of the working window\n        base_datetime = datetime(\n            other.year, other.month, other.day, self.start_hour, 0\n        )\n        timedelta_to_base = (other - base_datetime).total_seconds()\n        business_days = int(timedelta_to_base / (self.business_hours * 3600))\n\n        if n >= 0:\n            business_days += 1\n        elif timedelta_to_base < 0:\n            business_days -= 1\n\n        # Adjust for holidays\n        holidays = [date(int(h[:4]), int(h[5:7]), int(h[8:10])) for h in self.holidays]\n        holidays.sort()\n        adjusted_days = 0\n        for day in range(abs(business_days)):\n            delta = business_days / abs(business_days)\n            test_day = base_datetime + timedelta(days=delta * day)\n            if test_day in holidays:\n                adjusted_days += 1 * delta\n            if abs(adjusted_days) == abs(business_days):\n                break\n\n        # Adjust the other day by the required number of business days\n        new_day = base_datetime + timedelta(days=business_days + adjusted_days)\n        remaining_hours = other.hour - self.start_hour\n        new_day = new_day.replace(\n            hour=self.start_hour, minute=0, second=0, microsecond=0\n        )\n        # Adjust for remaining hours\n        new_day += timedelta(hours=remaining_hours)\n        return new_day\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

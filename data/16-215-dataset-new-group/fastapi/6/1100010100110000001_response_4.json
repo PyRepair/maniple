@@ -1,0 +1,82 @@
+{
+    "fastapi": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 6,
+            "start_line": 617,
+            "file_name": "fastapi/dependencies/utils.py",
+            "replace_code": "async def request_body_to_args(\n    required_params: List[ModelField],\n    request: Request\n) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:\n    values = {}\n    errors = []\n    received_body = await request.form()\n    for field in required_params:\n        value: Any = None\n        if received_body is not None and field.alias in received_body:\n            value = received_body.get(field.alias)\n            if value is not None:\n                # check for non-typing sequences (list, set, tuple)\n                if field.sub_fields:\n                    value_items = value if isinstance(value, list) else [value]\n                    processed_items = []\n                    for item in value_items:\n                        item_values, item_errors = await request_body_to_args(field.sub_fields, item)\n                        processed_items.append(item_values)\n                        errors.extend(item_errors)\n                    values[field.name] = processed_items if isinstance(value, list) else processed_items[0]\n                else:\n                    # validate the field and handle missing values\n                    try:\n                        validated_value = field.validate(value, values, loc=(\"body\", field.alias))\n                        values[field.name], validation_errors = validated_value\n                        if isinstance(validation_errors, ErrorWrapper):\n                            errors.append(validation_errors)\n                        elif isinstance(validation_errors, list):\n                            errors.extend(validation_errors)\n                    except Exception as e:\n                        errors.append(ErrorWrapper(e, loc=(\"body\", field.alias)))\n            elif field.required:\n                errors.append(ErrorWrapper(MissingError(), loc=(\"body\", field.alias)))\n            else:\n                values[field.name] = deepcopy(field.default)\n        elif field.required:\n            errors.append(ErrorWrapper(MissingError(), loc=(\"body\", field.alias)))\n        else:\n            values[field.name] = deepcopy(field.default)\n    return values, errors",
+            "import_list": [
+                "import asyncio",
+                "from copy import deepcopy",
+                "from typing import Any, Dict, List, Tuple, Union",
+                "from pydantic import ErrorWrapper, FormData, MissingError",
+                "from pydantic.fields import Field as ModelField",
+                "from fastapi import Request"
+            ]
+        }
+    ]
+}

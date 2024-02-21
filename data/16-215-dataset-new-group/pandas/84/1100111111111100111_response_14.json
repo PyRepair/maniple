@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 84,
+            "start_line": 312,
+            "file_name": "pandas/core/reshape/reshape.py",
+            "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n    if len(clocs) == 0:\n        return data\n\n    index = data.index\n    if isinstance(clocs, tuple):\n        clocs = [clocs]\n\n    new_levels = []\n    new_names = []\n    new_codes = []\n    unstcols = None\n\n    if isinstance(data, pd.Series):\n        dummy_index = Index([], name=\"__placeholder__\")\n        dummy = data.copy()\n        dummy.index = dummy_index\n        unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n        new_levels = [index.levels[i] for i, _ in clocs]  # Updated line\n        new_names = [index.names[i] for i, _ in clocs]  # Updated line\n        new_codes = index.codes\n\n    else:\n        if isinstance(data.columns, pd.MultiIndex):\n            result = data\n            for i in range(len(clocs)):\n                c = clocs[i]\n                val = index._get_level_number(c[0])  # Updated line\n                result = result.unstack(val, fill_value=fill_value)\n            return result\n\n        dummy_index = MultiIndex(\n            levels=[index.levels[index._get_level_number(c[0])] for c in clocs],  # Updated line\n            codes=[index.codes[index._get_level_number(c[0])] for c in clocs],  # Updated line\n            names=[index.names[index._get_level_number(c[0])] for c in clocs],  # Updated line\n            verify_integrity=False,\n        )\n        dummy = data.copy()\n        dummy.index = dummy_index\n        unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n        if isinstance(unstacked, Series):\n            unstcols = unstacked.index\n        else:\n            unstcols = unstacked.columns\n        new_levels = [unstcols.levels[0]] + [index.levels[index._get_level_number(c[0])] for c in clocs]  # Updated line\n        new_names = [data.columns.name] + [index.names[index._get_level_number(c[0])] for c in clocs]  # Updated line\n\n        new_codes = [unstcols.codes[0]]\n        for i, rec in enumerate(recons_codes):\n            new_codes.append(rec.take(unstcols.codes[-1]))\n\n    new_columns = MultiIndex(\n        levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False\n    )\n\n    if isinstance(unstacked, Series):\n        unstacked.index = new_columns\n    else:\n        unstacked.columns = new_columns\n\n    return unstacked",
+            "import_list": []
+        }
+    ]
+}

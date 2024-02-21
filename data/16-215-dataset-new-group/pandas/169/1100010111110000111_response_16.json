@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 0,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 169,
+            "start_line": 8143,
+            "file_name": "pandas/core/frame.py",
+            "replace_code": "def quantile(self, q=0.5, axis=0, numeric_only=True, interpolation=\"linear\"):\n    data = self._get_numeric_data() if numeric_only and self._is_numeric else self\n    axis = self._get_axis_number(axis)\n    is_transposed = axis == 1\n\n    if is_transposed:\n        data = data.T\n\n    # Avoid quantile operation if no data is available\n    if len(data) == 0:\n        if is_transposed:\n            return self._constructor_sliced(\n                columns=self.columns, index=[q], data=[], name=q, dtype=None\n            )\n        else:\n            return self._constructor_sliced(\n                index=self.index, data=[], name=q, dtype=None\n            )\n\n    # Select the quantile for datetime data\n    if not isinstance(data.iloc[0, 0], (np.datetime64, pd.Timestamp, pd.Timedelta)):\n        result = data._data.quantile(\n            qs=q, axis=data._get_block_manager_axis(axis), interpolation=interpolation, transposed=is_transposed\n        )\n    else:\n        # For datetime and timedelta data\n        result = data._data.quantile_numeric(\n            qs=q, axis=1, interpolation=interpolation, transposed=is_transposed\n        )\n\n    # Construct the result\n    if np.isscalar(q):\n        result = self._constructor_sliced(result, name=q)\n    else:\n        result = self._constructor(result, index=q)\n\n    if is_transposed:\n        if isinstance(result, pd.Series):\n            result.name = q\n        return result.T\n    return result",
+            "import_list": []
+        }
+    ]
+}

@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    # ... (other code remains unchanged)\n\n    if isinstance(other, datetime):\n        # used for detecting edge condition\n        nanosecond = getattr(other, \"nanosecond\", 0)\n        \n        # reset timezone and nanosecond\n        other = other.replace(hour=0, minute=0, second=0, microsecond=0)\n        n = self.n\n\n        if n > 0:\n            # If the time is outside of business hours or is a holiday, adjust to the next opening time\n            if other.time() not in self.start or self._is_on_offset(other) or other in self.holidays:\n                other = self._next_opening_time(other)\n                while other in self.holidays:\n                    other = self._next_opening_time(other)\n        else:\n            # If the time is within business hours and not a holiday, adjust to the previous opening time\n            if other.time() in self.start and not self._is_on_offset(other) and other not in self.holidays:\n                other = self._prev_opening_time(other)\n            else:\n                # Otherwise, adjust to the next opening time, then to the closing time\n                other = self._next_opening_time(other)\n                while other in self.holidays:\n                    other = self._next_opening_time(other)\n                other = self._get_closing_time(other)\n\n        # Calculate remaining business hours to adjust\n        business_hours_seconds = sum(\n            self._get_business_hours_by_sec(st, en)\n            for st, en in zip(self.start, self.end)\n        )\n        bd, r = divmod(abs(n * 60), business_hours_seconds // 60)\n\n        # Adjust by business days first\n        other += bd * self.next_bday \n        if r != 0:\n            if n > 0:\n                # Adjust forward within the same business day\n                while r > 0:\n                    business_hour = self._get_closing_time(self._prev_opening_time(other)) - other\n                    if business_hour.total_seconds() > r * 60:\n                        other += timedelta(seconds=r * 60)\n                        break\n                    else:\n                        r -= business_hour.total_seconds() / 60\n                        other = self._next_opening_time(other + business_hour)\n            else:\n                # Adjust backward within the same business day\n                if other.time() not in self.start or self._is_on_offset(other) or other in self.holidays:\n                    other = self._next_opening_time(other)\n                while r > 0:\n                    business_hour = self._next_opening_time(other) - other\n                    if business_hour.total_seconds() >= r * 60:\n                        other -= timedelta(seconds=r * 60)\n                        break\n                    else:\n                        r -= business_hour.total_seconds() / 60\n                        other = self._get_closing_time(self._next_opening_time(other - timedelta(seconds=1)))\n\n        return other.replace(hour=other.hour, minute=other.minute, second=other.second, microsecond=other.microsecond)\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

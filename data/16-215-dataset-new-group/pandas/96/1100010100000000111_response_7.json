@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        holiday_dates = getattr(self, \"holidays\", [])  # Get list of holiday dates\n        business_hour_freq = int(getattr(self, \"n\", 0)) * 60  # Business hours frequency in minutes\n        adjusted_datetime = other\n\n        if other.date() in holiday_dates:\n            # Adjust to the next business day if the date is a holiday\n            adjusted_datetime = self._next_opening_time(other)\n\n        # Calculate the number of business days and remaining business hours\n        business_days, remaining_hours = divmod(abs(business_hour_freq), 360)\n        if business_hour_freq < 0:\n            business_days, remaining_hours = -business_days, -remaining_hours\n\n        # Adjust by business days first\n        if business_days != 0:\n            business_day_offset = BusinessDay(n=business_days)\n            adjusted_datetime += business_day_offset\n\n        # Adjust the remaining business hours\n        if business_hour_freq >= 0:\n            while remaining_hours > 0:\n                next_opening = self._next_opening_time(adjusted_datetime)\n                business_hour = next_opening - adjusted_datetime\n                if remaining_hours < business_hour.total_seconds() / 60:\n                    # Finish adjusting if possible\n                    adjusted_datetime += timedelta(minutes=remaining_hours)\n                    remaining_hours = 0\n                else:\n                    # Go to the next business time interval\n                    remaining_hours -= business_hour.total_seconds() / 60\n                    adjusted_datetime = self._next_opening_time(adjusted_datetime)\n        else:\n            while remaining_hours < 0:\n                previous_opening = self._prev_opening_time(adjusted_datetime)\n                business_hour = adjusted_datetime - previous_opening\n                if remaining_hours > -business_hour.total_seconds() / 60:\n                    # Finish adjusting if possible\n                    adjusted_datetime += timedelta(minutes=remaining_hours)\n                    remaining_hours = 0\n                else:\n                    # Go to the previous business time interval\n                    remaining_hours += business_hour.total_seconds() / 60\n                    adjusted_datetime = self._prev_opening_time(previous_opening)\n\n        return adjusted_datetime\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

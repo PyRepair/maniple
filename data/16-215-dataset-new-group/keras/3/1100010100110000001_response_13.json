@@ -1,0 +1,75 @@
+{
+    "keras": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 3,
+            "start_line": 26,
+            "file_name": "keras/models.py",
+            "replace_code": "def _clone_functional_model(model, input_tensors=None):\n    if not isinstance(model, Model):\n        raise ValueError('Expected `model` argument to be a `Model` instance, got ', model)\n    if isinstance(model, Sequential):\n        raise ValueError('Expected `model` argument to be a functional `Model` instance, got a `Sequential` instance instead:', model)\n\n    # Copy input layers if input_tensors is None\n    layer_map = {}  # Cache for created layers.\n    tensor_map = {}  # Map {reference_tensor: (corresponding_tensor, mask)}\n    if input_tensors is None:\n        input_tensors = [Input(batch_shape=layer.input.shape) for layer in model._input_layers]\n    else:\n        # Create new input layers if the input_tensors come from a non-Keras source\n        input_tensors = to_list(input_tensors)\n        for i, x in enumerate(input_tensors):\n            if not isinstance(x, Input):\n                input_tensor = Input(tensor=x, name='input-' + str(i))\n                input_tensors[i] = input_tensor\n\n    # Build the tensor map\n    for x, y in zip(model.inputs, input_tensors):\n        tensor_map[x] = (y, None)  # tensor, mask\n\n    # Iterate over every node in the reference model, in depth order\n    depth_keys = sorted(model._outbound_nodes.keys())\n    for depth in depth_keys:\n        nodes = model._outbound_nodes[depth]\n        for node in nodes:\n            # Recover the corresponding layer\n            layer = node.outbound_layer\n\n            # Clone and cache the layer\n            if layer not in layer_map:\n                # Clone the layer\n                new_layer = layer\n                layer_map[layer] = new_layer\n            else:\n                # Reuse previously cloned layer\n                layer = layer_map[layer]\n\n            # Gather inputs to call the new layer\n            reference_input_tensors = node.input_tensors\n            computed_data = []  # List of tuples (input, mask)\n            for x in reference_input_tensors:\n                if x in tensor_map:\n                    computed_data.append(tensor_map[x])\n\n            if len(computed_data) == len(reference_input_tensors):\n                # Call layer\n                computed_tensors = [x[0] for x in computed_data]\n                kwargs = {}  # Pass any relevant arguments here\n                computed_output_tensors = layer(computed_tensors, **kwargs)\n\n                # Update tensor_map\n                for x, y in zip(node.output_tensors, computed_output_tensors):\n                    tensor_map[x] = (y, None)\n\n    # Instantiate a new model from input_tensors and the computed tensor_map\n    output_tensors = [tensor_map[x][0] for x in model.outputs]\n    return Model(input_tensors, output_tensors, name=model.name)",
+            "import_list": []
+        }
+    ]
+}

@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 48,
+            "start_line": 999,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> \"Tuple[List[Block], Index]\":\n    data: BlockManager = self._get_data_to_aggregate()\n\n    if numeric_only:\n        data = data.get_numeric_data(copy=False)\n\n    agg_blocks: List[Block] = []\n    for block in data.blocks:\n        try:\n            result = self.grouper.aggregate(block.values, how, axis=1, min_count=min_count)\n        except NotImplementedError:\n            # Perform the operation in an alternate way (if applicable)\n            if alt is not None:\n                try:\n                    result = get_groupby(self.obj[block.mgr_locs], self.grouper).aggregate(\n                        lambda x: alt(x, axis=self.axis)\n                    )\n                except TypeError:\n                    # Exclude the block if there's an exception in trying to aggregate\n                    continue\n                else:\n                    result = cast(DataFrame, result)._data.blocks[0].values\n                    if result.ndim == 1:\n                        result = result.reshape(1, -1)\n        # Continue to handle other block types, as appropriate\n    return agg_blocks, data.items",
+            "import_list": []
+        }
+    ]
+}

@@ -1,0 +1,79 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n        if isinstance(other, datetime):\n            # existing code goes here\n            \n            # adjust for holidays\n            if hasattr(self, 'holidays') and self.holidays:\n                from pandas.tseries.holiday import Holiday\n                from pandas.tseries.offsets import CustomBusinessHour\n\n                if isinstance(self.holidays, Holiday) or all(isinstance(h, Holiday) for h in self.holidays):\n                    index = CustomBusinessHour(start='00:00', holidays=self.holidays).apply(pd.date_range(other, other))\n                    if other in index:\n                        other = index[-1]\n                    else:\n                        for offset in [self, -self]:\n                            index = CustomBusinessHour(start='00:00', holidays=self.holidays).apply(pd.date_range(other, other + offset, closed='right'))   \n                            if other in index:\n                                other = index[-1]\n                                break\n                else:\n                    raise ValueError(\"Holidays must be a Holiday or list of Holidays\")\n            # adjust dates\n            \n            return other\n        else:\n            raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": [
+                "from pandas.tseries.offsets import apply_wraps",
+                "from pandas.tseries.holiday import Holiday",
+                "from pandas.tseries.offsets import CustomBusinessHour"
+            ]
+        }
+    ]
+}

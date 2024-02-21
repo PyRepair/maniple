@@ -1,0 +1,79 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        n = self.n\n\n        # BusinessDay and CustomBusinessDay for handling business days\n        bday = pd.offsets.CustomBusinessDay(weekmask=\"Mon Tue Wed Thu Fri\", holidays=[\"2020-11-26\"])\n\n        # Adjust other to reduce number of cases to handle\n        start_of_day = datetime(other.year, other.month, other.day, 0, 0)\n        other_seconds = (other - start_of_day).seconds\n\n        if n >= 0:\n            # adjust to next opening time\n            other = self._next_opening_time(other)\n\n            # calculate business hours passed in the current day\n            business_hours_passed = min(other_seconds, self._get_business_hours_by_sec(other, self.start, self.end) * 60)\n\n            while n > 0:\n                # iterate through business hours to adjust the datetime\n                if business_hours_passed + self._get_business_hours_by_sec(other, self.start, self.end) * 60 < n * 60:\n                    other += timedelta(hours=1)\n                    business_hours_passed = self._get_business_hours_by_sec(other, self.start, self.end) * 60\n                    n -= 1\n                else:\n                    other += timedelta(minutes=n)\n                    n = 0\n        else:\n            # Adjust to previous closing time\n            other = self._get_closing_time(self._prev_opening_time(other))\n\n            # calculate business hours passed in the current day\n            business_hours_passed = min(other_seconds, self._get_business_hours_by_sec(other, self.start, self.end) * 60)\n\n            while n < 0:\n                # iterate through business hours to adjust the datetime\n                if business_hours_passed > abs(n) * 60:\n                    other -= timedelta(hours=1)\n                    business_hours_passed = self._get_business_hours_by_sec(other, self.start, self.end) * 60\n                    n += 1\n                else:\n                    other -= timedelta(minutes=abs(n))\n                    n = 0\n\n        return other\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": [
+                "import pandas as pd",
+                "from datetime import datetime, timedelta",
+                "from pandas.tseries.offsets import CustomBusinessHour, CustomBusinessDay"
+            ]
+        }
+    ]
+}

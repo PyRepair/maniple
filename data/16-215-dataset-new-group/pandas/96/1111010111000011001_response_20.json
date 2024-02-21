@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n        if isinstance(other, datetime):\n            # Measurement of business hours and minutes\n            business_hours_minutes = ((en.hour - st.hour) * 60 + (en.minute - st.minute) for st, en in zip(self.start, self.end))\n            businesshours = sum(business_hours_minutes)  # Total business hours\n            remaining_seconds = abs(self.n * 60) * 60  # Remaining seconds to adjust\n\n            if self.n >= 0:\n                # If the time is outside business hours, adjust to the next opening time\n                if other.time() in self.end or not self._is_on_offset(other):\n                    other = self._next_opening_time(other)\n            else:\n                # If the time is at the start of business hours, adjust to the previous business day\n                if other.time() in self.start:\n                    other -= timedelta(seconds=1)\n                # If the time is not on offset, adjust to the next opening time\n                if not self._is_on_offset(other):\n                    other = self._next_opening_time(other)\n\n            office_closing_time = other.time()\n            daily_business_hours = self._get_business_hours_by_sec(office_closing_time, remaining_seconds)\n\n            # Calculate the total number of business days and remaining hours\n            businessdays, remaining_seconds = divmod(remaining_seconds, businesshours)\n            # Check if there are any remaining seconds from the business hours\n            if remaining_seconds:\n                bhour_remain = timedelta(seconds=remaining_seconds)\n                remaining_daily_hours = 0\n                # Calculate remaining business hours for the specific time interval\n                for st, en in zip(self.start, self.end):\n                    if st <= office_closing_time <= en:\n                        remaining_daily_hours = ((en.hour - office_closing_time.hour) * 60 + (en.minute - office_closing_time.minute)) * 60\n                while bhour_remain > timedelta(0):\n                    # If remaining seconds exceed the current business hours of the day, go to the next business time interval\n                    if bhour_remain >= remaining_daily_hours:\n                        bhour_remain -= remaining_daily_hours\n                        other = self._next_opening_time(other)\n                    else:\n                        # Finish adjusting if possible\n                        other += bhour_remain\n                        bhour_remain = timedelta(0)\n\n            # Business days adjustment\n            if businessdays != 0:\n                prev_business_day = BusinessDay(n=businessdays)\n                if not self.next_bday.is_on_offset(other):\n                    prev_open = self._prev_opening_time(other)\n                    remain = other - prev_open\n                    other = prev_open + prev_business_day + remain\n                else:\n                    other = other + prev_business_day\n\n            return other\n        else:\n            raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

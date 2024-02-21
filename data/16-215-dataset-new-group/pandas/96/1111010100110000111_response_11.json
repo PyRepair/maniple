@@ -1,0 +1,80 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n        n = self.n\n        bd, r = divmod(abs(n), len(self.start))\n\n        businesshours = sum(\n            self._get_business_hours_by_sec(st, en)\n            for st, en in zip(self.start, self.end)\n        )\n\n        if n >= 0:\n            skip_bd = BusinessDay(n=bd)\n            other = other + skip_bd\n            second_hour_time = as_datetime(\n                roll_yearday(\n                    shift_month(\n                        shift_month(other, freq=CustomBusinessHour(self.start[0])),\n                        n=1\n                    )\n                )\n            )\n            second_hour_time = pd.to_datetime(\n                self._get_closing_time(self._next_opening_time(second_hour_time))\n            )\n            nanosecond = getattr(other, \"nanosecond\", 0)\n\n            if nanosecond == 0 and (other < second_hour_time):\n                dd = other.date() + np.timedelta64(1, \"D\") if other.time() > self.end[0] else other.date()\n                other = as_datetime(\n                    roll_yearday(\n                        shift_month(dd, freq=CustomBusinessHour(self.start[0])), n=1\n                    )\n                    .replace(minute=0, second=0, microsecond=0)\n                    .astype(\"datetime64[s]\")\n                )\n        else:\n            # handle n < 0\n            second_hour_time = as_datetime(\n                roll_yearday(\n                    roll_yearday(\n                        shift_month(\n                            shift_month(other, freq=CustomBusinessHour(self.start[-1])),\n                            n=-1\n                        )\n                    )\n                )\n            )\n            second_hour_time = pd.to_datetime(\n                self._get_closing_time(self._next_opening_time(second_hour_time))\n            )\n            if other.time() > self.start[-1] or nanosecond != 0:\n                other = second_hour_time - np.timedelta64(1, \"ms\")\n                businesshours = 0\n                bd, r = divmod(abs(n) - 1, len(self.start))\n            elif nanosecond == 0 and (other > second_hour_time):\n                other = as_datetime(\n                    roll_yearday(\n                        roll_yearday(\n                            shift_month(other, freq=CustomBusinessHour(self.start[-1])),\n                            n=-1\n                        )\n                    )\n                    .replace(minute=0, second=0, microsecond=0)\n                    .astype(\"datetime64[s]\")\n                )\n                bd, r = divmod(abs(n), len(self.start))\n\n        if r:\n            idx = np.absolute(n) if n >= 0 else -(np.absolute(n) + 1)\n            businesshours = np.delete(businesshours, idx)\n            businesshours = np.concatenate((businesshours[idx:], businesshours[:idx]))\n            while businesshours[0] < r:\n                r -= businesshours[0]\n                businesshours = businesshours[1:]\n            if r:\n                if (other.time() + np.timedelta64(r, \"m\")) > self.end[0]:\n                    r -= self._get_business_hours_by_sec(self.start[0], self.end[0])\n                other = other + np.timedelta64(r, \"s\")\n\n        return other",
+            "import_list": [
+                "from pandas.tseries.frequencies import CustomBusinessHour",
+                "from pandas.tseries.offsets import apply_wraps",
+                "from pandas.tseries.offsets import BusinessMixin, BusinessDay",
+                "import numpy as np"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 48,
+            "start_line": 999,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> Tuple[List[Block], Index]:\n    # Access data for aggregation\n    data: BlockManager = self._get_data_to_aggregate()\n\n    if numeric_only:\n        data = data.get_numeric_data(copy=False)\n\n    agg_blocks: List[Block] = []\n    new_items: List = []\n    deleted_items: List = []\n    split_items: List = []\n    split_frames: List = []\n\n    for block in data.blocks:\n        try:\n            result, _ = self.grouper.aggregate(block.values, how, axis=1, min_count=min_count)\n        except NotImplementedError:\n            if alt is None:\n                # Manually exclude the block if the operation cannot be performed alternatively\n                assert how == \"ohlc\"\n                deleted_items.append(block.mgr_locs.as_array)\n                continue\n\n            # Perform the operation using the alternative method\n            obj = self.obj[data.items[block.mgr_locs.as_array]]\n            s = get_groupby(obj, self.grouper)\n            result = s.aggregate(lambda x: alt(x, axis=self.axis))\n\n            if isinstance(result, DataFrame):\n                result = result.to_numpy()  # Convert DataFrame to numpy array\n\n        agg_block = make_block(result, placement=block.mgr_locs)\n\n        new_items.append(block.mgr_locs)  # Add the locations to new_items\n        agg_blocks.append(agg_block)\n\n    # Perform further processing and error handling\n    if not (agg_blocks or split_frames):\n        raise DataError(\"No numeric types to aggregate\")\n\n    for locs, result in zip(split_items, split_frames):\n        for i, loc in enumerate(locs):\n            new_items.append(np.array([loc]))\n            agg_blocks.append(make_block(result.iloc[:, [i]].to_numpy(), placement=loc))\n\n    indexer = np.concatenate(new_items)  # Concatenate new_items to create indexer\n    agg_items = data.items.take(indexer).sort_values()\n\n    offset = 0\n    for blk in agg_blocks:\n        loc = len(blk.mgr_locs)\n        blk.mgr_locs = indexer[offset : offset + loc]  # Update the locs in the blocks\n        offset += loc\n\n    return agg_blocks, agg_items",
+            "import_list": []
+        }
+    ]
+}

@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        n = self.n  # number of business hours to add\n\n        # Adjust the start time of other if it's not aligned with business hours\n        other = self._next_opening_time(other)\n\n        # Calculate the number of business days to add\n        business_day_periods = n // len(self.start)  # Calculate the number of business days to add\n        business_hour_remainder = n % len(self.start)  # Calculate the remaining business hours\n\n        # Adjust for business days\n        if business_day_periods != 0:\n            other = self.next_bday.apply(other + timedelta(days=business_day_periods))\n\n        # Adjust for remaining business hours\n        if business_hour_remainder != 0:\n            current_time_index = self.start.index(other.time().replace(second=0, microsecond=0))\n            hours_to_end_of_day = len(self.start) - current_time_index\n            if n >= 0:\n                if business_hour_remainder <= hours_to_end_of_day:\n                    # Add the remaining business hours within the same business day\n                    other += timedelta(hours=business_hour_remainder)\n                else:\n                    # Move to the next business day and add the remaining business hours\n                    other = self.next_bday.apply(other + timedelta(days=1))\n                    other = self.start[0]  # Start of the next business day\n                    other += timedelta(hours=business_hour_remainder - hours_to_end_of_day)\n            else:\n                if abs(business_hour_remainder) <= current_time_index:\n                    # Subtract the remaining business hours within the same business day\n                    other -= timedelta(hours=abs(business_hour_remainder))\n                else:\n                    # Move to the previous business day and subtract the remaining business hours\n                    other = other - timedelta(days=1)\n                    other = self.end[-1]  # End of the previous business day\n                    other -= timedelta(hours=abs(business_hour_remainder) - current_time_index)\n\n        return other\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

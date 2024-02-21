@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        # Figure out if the datetime falls within a business hour\n        if other.time() in self.start:\n            start_index = self.start.index(other.time())\n        elif other.time() in self.end:\n            start_index = self.end.index(other.time())\n        else:\n            raise ApplyTypeError('Datetime does not fall within a business hour')\n\n        if self.n >= 0:\n            if start_index == len(self.end) - 1 or not self._is_on_offset(other):\n                # Move to the next opening time\n                other = self._next_opening_time(other)\n        else:\n            if start_index == 0:\n                # Move to the previous closing time\n                other = self._get_closing_time(other)\n                other = self._prev_opening_time(other)\n            elif not self._is_on_offset(other):\n                # Move to the next opening time\n                other = self._next_opening_time(other)\n\n        # Make remaining adjustments\n        remaining_business_hours, r = divmod(abs(self.n * 60), self.business_hours // 60)\n        if self.n < 0:\n            remaining_business_hours, r = -remaining_business_hours, -r\n\n        if remaining_business_hours != 0:\n            # Number of business days to skip\n            skip_bd = BusinessDay(n=remaining_business_hours)\n            if not self.next_bday.is_on_offset(other):\n                prev_open = self._prev_opening_time(other)\n                remain = other - prev_open\n                other = prev_open + skip_bd + remain\n            else:\n                other = other + skip_bd\n\n        # Adjust for remaining business hours\n        bhour_remain = timedelta(minutes=r)\n\n        while bhour_remain != timedelta(0):\n            if self.n >= 0:\n                bhour = self._get_closing_time(self._prev_opening_time(other)) - other\n                if bhour_remain <= bhour:\n                    other += bhour_remain\n                    bhour_remain = timedelta(0)\n                else:\n                    bhour_remain -= bhour\n                    other = self._next_opening_time(other + bhour)\n            else:\n                bhour = other - self._prev_opening_time(other)\n                if bhour_remain >= bhour:\n                    other -= bhour_remain\n                    bhour_remain = timedelta(0)\n                else:\n                    bhour_remain -= bhour\n                    other = self._get_closing_time(self._prev_opening_time(other) - bhour)\n\n        return other\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

@@ -1,0 +1,77 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        # existing code...\n        businesses = self._get_business_hours_by_sec(self.start, self.end)\n        total_hours = sum(businesses)\n\n        if total_hours % 60 != 0:\n            raise ValueError(\"Business hours must be multiple of 60 minutes\")\n\n        n = self.n\n        bd, r = divmod(n, total_hours // 60)\n        if r < 0:\n            bd, r = bd - 1, r + total_hours // 60\n\n        # check if there is a holiday between other and the next valid datetime\n        while bd != 0:\n            other = other + DateOffset(days=int(bd / abs(bd)))\n            if self.onOffset(other) or self.is_on_offset(other):\n                bd -= int(bd / abs(bd))\n            else:\n                # jump over the holiday\n                other = self._next_opening_time(other)\n                bd -= int(bd / abs(bd))\n\n        while r < 0:\n            other = other - DateOffset(minutes=total_hours)\n            r += total_hours\n            if not self._is_on_offset(other):\n                other = self._next_opening_time(other)\n\n        while r >= total_hours:\n            other = other + DateOffset(minutes=total_hours)\n            r -= total_hours\n            if not self._is_on_offset(other):\n                other = self._next_opening_time(other)\n\n        bhour_remain = timedelta(minutes=r)\n\n        if r != 0 or bd != 0:\n            raise ValueError(\"Invalid datetime object. Please check your input.\")\n\n        return other\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": [
+                "from pandas import DateOffset"
+            ]
+        }
+    ]
+}

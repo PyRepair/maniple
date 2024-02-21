@@ -1,0 +1,75 @@
+{
+    "keras": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 3,
+            "start_line": 26,
+            "file_name": "keras/models.py",
+            "replace_code": "def _clone_functional_model(model, input_tensors=None):\n    if not isinstance(model, Model):\n        raise ValueError('Expected `model` argument to be a `Model` instance, got ', model)\n\n    if input_tensors is None:\n        input_tensors = [Input(shape=layer.input.shape[1:]) for layer in model.input_layers]\n    else:\n        input_tensors = to_list(input_tensors)\n\n    # Create a dictionary to store the mapping of input tensors\n    input_map = {model.inputs[i]: input_tensors[i] for i in range(len(model.inputs))}\n\n    # Create a list to store the newly computed output tensors\n    computed_tensors = []\n    for input_tensor in input_tensors:\n        x = input_tensor\n        for layer in model.layers:\n            kwargs = {}\n            if isinstance(layer, keras.layers.wrappers.TimeDistributed):\n                # Retrieve the wrapped layer\n                layer = layer.layer\n            if isinstance(layer, keras.models.Model):\n                # If the layer is a sub-model, recursively clone it\n                x = _clone_functional_model(layer, x)\n                if len(layer.outputs) > 1:\n                    computed_tensors.extend(x)\n                else:\n                    computed_tensors.append(x)\n            else:\n                # Call the layer with correctly mapped input tensor\n                x = layer(x, **kwargs)\n                computed_tensors.append(x)\n\n    new_model = Model(input_tensors, computed_tensors, name=model.name)\n\n    return new_model",
+            "import_list": []
+        }
+    ]
+}

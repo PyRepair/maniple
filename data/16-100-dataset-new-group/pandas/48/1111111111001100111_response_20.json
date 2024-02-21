@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 48,
+            "start_line": 999,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> \"Tuple[List[Block], Index]\":\n    # TODO: the actual managing of mgr_locs is a PITA\n    # here, it should happen via BlockManager.combine\n\n    data: BlockManager = self._get_data_to_aggregate()\n\n    if numeric_only:\n        data = data.get_numeric_data(copy=False)\n\n    agg_blocks: List[Block] = []\n    new_items: List[np.ndarray] = []\n    deleted_items: List[np.ndarray] = []\n    split_items: List[np.ndarray] = []\n    split_frames: List[DataFrame] = []\n\n    for block in data.blocks:\n        try:\n            result, _ = self.grouper.aggregate(\n                block.values, how, axis=1, min_count=min_count\n            )\n        except (NotImplementedError, TypeError):\n            alt_func = alt or self._default_alternative(how)\n            result = block.apply(alt_func, axis=self.axis)\n\n        result = cast(DataFrame, result)\n\n        # Unwrap DataFrame to get array\n        if len(result._data.blocks) != 1:\n            result = result.unstack()\n            split_items.append(result)\n\n        # Add the aggregated block to the list\n        agg_block: Block = block.make_block(result.values.squeeze())\n        new_items.append(block.mgr_locs.as_array)\n        agg_blocks.append(agg_block)\n\n    if not (agg_blocks or split_frames):\n        raise DataError(\"No numeric types to aggregate\")\n\n    if split_items:\n        # Clean up the mess left over from split blocks.\n        for result in split_items:\n            block_locs = result.index.tolist()\n            for loc in block_locs:\n                new_items.append(np.array([loc], dtype=np.int))\n                split_data = result.xs(loc, level=self.axis).T.unstack()\n                loc_array = np.repeat(loc, split_data.size)\n                loc_index = pd.MultiIndex.from_tuples(list(zip(loc_array, split_data.index)))\n                split_frame = pd.DataFrame(split_data.values, index=loc_index, columns=[block.name])\n                split_frames.append(split_frame)\n\n    # Construct the resulting BlockManager with the aggregated blocks\n    indexer = np.concatenate(new_items)\n    agg_items = data.items.take(np.sort(indexer))\n    aggregation_block_manager = BlockManager.from_blocks(agg_blocks, axis=1, items=agg_items)\n\n    if split_frames:\n        split_block_manager = BlockManager.from_frames(split_frames, axis=1)\n        aggregation_block_manager = aggregation_block_manager.combine_first(split_block_manager)\n\n    return agg_blocks, agg_items",
+            "import_list": []
+        }
+    ]
+}

@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 168,
+            "start_line": 425,
+            "file_name": "pandas/core/groupby/grouper.py",
+            "replace_code": "def _get_grouper(\n    obj,\n    key=None,\n    axis=0,\n    level=None,\n    sort=True,\n    observed=False,\n    mutated=False,\n    validate=True,\n):\n    \"\"\"\n    create and return a BaseGrouper, which is an internal\n    mapping of how to create the grouper indexers.\n    This may be composed of multiple Grouping objects, indicating\n    multiple groupers\n\n    Groupers are ultimately index mappings. They can originate as:\n    index mappings, keys to columns, functions, or Groupers\n\n    Groupers enable local references to axis,level,sort, while\n    the passed in axis, level, and sort are 'global'.\n\n    This routine tries to figure out what the passing in references\n    are and then creates a Grouping for each one, combined into\n    a BaseGrouper.\n\n    If observed & we have a categorical grouper, only show the observed\n    values\n\n    If validate, then check for key/level overlaps\n\n    \"\"\"\n    group_axis = obj._get_axis(axis)\n\n    if is_list_like(key):\n        # if the passed-in Grouper is a list of keys,\n        # convert it to a single key representing the list\n        if len(key) > 1:\n            key = com.asarray_tuplesafe(key)\n        else:\n            key = key[0]\n\n    if isinstance(group_axis, MultiIndex):\n        # handle MultiIndex\n        if key is not None and is_scalar(key):\n            # for a scalar key, convert it to a single level\n            key = group_axis.get_level_values(key)\n        level = None\n    elif isinstance(level, str):\n        # handle the level parameter as a string\n        if obj.index.name != level:\n            raise ValueError(\n                \"level name {} is not the name of the index\".format(level)\n            )\n        level = None\n        key = group_axis\n    elif level is not None and (level > 0 or level < -1):\n        raise ValueError(\"level > 0 or level < -1 only valid with MultiIndex\")\n\n    # create the BaseGrouper using the resolved key and level\n    grouper = BaseGrouper(\n        group_axis,\n        [Grouping(group_axis, key, obj=obj, level=level, sort=sort, observed=observed, in_axis=True)],\n        sort=sort,\n        mutated=mutated,\n    )\n\n    return grouper, [], obj",
+            "import_list": []
+        }
+    ]
+}

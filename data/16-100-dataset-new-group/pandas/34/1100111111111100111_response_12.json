@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 34,
+            "start_line": 1406,
+            "file_name": "pandas/core/resample.py",
+            "replace_code": "def _get_time_bins(self, ax):\n    if not isinstance(ax, DatetimeIndex):\n        raise TypeError(\n            \"axis must be a DatetimeIndex, but got an instance of {type(ax).__name__}\"\n        )\n\n    if len(ax) == 0:\n        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)\n        return binner, [], labels\n\n    first, last = _get_timestamp_range_edges(\n        ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base\n    )\n    # use first/last directly instead of call replace() on them\n    # because replace() will swallow the nanosecond part\n    # thus, the last bin may be slightly before the end if the end contains\n    # nanosecond part and lead to `Values falls after last bin` error\n\n    # Generate time bins and labels while handling ambiguous times\n    # This includes handling of clock change days and associated ambiguous timestamps\n    offset = self.freq\n    tz = ax.tz\n    if self.closed == 'left':\n        binner = date_range(\n            start=first, periods=len(ax) + 1, freq=offset, tz=tz, name=ax.name\n        )\n    else:\n        binner = date_range(\n            end=last, periods=len(ax) + 1, freq=offset, tz=tz, name=ax.name, closed='right'\n        )\n\n    bin_edges = binner.asi8\n    bins = lib.generate_bins_dt64(ax.asi8, bin_edges, self.closed, hasnans=ax.hasnans)\n\n    # Extract labels and handle extra labels if needed\n    labels = binner if self.label == 'right' else binner[1:]\n    if ax.hasnans:\n        binner = binner.insert(0, NaT)\n        labels = labels.insert(0, NaT)\n\n    if len(bins) < len(labels):\n        labels = labels[: len(bins)]\n\n    return binner, bins, labels",
+            "import_list": []
+        }
+    ]
+}

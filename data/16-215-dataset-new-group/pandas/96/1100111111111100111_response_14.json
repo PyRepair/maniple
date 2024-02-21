@@ -1,0 +1,78 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n        if isinstance(other, datetime):\n            curr_dt = datetime(other.year, other.month, other.day, other.hour, other.minute, other.second, other.microsecond)\n            n = self.n\n    \n            # Adjust other to handle edge conditions\n            if n >= 0:\n                if curr_dt.time() in self.end or not self._is_on_offset(curr_dt):\n                    curr_dt = self._next_opening_time(curr_dt)\n            else:\n                if curr_dt.time() in self.start:\n                    # Adjustment to move to the previous business day\n                    curr_dt = curr_dt - timedelta(seconds=1)\n                if not self._is_on_offset(curr_dt):\n                    curr_dt = self._next_opening_time(curr_dt)\n                    curr_dt = self._get_closing_time(curr_dt)\n    \n            # Get total business hours within one business day\n            business_hours_sec = sum(self._get_business_hours_by_sec(start, end) for start, end in zip(self.start, self.end))\n            \n            # Determine number of business days and remaining business hours\n            business_days, remainder = divmod(abs(n * 60), business_hours_sec // 60)\n            if n < 0:\n                business_days, remainder = -business_days, -remainder\n            \n            # Adjust by business days first\n            if business_days != 0:\n                business_day_offset = CustomBusinessDay(n=business_days)\n                if not business_day_offset.is_on_offset(curr_dt):\n                    prev_opening = self._prev_opening_time(curr_dt)\n                    remaining_time = curr_dt - prev_opening\n                    curr_dt = prev_opening + business_day_offset + remaining_time\n                else:\n                    curr_dt += business_day_offset\n    \n            # Adjust remaining business hours\n            bhour_remain = timedelta(minutes=remainder)\n    \n            if n >= 0:\n                while bhour_remain != timedelta(0):\n                    business_hour = self._get_closing_time(self._prev_opening_time(curr_dt)) - curr_dt\n                    if bhour_remain < business_hour:\n                        curr_dt += bhour_remain\n                        bhour_remain = timedelta(0)\n                    else:\n                        bhour_remain -= business_hour\n                        curr_dt = self._next_opening_time(curr_dt + business_hour)\n            else:\n                while bhour_remain != timedelta(0):\n                    business_hour = self._next_opening_time(curr_dt) - curr_dt\n                    if bhour_remain > business_hour or (bhour_remain == business_hour and curr_dt.nanosecond != 0):\n                        curr_dt += bhour_remain\n                        bhour_remain = timedelta(0)\n                    else:\n                        bhour_remain -= business_hour\n                        curr_dt = self._get_closing_time(self._next_opening_time(curr_dt + business_hour - timedelta(seconds=1)))\n    \n            return curr_dt\n        else:\n            raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": [
+                "from pandas.tseries.offsets import CustomBusinessDay, CustomBusinessHour",
+                "from datetime import datetime, timedelta"
+            ]
+        }
+    ]
+}

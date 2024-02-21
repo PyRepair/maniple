@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 84,
+            "start_line": 312,
+            "file_name": "pandas/core/reshape/reshape.py",
+            "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n    if len(clocs) == 0:\n        return data\n    \n    # Handle hierarchical columns\n    if isinstance(data.columns, MultiIndex):\n        for i in range(len(clocs)):\n            val = clocs[i]\n            data = data.unstack(level=val, fill_value=fill_value)\n            clocs = [v if i > v else v - 1 for v in clocs]\n        return data\n\n    # Rest of the logic for handling regular index\n    index = data.index\n    idx_levels = list(index.levels)\n    idx_codes = list(index.codes)\n    clevels = tuple([index.nlevels - i - 1 for i in clocs])\n    rlevels = [level for i, level in enumerate(index.levels) if i not in clocs]\n    dummy_index = pd.MultiIndex.from_product(\n        [level[np.unique(c).astype('str')] for c, level in zip([idx_codes[loc] for loc in clocs], \n                                                              [idx_levels[loc] for loc in clocs])],\n        names=[c if isinstance(c, str) else None for c in clevels]\n    )\n    \n    cnames = [index.names[c] for c in clocs]\n    new_index = rlevels + [dummy_index]\n\n    # Handle filling the unstacked data based on the fill_value\n    unstacked_data = data.reindex(new_index).T\n    \n    if fill_value is not None:\n        unstacked_data.fillna(fill_value, inplace=True)\n    \n    return unstacked_data",
+            "import_list": []
+        }
+    ]
+}

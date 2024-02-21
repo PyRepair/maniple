@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        n = self.n\n\n        # Reset timezone and nanosecond\n        other = as_datetime(other)\n\n        if n >= 0 and not self._is_on_offset(other):\n            other = self._next_opening_time(other)\n        elif n < 0 and self._is_on_offset(other):\n            # Adjustment to move to previous business day\n            other -= timedelta(seconds=1)\n            other = self._next_opening_time(other)\n            other = self._get_closing_time(other)\n\n        if n < 0:\n            bd, r = divmod(abs(n * 60), self._get_business_seconds())\n            bd, r = -bd, -r\n        else:\n            bd, r = divmod(n * 60, self._get_business_seconds())\n\n        if bd != 0:\n            skip_bd = BusinessDay(n=bd)\n            other = self._next_bday(other)\n\n            if not self._is_on_offset(other):\n                other = self._next_opening_time(other)\n\n            other += timedelta(0, r * 60)\n\n        bhour_remain = timedelta(minutes=r)\n        if n >= 0:\n            while bhour_remain > timedelta(0):\n                start_opening = self._prev_opening_time(other)\n                closing = self._get_closing_time(start_opening)\n                remaining = closing - other\n                if bhour_remain <= remaining:\n                    other += bhour_remain\n                    bhour_remain = timedelta(0)\n                else:\n                    bhour_remain -= remaining\n                    other = self._next_opening_time(closing)\n        else:\n            while bhour_remain != timedelta(0):\n                opening = self._next_opening_time(other)\n                remaining = opening - other\n                if bhour_remain >= remaining:\n                    other += bhour_remain\n                    bhour_remain = timedelta(0)\n                else:\n                    next_closing = self._get_closing_time(opening - timedelta(0, 1))\n                    bhour_remain -= remaining\n                    other = next_closing\n\n        return other\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

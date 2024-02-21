@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 48,
+            "start_line": 999,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> \"Tuple[List[Block], Index]\":\n    data: BlockManager = self._get_data_to_aggregate()\n\n    if numeric_only:\n        data = data.get_numeric_data(copy=False)\n\n    agg_blocks: List[Block] = []\n    new_items: List[np.ndarray] = []\n    locs_to_delete: List[int] = []\n    for block in data.blocks:\n        locs = block.mgr_locs.as_array\n        try:\n            result, _ = self.grouper.aggregate(\n                block.values, how, axis=1, min_count=min_count\n            )\n            agg_block: Block = block.make_block(result)\n        except NotImplementedError:\n            if alt is None:\n                locs_to_delete.extend(locs)\n            else:\n                obj = self.obj.loc[:, data.items[locs]]\n                result = obj.apply(alt, axis=self.axis)\n                agg_block = data.put(key=locs, value=result)._split_op_result(locs)\n                if agg_block._data.blocks:\n                    # Data split into different frames\n                    raise NotImplementedError(\"Data is split into different frames.\")\n        new_items.extend(locs_to_delete)\n\n        \n    # Handle split blocks and cleanup\n    if locs_to_delete:\n        data = data.delete(items=locs_to_delete, axis=0)\n\n    # reset the locs in the blocks to correspond to our current ordering\n    indexer = np.concatenate(new_items)\n    agg_items = data.items.take(np.sort(indexer))\n\n    for blk in agg_blocks:\n        loc = len(blk.mgr_locs)\n        blk.mgr_locs = indexer[offset:offset + loc]\n        offset += loc\n\n    return agg_blocks, agg_items",
+            "import_list": []
+        }
+    ]
+}

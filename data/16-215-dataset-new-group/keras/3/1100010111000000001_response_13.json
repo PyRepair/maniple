@@ -1,0 +1,75 @@
+{
+    "keras": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 3,
+            "start_line": 26,
+            "file_name": "keras/models.py",
+            "replace_code": "def _clone_functional_model(model, input_tensors=None):\n    \"\"\"Clone a functional `Model` instance.\n\n    Model cloning is similar to calling a model on new inputs,\n    except that it creates new layers (and thus new weights) instead\n    of sharing the weights of the existing layers.\n\n    # Arguments\n        model: Instance of `Model`.\n        input_tensors: optional list of input tensors\n            to build the model upon. If not provided,\n            placeholders will be created.\n\n    # Returns\n        An instance of `Model` reproducing the behavior\n        of the original model, on top of new inputs tensors,\n        using newly instantiated weights.\n\n    # Raises\n        ValueError: in case of invalid `model` argument value.\n    \"\"\"\n    if not isinstance(model, Model):\n        raise ValueError('Expected `model` argument '\n                         'to be a `Model` instance, got ', model)\n    if isinstance(model, Sequential):\n        raise ValueError('Expected `model` argument '\n                         'to be a functional `Model` instance, '\n                         'got a `Sequential` instance instead:', model)\n\n    if input_tensors is None:\n        input_tensors = [Input(batch_shape=layer.input.shape[1:]) for layer in model.layers]\n        \n    layer_map = dict(zip(model.layers, [layer.__class__.from_config(layer.get_config()) for layer in model.layers]))\n\n    new_inputs = [layer_map[input_layer] for input_layer in model.inputs]\n    for node in model._nodes_by_depth.keys():\n        current_nodes = model._nodes_by_depth[node]\n        for current_node in current_nodes:\n            current_layer = current_node.outbound_layer\n            if current_layer not in layer_map:\n                layer_map[current_layer] = current_layer.__class__.from_config(current_layer.get_config())\n    \n    new_outputs = [layer_map[output_layer] for output_layer in model.outputs]\n    \n    return Model(inputs=new_inputs, outputs=new_outputs)",
+            "import_list": []
+        }
+    ]
+}

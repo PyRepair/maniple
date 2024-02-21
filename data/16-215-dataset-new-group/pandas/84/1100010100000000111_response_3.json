@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 84,
+            "start_line": 312,
+            "file_name": "pandas/core/reshape/reshape.py",
+            "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n    if len(clocs) == 0:\n        return data\n\n    index = data.index\n\n    clocs = [index._get_level_number(i) if isinstance(i, (str, tuple)) else i for i in clocs]  # Update the index retrieval logic to account for different types of levels\n\n    rlocs = [i for i in range(index.nlevels) if i not in clocs]\n\n    clevels = index.remove_unused_levels().levels  # Update to use remove_unused_levels to ensure all levels are properly represented\n    ccodes = index.remove_unused_levels().codes\n\n    if rlocs == []:\n        dummy_index = data.index  # No need to create a dummy index when all levels are in clocs\n    else:\n        rlevels = [index.levels[i] for i in rlocs]\n        rcodes = [index.codes[i] for i in rlocs]\n\n        dummy_index = MultiIndex(\n            levels=rlevels + [index.levels[i] for i in clocs],\n            codes=rcodes + [index.codes[i] for i in clocs],  # Update to use index's levels and codes directly\n            verify_integrity=False,\n        )\n\n    if isinstance(data, Series):\n        dummy = data.loc[:]  # Use loc to ensure that all levels are preserved\n        dummy.index = dummy_index\n\n        unstacked = dummy.unstack(list(range(len(clocs))), fill_value=fill_value)\n        new_levels = [clevels[i] for i in clocs]\n        new_names = [index.names[i] for i in clocs]\n    else:\n        result = data.copy()\n        for i in range(len(clocs)):\n            val = clocs[i]\n            result = result.unstack(val, fill_value=fill_value)\n            clocs = [v if i > v else v - 1 for v in clocs]\n\n        unstacked = result\n        new_levels = [clevels[i] for i in clocs]\n        new_names = [index.names[i] for i in clocs]\n        \n    new_columns = MultiIndex(\n        levels=new_levels, codes=unstacked.columns.map({i: idx for idx, i in enumerate(new_levels)}).values,  # Update to properly construct new codes using the mapped index\n        names=new_names, verify_integrity=False\n    )\n\n    if isinstance(unstacked, Series):\n        unstacked.index = new_columns\n    else:\n        unstacked.columns = new_columns\n\n    return unstacked",
+            "import_list": []
+        }
+    ]
+}

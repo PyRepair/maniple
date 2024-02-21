@@ -10,7 +10,7 @@ import re
 from openai import OpenAI
 from typing import List
 from utils import print_in_red, print_in_yellow, divide_list
-from gpt_utils import get_and_save_response_with_fix_path
+from gpt_utils import get_and_save_response_with_fix_path, combine_token_usage
 from prompt_template import generate_variable_angelic_info, generate_variable_runtime_info
 from fact_bitvector_generator import bitvector_map, strata_bitvector_map
 
@@ -197,7 +197,7 @@ class PromptGenerator:
                 optional_2 += "the corresponding error message, "
 
             if self.actual_strata_bitvector['6'] == 1:
-                optional_2 += "the actual input/output variable values, "
+                optional_2 += "the runtime input/output variable values, "
 
             if self.actual_strata_bitvector['7'] == 1:
                 optional_2 += "the expected input/output variable values, "
@@ -521,11 +521,11 @@ def run_single_bitvector_partition(partition_bitvectors, start_index, trial_numb
                 prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
                 if not prompt_generator.exist_null_strata():
                     prompt_generator.write_prompt()
-                    # print(f"\ngenerate response for {project}:{bid}")
-                    # token_usage = prompt_generator.generate_response(start_index, trial_number, "gpt-3.5-turbo-1106")
-                    #
-                    # with lock:
-                    #     total_token_usage = combine_token_usage(total_token_usage, token_usage)
+                    print(f"\ngenerate response for {project}:{bid}")
+                    token_usage = prompt_generator.generate_response(start_index, trial_number, "gpt-3.5-turbo-1106")
+
+                    with lock:
+                        total_token_usage = combine_token_usage(total_token_usage, token_usage)
 
 
 if __name__ == "__main__":
@@ -557,7 +557,7 @@ if __name__ == "__main__":
 
     args = args_parser.parse_args()
 
-    database_path = os.path.join("training-data", args.database)
+    database_path = os.path.join("data", args.database)
     projects = os.listdir(database_path)
 
     strata_bitvectors = []

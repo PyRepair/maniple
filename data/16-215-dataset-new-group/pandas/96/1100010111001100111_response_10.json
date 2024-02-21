@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        # reset timezone and nanosecond\n        other = datetime(\n            other.year,\n            other.month,\n            other.day,\n            other.hour,\n            other.minute,\n            other.second,\n            other.microsecond,\n        )\n        n = self.n\n\n        business_hours = list(zip(self.start, self.end))\n\n        curr_date = other.date()\n        total_business_hours = 0\n\n        for start_hr, end_hr in business_hours:\n            start_datetime = datetime.combine(curr_date, start_hr)\n            end_datetime = datetime.combine(curr_date, end_hr)\n            total_business_hours += (end_datetime - start_datetime).total_seconds() / 60  # in minutes\n\n        # adjust for holidays\n        holidays = [holiday.date() for holiday in self.holidays]\n        if other.date() in holidays or not self._is_on_offset(other):\n            other = self._next_opening_time(other)\n\n        # adjust for business days and remaining business hours\n        if n >= 0:\n            business_days_needed, remaining_hours = divmod(n * 60, total_business_hours)\n        else:\n            business_days_needed, remaining_hours = divmod((-n) * 60, total_business_hours)\n            business_days_needed *= -1\n            remaining_hours *= -1\n\n        while business_days_needed != 0:\n            if n >= 0:\n                other += timedelta(days=1)\n            else:\n                other -= timedelta(days=1)\n            if self._is_on_offset(other) and other.date() not in holidays:\n                business_days_needed -= 1\n\n        # adjust for remaining business hours within the same day\n        business_hour_index = 0\n        start_time, end_time = business_hours[business_hour_index]\n        while remaining_hours > 0:\n            start_datetime = datetime.combine(other.date(), start_time)\n            end_datetime = datetime.combine(other.date(), end_time)\n            business_duration = (end_datetime - other).total_seconds() / 60  # in minutes\n            if remaining_hours < business_duration:\n                other += timedelta(minutes=remaining_hours)\n                remaining_hours = 0\n            else:\n                remaining_hours -= business_duration\n                business_hour_index += 1\n                if business_hour_index < len(business_hours):\n                    start_time, end_time = business_hours[business_hour_index]\n                    other = datetime.combine(other.date(), start_time)\n                    if remaining_hours > 0:\n                        other += timedelta(days=1)  # move to the next business day\n\n        return other\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 0,
+                "1.4.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        # reset timezone and nanosecond\n        # other may be a Timestamp, thus not use replace\n        # Original code had some business hour calculations which are removed\n        other = as_datetime(other)\n\n        if self._is_on_weekend(other):\n            other = self._next_opening_time(other)\n\n        businesshours = sum(\n            self._get_business_hours_by_sec(st, en)\n            for st, en in zip(self.start, self.end)\n        )\n\n        bd, r = divmod(int((other - other.replace(hour=0, minute=0, second=0, microsecond=0)).total_seconds()), businesshours // 60)\n\n        if r < 0:\n            # Adjust the business day downwards if negative time\n            bd -= 1\n            r -= businesshours // 60\n        delta = timedelta(days=int(bd))\n        other = self.next_bday.apply(other + delta, roll=\"forward\")\n\n        # This block ensures that the frequency inferred from the adjusted datetime conforms to the defined frequency CBH\n        inferred = other + self - other.replace(hour=0, minute=0, second=0, microsecond=0)\n        if inferred.freq != self:\n            raise ValueError(f\"Inferred frequency {inferred.freq} from passed values does not conform to passed frequency {self}\")\n\n        return other.replace(hour=0, minute=0, second=0, microsecond=0)\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

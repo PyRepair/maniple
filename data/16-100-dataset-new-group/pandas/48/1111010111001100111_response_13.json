@@ -1,0 +1,78 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 1,
+                "1.2.2": 1,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 1,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 48,
+            "start_line": 999,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def _cython_agg_blocks(\n        self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n    ) -> \"Tuple[List[Block], Index]\":\n        data: BlockManager = self._get_data_to_aggregate()\n        \n        # Handle nullable integer data separately\n        if data._is_homogeneous_type(include_bool=True):\n            if data.is_extension:\n                try:\n                    from pandas.core.series import _generic, Series, SeriesArray\n                    from pandas._libs.lib import maybe_downcast_to_dtype\n\n                    transposed, _ = self.grouper.aggregate(\n                        data.values, how, axis=self.axis, min_count=min_count\n                    )\n\n                    # Polymorphic result has already been column divided\n                    result, _ = transposed\n                    result = cast(DataFrame, result)\n                    items = None\n\n                except Exception as exc:  # pragma: no cover\n                    # Sometime other exceptions get here\n                    if isinstance(exc, NotImplementedError) and alt is not None:\n                        try:\n                            return self._cython_agg_general(\n                                (data._data,), alt, min_count\n                            )\n                        except NotImplementedError:\n                            # we cannot perform the operation in an alternate way, re-raise\n                            raise exc\n                    raise\n\n                blocks = [b.make_block(values) for values, b in result._data.blocks]\n            return blocks, data.items\n\n        # Handle non-nullable integer data\n        if numeric_only:\n            data = data.get_numeric_data(copy=False)\n\n        agg_blocks = []\n        locs = data.mgr_locs.as_array\n        for block in data.blocks:\n            ...\n            # The remaining code logic for calculating agg_blocks, new_items, \n            # deleted_items, split_items, split_frames, indexer, agg_items, offset,\n            # and other related variables\n        \n        \n        return agg_blocks, agg_items",
+            "import_list": [
+                "from pandas.core.series import _generic, Series, SeriesArray",
+                "from pandas._libs.lib import maybe_downcast_to_dtype"
+            ]
+        }
+    ]
+}

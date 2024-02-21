@@ -1,0 +1,84 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 0,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.1.5": 1,
+                "2.1.6": 1,
+                "2.1.3": 1,
+                "2.1.4": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 168,
+            "start_line": 425,
+            "file_name": "pandas/core/groupby/grouper.py",
+            "replace_code": "def _get_grouper(\n    obj,\n    key=None,\n    axis=0,\n    level=None,\n    sort=True,\n    observed=False,\n    mutated=False,\n    validate=True,\n):\n    group_axis = obj._get_axis(axis)\n\n    # Setup the grouping configuration\n    if level is not None:\n        # Ensure level is single-level for MultiIndex\n        if isinstance(group_axis, MultiIndex):\n            if is_list_like(level) and len(level) == 1:\n                level = level[0]\n            key = group_axis.get_level_values(level)\n            level = None\n        else:\n            # Ensure level is a single-level list-like object\n            if is_list_like(level):\n                nlevels = len(level)\n                if nlevels == 1:\n                    level = level[0]\n                elif nlevels == 0:\n                    raise ValueError(\"No group keys passed!\")\n                else:\n                    raise ValueError(\"multiple levels only valid with MultiIndex\")\n            \n            # Handle level as a string or position integer\n            if isinstance(level, (str, int)):\n                level = group_axis.names[level] if isinstance(level, int) else level\n                if obj.index.name != level:\n                    raise ValueError(f\"level name {level} is not the name of the index\")\n            else:\n                raise ValueError(\"level must be a string or an integer\")\n\n    # Process the input key\n    if isinstance(key, (Series, Index, np.ndarray)):\n        key = key.tolist()\n    elif isinstance(key, (tuple,)) and not all(is_scalar(k) for k in key):\n        warnings.warn(\n            \"Interpreting tuple 'by' as a list of keys, rather than a single key. Use 'by=[...]' instead of 'by=(...)'. In the future, a tuple will always mean a single key.\",\n            FutureWarning\n        )\n        key = list(key)\n    elif not is_list_like(key):\n        key = [key]\n\n    # Ensure match_axis_length reflects whether the length of keys matches the length of the group_axis\n    match_axis_length = len(key) == len(group_axis)\n\n    if match_axis_length and level is None and not any(n in obj.index.names for n in key):\n        key = com.asarray_tuplesafe(key)\n\n    # Create the Grouping objects for each key\n    groupings = []\n    exclusions = set()\n    for i, (gpr, level) in enumerate(zip(key, [level] * len(key))):\n        try:\n            ping = Grouping(\n                group_axis,\n                gpr,\n                name=gpr,\n                level=level,\n                sort=sort,\n                observed=observed\n            )\n            groupings.append(ping)\n            exclusions.add(gpr)\n        except KeyError:\n            raise KeyError(gpr)\n\n        if observed and is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:\n            raise ValueError(\n                    \"Length of grouper ({len_gpr}) and axis ({len_axis})\"\n                    \" must be same length\".format(\n                        len_gpr=len(gpr), len_axis=obj.shape[axis]\n                    )\n                )\n\n    # Create the BaseGrouper \n    grouper = BaseGrouper(group_axis, groupings, sort=sort, mutated=mutated)\n    return grouper, list(exclusions), obj",
+            "import_list": [
+                "import warnings",
+                "import numpy as np",
+                "from pandas.core.dtypes.common import ensure_categorical, is_categorical_dtype, is_datetime64_dtype, is_hashable, is_list_like, is_scalar, is_timedelta64_dtype",
+                "import pandas.core.common as com",
+                "from pandas.core.frame import DataFrame",
+                "from pandas.core.groupby.ops import BaseGrouper",
+                "from pandas.core.index import CategoricalIndex, Index, MultiIndex",
+                "from pandas.core.series import Series"
+            ]
+        }
+    ]
+}

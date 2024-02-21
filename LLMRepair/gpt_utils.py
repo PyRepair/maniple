@@ -3,6 +3,7 @@ import math
 import os
 import pickle
 import time
+import traceback
 from pathlib import Path
 
 import openai
@@ -17,7 +18,24 @@ client = OpenAI(api_key="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")
 
 def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_file_name_prefix: str, database_dir: Path,
                                         project_name: str, bug_id: str, trial: int, data_to_store: dict = None) -> dict:
+
     output_dir: str = str(database_dir / project_name / bug_id)
+
+    require_generation = False
+    for index in range(trial):
+        file_index = index + 1
+        response_md_file_name = response_file_name_prefix + "_response_" + str(file_index) + ".md"
+        response_md_file_path = os.path.join(output_dir, response_md_file_name)
+        if not os.path.exists(response_md_file_path):
+            require_generation = True
+            break
+
+    if not require_generation:
+        return {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+        }
 
     with open(os.path.join(output_dir, "bug-data.json"), "r") as bug_data_file:
         bug_data: dict = next(iter(json.load(bug_data_file).values()))
@@ -39,6 +57,7 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_fi
     except Exception as error:
         error_str = str(error)
         print_in_red(error_str)
+        traceback.print_exc()
 
     for index in range(trial):
         file_index = index + 1
@@ -285,37 +304,47 @@ def _get_responses_from_messages(messages: list, model: str, trial: int, tempera
     responses = {
         "responses": [],
         "response_completions": [],
-        "total_token_usage": None
+        "total_token_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+        }
     }
 
-    try:
-        time.sleep(0.1)
-        chat_completion = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            n=trial,
-            temperature=temperature,
-            seed=42
-        )
+    retry_count = 3
 
-        for choice in chat_completion.choices:
-            finish_reason = choice.finish_reason
-            if finish_reason == "length":
-                raise QueryException("Exceed maximum 16385 token size")
+    while retry_count > 0:
+        try:
+            time.sleep(0.1)
+            chat_completion = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                n=trial,
+                temperature=temperature,
+                seed=42
+            )
 
-            if finish_reason != "stop":
-                print_in_yellow(f"drop 1 response due to not stop, finish reason: {finish_reason}")
-                continue
+            for choice in chat_completion.choices:
+                finish_reason = choice.finish_reason
+                if finish_reason == "length":
+                    raise QueryException("Exceed maximum 16385 token size")
 
-            if choice.message.content != "":
-                responses["responses"].append(choice.message.content)
+                if finish_reason != "stop":
+                    print_in_yellow(f"drop 1 response due to not stop, finish reason: {finish_reason}")
+                    continue
 
-        responses["response_completions"].append(chat_completion)
-        responses["total_token_usage"] = chat_completion.usage
+                if choice.message.content != "":
+                    responses["responses"].append(choice.message.content)
 
-    except openai.RateLimitError:
-        print_in_yellow("Meet ratelimit error, wait for 5 seconds")
-        time.sleep(5)
+            responses["response_completions"].append(chat_completion)
+            responses["total_token_usage"] = chat_completion.usage
+
+            break
+
+        except openai.RateLimitError:
+            print_in_yellow("Meet ratelimit error, wait for 5 seconds")
+            time.sleep(10)
+            retry_count -= 1
 
     # print(f"finish {str(trial)} response generation")
     # print(len(responses["responses"]))

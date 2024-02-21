@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.2.1": 0,
+                "1.2.2": 0,
+                "1.2.3": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.3.3": 1,
+                "1.4.1": 1,
+                "1.4.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.1.5": 0,
+                "2.1.6": 0,
+                "2.1.3": 0,
+                "2.1.4": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 48,
+            "start_line": 999,
+            "file_name": "pandas/core/groupby/generic.py",
+            "replace_code": "def _cython_agg_blocks(\n    self, how: str, alt=None, numeric_only: bool = True, min_count: int = -1\n) -> \"Tuple[List[Block], Index]\":\n    # TODO: the actual managing of mgr_locs is a PITA\n    # here, it should happen via BlockManager.combine\n\n    data: BlockManager = self._get_data_to_aggregate()\n\n    if numeric_only:\n        data = data.get_numeric_data(copy=False)\n\n    agg_blocks: List[Block] = []\n    mgr_locs_to_use: List[np.ndarray] = []\n\n    # Process specific groupings\n    unpaid_set = isinstance(self.grouper, tuple)\n    if unpaid_set:\n        # Handle specific processing for unpaid groups\n        unrecognized_arr = unpaid_set[1]\n        recognized_loc = unpaid_set[2]\n\n    # Process each block\n    for block in data.blocks:\n        # Ignore blocks if there's no data\n        if not len(block.values):\n            continue\n\n        # Call the aggregate method from the grouper\n        result = self.grouper.aggregate(\n            block.values, how, axis=1, min_count=min_count, alt=alt, keyword=kwargs\n        )\n\n        if result:\n            new_blk, locs_to_use = self.grouper.apply_specific(\n                result,\n                how,\n                block,\n                data.items[block.mgr_locs],\n            )\n            agg_blocks.append(new_blk)\n            mgr_locs_to_use.append(locs_to_use)\n\n    # Continue with the rest of the functionality\n    # ...\n\n    return agg_blocks, Index(new_items)",
+            "import_list": []
+        }
+    ]
+}
