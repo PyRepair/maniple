@@ -1,4 +1,4 @@
-# LLM Learning to Prompt
+# Maniple
 
 This repository contains several experiments assessing the performance of Large Language Models (LLMs) when combining different sets of features into prompts. It focuses on understanding how different combinations of features can impact the effectiveness of prompts in eliciting accurate and relevant responses from LLMs.
 
@@ -13,23 +13,9 @@ Before installing the project, ensure you have the following prerequisites insta
 
 Follow these steps to install and set up the project on your local machine:
 
-1. **Clone the Repository**:
-   ```sh
-   git clone https://github.com/your-username/your-repository.git
-   ```
-   Replace `https://github.com/your-username/your-repository.git` with the URL of your project's repository.
-
-2. **Navigate to the Project Directory**:
-   ```sh
-   cd your-repository
-   ```
-
-3. **Install Dependencies**:
-   If your project has external dependencies listed in a `requirements.txt` file, install them using:
-   ```sh
-   pip install -r requirements.txt
-   ```
-
+```sh
+pip install -r LLMRepair/requirements.txt
+```
 
 ## Usage
 
@@ -38,9 +24,8 @@ This script offers a versatile command-line interface for handling a variety of 
 ### Basic Command Structure
 The fundamental way to use the script is as follows:
 ```sh
-python script_name.py [command] [options]
+python LLMRepair [command] [options]
 ```
-Replace `script_name.py` with the actual filename of the script.
 
 ### Commands Overview
 The script supports a range of commands, each designed for specific operations:
@@ -78,12 +63,12 @@ Commands for preparing data with various options:
 
 1. **Prepare Specific Bug IDs with Custom Output Directory**
    ```sh
-   python script_name.py prep --bugids pandas:30, numpy:25 --output-dir /path/to/custom/output
+   python LLMRepair prep --bugids pandas:30, numpy:25 --output-dir /path/to/custom/output
    ```
 
 2. **Prepare Data Excluding Certain Projects**
    ```sh
-   python script_name.py prep --dataset all --exclude-projects projectX, projectY
+   python LLMRepair prep --dataset all --exclude-projects projectX, projectY
    ```
 
 ### Data Extraction Examples
@@ -91,12 +76,12 @@ Commands for extracting data with combined flags:
 
 1. **Extract Data from All Datasets Using Docker**
    ```sh
-   python script_name.py extract --dataset all --use-docker
+   python LLMRepair extract --dataset all --use-docker
    ```
 
 2. **Extract Data in Test Mode with Specified Environment Directory**
    ```sh
-   python script_name.py extract --dataset 395subset --test-mode --envs-dir /path/to/envs
+   python LLMRepair extract --dataset 395subset --test-mode --envs-dir /path/to/envs
    ```
 
 ### Data Validation Examples
@@ -104,12 +89,12 @@ Commands for validating data with multiple options:
 
 1. **Validate Specific Dataset with Overwrite Enabled**
    ```sh
-   python script_name.py validate --dataset 106subset --overwrite
+   python LLMRepair validate --dataset 106subset --overwrite
    ```
 
 2. **Validate Data Including and Excluding Projects**
    ```sh
-   python script_name.py validate --include-projects projectA --exclude-projects projectB
+   python LLMRepair validate --include-projects projectA --exclude-projects projectB
    ```
 
 ### File Cleaning Examples
@@ -117,13 +102,13 @@ Examples of commands for cleaning various file types:
 
 1. **Clean Feature Files for Specific Bug IDs in Custom Directory**
    ```sh
-   python script_name.py clean_feature_files --bugids pandas:45 --output-dir /path/to/features
+   python LLMRepair clean_feature_files --bugids pandas:45 --output-dir /path/to/features
    ```
 
 2. **Clean Multiple File Types for a Specific Dataset**
    ```sh
-   python script_name.py clean_log_files --dataset first-stratum
-   python script_name.py clean_prompt_files --dataset first-stratum
+   python LLMRepair clean_log_files --dataset first-stratum
+   python LLMRepair clean_prompt_files --dataset first-stratum
    ```
 
 ### Advanced Combination Examples
@@ -131,13 +116,13 @@ Complex commands combining multiple functionalities:
 
 1. **Extract Data with Multiple Flags for Bug IDs, Projects, and Docker**
    ```sh
-   python script_name.py extract --bugids pandas:45, scipy:20 --include-projects projectC --exclude-projects projectD --use-docker
+   python LLMRepair extract --bugids pandas:45, scipy:20 --include-projects projectC --exclude-projects projectD --use-docker
    ```
 
 2. **Prepare and Clean Data for Specific Dataset with Custom Environment Path**
    ```sh
-   python script_name.py prep --dataset second-stratum --envs-dir /path/to/special/envs
-   python script_name.py clean_response_files --dataset second-stratum --output-dir /path/to/cleanup
+   python LLMRepair prep --dataset second-stratum --envs-dir /path/to/special/envs
+   python LLMRepair clean_response_files --dataset second-stratum --output-dir /path/to/cleanup
    ```
 
 
@@ -187,8 +172,5 @@ Contributions to this project are welcome! Please refer to our contributing guid
 
 ## License
 
-This project is licensed under the [LICENSE NAME] - see the LICENSE file for details.
+This project is licensed under the [LICENSE NAME] - see the LICENSE file for details. TBD
 
-## Contact
-
-For any inquiries, please reach out to [Your Name] at [Your Email].
