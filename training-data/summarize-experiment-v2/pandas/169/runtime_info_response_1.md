@@ -1,5 +1,0 @@
-In both cases, the function `quantile` is not correctly processing the input data. It seems that the function is not correctly identifying the numeric data within the input DataFrame, which leads to empty dataframes and incorrect results.
-
-The issue likely lies in the `_get_numeric_data()` method, which is used to filter the numeric data in the input dataframe. This method is not functioning as intended, resulting in empty dataframes and incorrect quantile calculations.
-
-To fix this, the `_get_numeric_data()` method should be reviewed and potentially debugged to ensure it correctly identifies and filters the numeric data within the input dataframe. Once this issue is resolved, the `quantile` function should be able to properly calculate the quantiles of the numeric data within the input dataframe.

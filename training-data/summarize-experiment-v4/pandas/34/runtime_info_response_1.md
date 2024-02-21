@@ -1,5 +1,0 @@
-The relevant input/output values are
-- Input parameters: ax (value: DatetimeIndex([...], freq='H'), type: DatetimeIndex), self.freq (value: <Day>, type: Day), self.closed (value: 'left', type: str), self.base (value: 0, type: int), ax.tz (value: <DstTzInfo 'America/Havana' LMT-1 day, 18:31:00 STD>, type: America/Havana), ax.asi8 (value: array([...]), type: ndarray), ax.hasnans (value: False, type: bool), self.label (value: 'left', type: str)
-- Output: binner (value: DatetimeIndex([...], freq='D), type: DatetimeIndex), labels (value: DatetimeIndex([...], freq='D'), type: DatetimeIndex), first (value: Timestamp('2018-11-03 00:00:00-0400', tz='America/Havana'), type: Timestamp), last (value: Timestamp('2018-11-06 00:00:00-0500', tz='America/Havana'), type: Timestamp), ax_values (value: array([...]), type: ndarray), bin_edges (value: array([...]), type: ndarray), bins (value: array([...]), type: ndarray)
-
-Rational: These values are relevant because they represent the input parameters and output variable values of the function _get_time_bins. These could be the cause of the bug and need to be analyzed for inconsistency.

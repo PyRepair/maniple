@@ -1,6 +1,0 @@
-Summary:
-The function _partially_consume_prefix takes two input parameters, prefix (a string) and column (an integer). It iterates through the characters in the prefix string and builds up lines of text and keeps track of the current column position. It also has a flag, wait_for_nl, to check for new lines. The function returns a tuple consisting of the consumed lines and the remaining unparsed prefix.
-
-During execution, the function initializes the lines list and current_line string to an empty list and empty string, respectively. It initializes the current_column to 0 and wait_for_nl to False. Then, it iterates through each character of the input prefix and updates the current_line, current_column, and wait_for_nl variables. The function keeps checking for spaces, tabs, and new lines, updating the variables accordingly.
-
-In the expected test cases, various configurations of prefix strings and column values are considered, and the expected values of lines, current_line, current_column, wait_for_nl, char, and res variables are provided before the function returns. Based on these expected values and the provided source code, the behavior and logic of the function can be analyzed in detail.

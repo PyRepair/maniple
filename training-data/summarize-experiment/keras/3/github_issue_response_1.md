@@ -1,6 +1,0 @@
-Summary:
-The bug reported on GitHub revolves around the usage of `clone_model()` in conjunction with `multi_gpu_model` and `cpu_relocation=True` in Keras. The issue is observed when trying to use the script provided, resulting in an `AssertionError: Could not compute output Tensor` being raised. The bug appears to be related to the handling of output masks in the `clone_model()` method, impacting layers with multiple outputs and lacking support for masks. The bug has been replicated in the Keras version 2.2.4 and TensorFlow version 1.12.0 on multiple GPU configurations (GTX1080tis and GTX1060MQ).
-
-The issue is further explained by highlighting the specific lines of code within the Keras library that are impacted, indicating that the `Lambda` layer's lack of support for using masks appears to contribute to the error. The user expresses gratitude and admiration for the Keras framework while providing valuable insights into the potential source of the bug.
-
-This comprehensive summary of the GitHub issue provides a clear understanding of the bug, its reproduction, associated environment, and key insights into the potential causes, thereby facilitating a more efficient debugging process.

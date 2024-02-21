@@ -1,4 +1,0 @@
-Summary:
-The function is an initialization method for a Worker object. It takes in a worker_id and last_active (which defaults to None) as input parameters. Within the function, it sets the id of the Worker to the provided worker_id, sets the reference to None, initializes last_active to the provided value (or None), sets the started time using the time.time() function, initializes the tasks to an empty set, and sets info to an empty dictionary. The function returns None as it is an __init__ method and is used for object initialization.
-
-The expected variable values and types before the function return for a specific test case are in line with the core logic of the code. The function sets the attributes of the Worker object according to the provided input parameters and default values.

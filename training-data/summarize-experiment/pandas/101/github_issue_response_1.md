@@ -1,8 +1,0 @@
-Summary:
-The bug revolves around the issue of converting categorical data with NaN values to integers. When attempting to convert a categorical series with NaN values to an integer, the NaN values are incorrectly converted to a large negative integer, rather than being properly represented as NaN. Additionally, when trying to use d.astype('Int8'), there is an error message indicating that the dtype is not understood. The expected behavior is for NaN in the categorical data to be converted to NaN in the integer or float representation. This bug has been identified with Python version 3.7.4, pandas version 0.25.1, and numpy version 1.17.2.
-
-The bug report includes a code sample, expected output, and system version details, providing valuable information for debugging. It has been confirmed that the issue is reproducible, and the necessary tests have been added and passed. The suggested fix entails removing the casting within get_indexer_non_unique since this won't always be possible.
-
-In order to resolve this bug effectively, it will be imperative to identify the root cause of the incorrect conversion of categorical NaN values to integers and address it in a manner that aligns with the expected output. Additionally, the error message related to d.astype('Int8') should be analyzed and addressed to ensure that the dtype is properly understood.
-
-Overall, a focused approach to debugging this issue will involve tracking the conversion process, handling of NaN values, and the interpretation of data types, with particular attention to addressing the issue in a manner that is compatible with the expected behavior.

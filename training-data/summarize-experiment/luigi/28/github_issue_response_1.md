@@ -1,2 +1,0 @@
-Summary:
-The issue involves a bug in the `hive.py` file in the `luigi` package. The problem arises when tables are defined with capitalized names, but Hive returns them as lower case, causing tests to fail. The bug was not an issue in older versions, which checked for the string "does not exist" or "Table not found" in stdout. The suggested fix is to make the `table_exists` function case insensitive by checking stdout against `table.lower()` to avoid case issues. This fix is proposed to be implemented by using a pull request.

@@ -1,5 +1,0 @@
-The error message is an AssertionError when comparing a list of expected command arguments against the actual arguments. The error occurs at `contrib/spark_test.py` and the `spark.py` file.
-
-The simplified original error message is ` AssertionError: Lists differ: ['ss-[131 chars] '--archives', 'archive1', '--conf', '"prop1=val1"', 'test.py'] != ['ss-[131 chars] '--archives', 'archive1', '--conf', 'prop1=val1', 'test.py']`. This displays that there are differences in an assertion for equivalent command line arguments between two lists. The differences stem from a mismatch in the format of the string 'prop1=val1'.
-
-To identify what stack frames or messages are closely related to the fault location, we can scrutinize the failure in the testing code itself. The main issue stems from comparing the expected arguments and the actual arguments. Specifically, the different formats of the string 'prop1=val1' in the lists are causing the failure. Therefore, `assertEqual(proc.call_args[0][0], ...)` is closely related to the fault in the test file, `contrib/spark_test.py`.

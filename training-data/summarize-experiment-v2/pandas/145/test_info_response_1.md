@@ -1,3 +1,0 @@
-The original error is `TypeError: unsupported operand type(s) for *: 'numpy.ndarray' and 'NaTType'` and it occurred in the `df * ser` line in the file `pandas/tests/frame/test_arithmetic.py`. The error happened in the function `evaluate` in `pandas/core/computation/expressions.py`, more specifically in `_evaluate_standard` function within the same file when the built-in multiplication function is called on a numpy array and `NaTType`.
-
-Simplified error message: Multiplication operation between a numpy array and 'NaTType' is not supported.

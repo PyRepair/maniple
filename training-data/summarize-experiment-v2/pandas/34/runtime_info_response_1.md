@@ -1,5 +1,0 @@
-Upon analyzing the variables and their values, it appears that the issue lies with the calculation of the `bins` variable. The `bins` variable is being generated incorrectly due to the value of the `ax_values` and `bin_edges` variables.
-
-The `_adjust_bin_edges` function is responsible for adjusting the bin edges, and it seems that it is not returning the correct `binner` and `bin_edges` values, resulting in the incorrect calculation of the `bins`.
-
-To fix this, you may need to review the logic in the `_adjust_bin_edges` function and ensure that it correctly adjusts the bin edges based on the input values of `binner` and `ax_values`. Additionally, you may need to verify that the `generate_bins_dt64` function is handling the adjusted bin edges correctly to generate the `bins` array accurately.

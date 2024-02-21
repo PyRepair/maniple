@@ -1,5 +1,0 @@
-Summary:
-
-Issue #538 resulted in a change in the suggestion for the command "git push -u <remote>" when the current branch has no upstream branch. The previous suggestion was "git push --set-upstream <remote> <current_branch>", but after the mentioned issue, the suggestion became "hub push --set-upstream <remote> <current_branch> -u <remote>". This change is not favorable and the user is requesting a fix to revert the suggestion back to its original format.
-
-The bug description provides a clear example of the issue and the expected behavior, along with the user's intention to work on a fix for this. The analysis of this bug would involve reviewing the changes made in issue #538 and identifying the specific code that resulted in the undesirable suggestion format. Ensuring that the fix aligns with the previous behavior and effectively addresses the issue will be crucial in providing a resolution for this bug.

@@ -1,3 +1,0 @@
-Related function `unstack(obj, level, fill_value=None)`: This function is utilized by the buggy function `_unstack_multiple` to perform some level of data unstacking. It takes an `obj` parameter, which is presumably the data to unstack, a `level` parameter, and an optional `fill_value` parameter.
-
-`_unstack_multiple(data, clocs, fill_value=None)`: This function seems to be responsible for unstacking the provided `data` parameter based on the specified `clocs`. It also uses the `unstack` function internally to achieve this. There are multiple steps involved in reshaping the data to perform the unstacking operation, which may be leading to the issue.

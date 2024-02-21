@@ -1,1 +1,0 @@
-Case 1: Given the input parameter `self=PeriodIndex(['2019Q1', '2019Q2'], dtype='period[Q-DEC]', freq='Q-DEC')`, the function should return the engine instance associated with the input period index. The output value and type of the `_engine` variable are not provided.

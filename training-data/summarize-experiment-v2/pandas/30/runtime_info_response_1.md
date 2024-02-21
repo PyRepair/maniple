@@ -1,7 +1,0 @@
-The `_try_convert_to_date` function is designed to parse a ndarray-like input into a date column. It tries to coerce objects in epoch/ISO formats and integer/float in epoch formats and return a boolean if parsing was successful. However, there are several issues in the code that need to be addressed.
-
-In the first failing case, the input data is a RangeIndex, and the function attempts to change the data type to "int64" without handling the case of non-numeric data. As a result, the function does not successfully parse the data into a date column and returns the original data with a False flag.
-
-In the second failing case, the input data is a Series of boolean values, and the function attempts to convert the data type to "int64" without considering the nature of boolean values. Additionally, the date parsing loop does not properly handle the given date unit ("ns") and the nature of the data, resulting in a failed conversion.
-
-To fix these issues, the function should include proper handling for non-numeric and boolean data types, as well as ensure that the date parsing loop covers all possible date units and correctly handles the input data type. Additionally, error handling for specific data types and conversions should be implemented to improve the reliability of the function.

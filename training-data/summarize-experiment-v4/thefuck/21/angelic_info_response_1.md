@@ -1,1 +1,0 @@
-Case 1: Given the input parameter `command.script='git'` and `command.stderr='\nusage: git stash list [<options>]\n   or: git stash show [<stash>]\n   or: git stash drop [-q'`, the function expect to return `True` if the script contains `stash` and the stderr contains `usage:`.

@@ -1,5 +1,0 @@
-The `pivot_table` function is used to pivot a DataFrame. The function first converts the `index` and `columns` input parameters to a specific format, then it processes the input data to aggregate the values, and finally it performs additional transformations and adjustments.
-
-In the provided cases, the code seems to be working as expected, with the function aggregating the values and pivoting the table correctly. The observed results match the expected behavior based on the input parameters and the transformation steps indicated in the code.
-
-It's important to note that the provided examples only cover specific test cases, and there may be other scenarios where the function behaves unexpectedly. Therefore, a comprehensive test suite needs to be constructed to ensure the correctness of the `pivot_table` function.
