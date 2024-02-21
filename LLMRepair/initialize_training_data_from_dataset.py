@@ -4,7 +4,7 @@ import shutil
 
 from utils import print_in_red
 
-dataset = "16-16-dataset"
+dataset = "32-dataset"
 
 dataset_path = os.path.join("..", "experiment-initialization-resources", "datasets-list", dataset + ".json")
 if not os.path.exists(dataset_path):
@@ -20,8 +20,8 @@ else:
                 print_in_red(f"no bug data for {project}:{bid}")
                 continue
 
-            project_destination = os.path.join("..", "training-data", dataset, project)
-            bug_destination = os.path.join("..", "training-data", dataset, project, str(bid))
+            project_destination = os.path.join("..", "data", dataset, project)
+            bug_destination = os.path.join("..", "data", dataset, project, str(bid))
 
             if os.path.exists(bug_destination):
                 shutil.rmtree(bug_destination)
