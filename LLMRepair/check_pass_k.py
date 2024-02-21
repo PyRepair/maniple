@@ -21,10 +21,13 @@ def pass_at_k(n, c, k):
     return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
 
 
-def all_one_bitvector_bench():
-    fixes_per_bug = defaultdict[str, int](lambda: 0)
-    trials_per_bug = defaultdict[str, int](lambda: 0)
-    folder = "/Users/jerry/Documents/GitHub/LPPR/test-data/bench"
+def analyze(folder: str):
+    fixes_per_bug = defaultdict[str, int](lambda: 0) # all 1 bitvector
+    trials_per_bug = defaultdict[str, int](lambda: 0) # all 1 bitvector
+
+    total_fixes_per_bug = defaultdict[str, int](lambda: 0)
+    total_trials_per_bug = defaultdict[str, int](lambda: 0)
+    
     for bugid, project_folder, bugid_folder in iter_bugid_folders(Path(folder)):
         max_len = 0
         max_bitvector = ""
@@ -50,62 +53,53 @@ def all_one_bitvector_bench():
 
                 if first_value == 0:
                     fixes_per_bug[bugid] += 1
-
-    print("All one bitvector bench")
-    pass_k_sum = [0.0] * 10
-
-    for _bugid in trials_per_bug.keys():
-        fixes_count = fixes_per_bug[_bugid]
-        trials_count = trials_per_bug[_bugid]
-
-        print(
-            f"Bug {_bugid} has {fixes_count} fixes out of {trials_per_bug[_bugid]} trials"
-        )
-
-        for k in range(1, 11):
-            pass_k_sum[k - 1] += pass_at_k(trials_count, fixes_count, k)
-
-    for k in range(1, 11):
-        print(f"pass@{k}: {pass_k_sum[k - 1] / len(fixes_per_bug.keys())}")
-
-
-def main(path: str):
-    fixes_per_bug = defaultdict[str, int](lambda: 0)
-    trials_per_bug = defaultdict[str, int](lambda: 0)
-
-    for root, _, files in os.walk(path):
-        parts = root.strip(os.sep).split(os.sep)
-        bugid = ":".join(parts[-2:])
-
-        for file in files:
-            if "result" in file and file.endswith(".json"):
-                result_file_path = os.path.join(root, file)
-                with open(result_file_path, "r") as json_file:
+            
+            if "result" in file.name and file.name.endswith(".json"):
+                total_trials_per_bug[bugid] += 1
+                with open(file, "r") as json_file:
                     result_data = json.load(json_file)
 
                 first_key = list(result_data.keys())[0]
                 first_value = result_data[first_key]
 
-                trials_per_bug[bugid] += 1
-
                 if first_value == 0:
-                    fixes_per_bug[bugid] += 1
+                    total_fixes_per_bug[bugid] += 1
 
+    return fixes_per_bug, trials_per_bug, total_fixes_per_bug, total_trials_per_bug
+
+
+def print_result(trials_per_bug, fixes_per_bug, benchmark_trials_per_bug, benchmark_fixes_per_bug):
     pass_k_sum = [0.0] * 10
+    benchmark_pass_k_sum = [0.0] * 10
+
 
     for _bugid in trials_per_bug.keys():
         fixes_count = fixes_per_bug[_bugid]
         trials_count = trials_per_bug[_bugid]
 
         print(
-            f"Bug {_bugid} has {fixes_count} fixes out of {trials_per_bug[_bugid]} trials"
+            f"Bug {_bugid} current: {fixes_count}/{trials_per_bug[_bugid]} benchmark: {benchmark_fixes_per_bug[_bugid]}/{benchmark_trials_per_bug[_bugid]}"
         )
 
         for k in range(1, 11):
             pass_k_sum[k - 1] += pass_at_k(trials_count, fixes_count, k)
+            benchmark_pass_k_sum[k - 1] += pass_at_k(benchmark_trials_per_bug[_bugid], benchmark_fixes_per_bug[_bugid], k)
 
     for k in range(1, 11):
-        print(f"pass@{k}: {pass_k_sum[k - 1] / len(fixes_per_bug.keys())}")
+        print(f"pass@{k} current: {pass_k_sum[k - 1] / len(fixes_per_bug.keys())} benchmark: {benchmark_pass_k_sum[k - 1] / len(fixes_per_bug.keys())}")
+
+
+def main(path: str):
+    fixes_per_bug, trials_per_bug, total_fixes_per_bug, total_trials_per_bug = analyze(path)
+    benchmark_fixes_per_bug, benchmark_trials_per_bug, benchmark_total_fixes_per_bug, benchmark_total_trials_per_bug = analyze("/Users/jerry/Documents/GitHub/LPPR/test-data/bench")
+
+    print("All 1 bitvector")
+    print_result(trials_per_bug, fixes_per_bug, benchmark_trials_per_bug, benchmark_fixes_per_bug)
+    
+    print()
+    print("All bitvectors")
+    print_result(total_trials_per_bug, total_fixes_per_bug, benchmark_total_trials_per_bug, benchmark_total_fixes_per_bug)
+    
 
 
 if __name__ == "__main__":
@@ -115,4 +109,3 @@ if __name__ == "__main__":
     args = args_parser.parse_args()
 
     main(args.path)
-    all_one_bitvector_bench()
