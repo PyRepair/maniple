@@ -62,11 +62,12 @@ This script offers a versatile command-line interface for handling a variety of 
 ### Basic Command Structure
 The fundamental way to use the script is as follows:
 ```sh
-python LLMRepair [command] [options]
+maniple [command] [options]
 ```
 
 ### Commands Overview
 The script supports a range of commands, each designed for specific operations:
+- **`init`**: This command is used to initialize the working environment for the script. It sets up the necessary directories and files to facilitate the processing of data.
 
 - **`prep`**: This command is used to prepare the data for subsequent processing. It sets up the necessary environment and structures to facilitate smooth data handling.
 
@@ -81,15 +82,9 @@ The script is equipped with several options that allow for customization and fle
 
 - **`--bugids`**: Specify a comma-separated list of bug IDs for targeted processing. For instance, `--bugids pandas:30, numpy:25` would focus the script's operations on these specified bugs.
 
-- **`--dataset`**: Choose from predefined datasets like `106subset`, `395subset`, `first-stratum`, `second-stratum`, or `all`. This option determines the scope of data the script will work on.
-
-- **`--exclude-projects` / `--include-projects`**: These mutually exclusive options let you refine the script's focus. Use `--exclude-projects` to list projects that should be ignored during processing, and `--include-projects` for those that should be included.
-
 - **`--output-dir`**: Define a custom directory for storing output files. This can be any path on your system where you want the script to save its results.
 
 - **`--envs-dir`**: This option allows you to specify the path to the prepared environments, essential for running the script under certain conditions or configurations.
-
-- **`--test-mode`**: Activate test mode with this switch. It processes only one bug from each project, useful for quick tests or demos.
 
 - **`--overwrite`**: If set, this option allows the script to overwrite existing results, useful for updating or refreshing data outputs.
 
@@ -100,69 +95,31 @@ The script is equipped with several options that allow for customization and fle
 Commands for preparing data with various options:
 
 1. **Prepare Specific Bug IDs with Custom Output Directory**
-   ```sh
-   python LLMRepair prep --bugids pandas:30, numpy:25 --output-dir /path/to/custom/output
-   ```
-
-2. **Prepare Data Excluding Certain Projects**
-   ```sh
-   python LLMRepair prep --dataset all --exclude-projects projectX, projectY
-   ```
-
-### Data Extraction Examples
-Commands for extracting data with combined flags:
-
-1. **Extract Data from All Datasets Using Docker**
-   ```sh
-   python LLMRepair extract --dataset all --use-docker
-   ```
-
-2. **Extract Data in Test Mode with Specified Environment Directory**
-   ```sh
-   python LLMRepair extract --dataset 395subset --test-mode --envs-dir /path/to/envs
-   ```
+```sh
+maniple prep --bugids pandas:30, numpy:25 --output-dir /path/to/custom/output
+```
 
 ### Data Validation Examples
 Commands for validating data with multiple options:
 
 1. **Validate Specific Dataset with Overwrite Enabled**
-   ```sh
-   python LLMRepair validate --dataset 106subset --overwrite
-   ```
-
-2. **Validate Data Including and Excluding Projects**
-   ```sh
-   python LLMRepair validate --include-projects projectA --exclude-projects projectB
-   ```
+```sh
+maniple validate --dataset 106subset --overwrite
+```
 
 ### File Cleaning Examples
 Examples of commands for cleaning various file types:
 
 1. **Clean Feature Files for Specific Bug IDs in Custom Directory**
-   ```sh
-   python LLMRepair clean_feature_files --bugids pandas:45 --output-dir /path/to/features
-   ```
+```sh
+maniple clean_feature_files --bugids pandas:45 --output-dir /path/to/features
+```
 
 2. **Clean Multiple File Types for a Specific Dataset**
-   ```sh
-   python LLMRepair clean_log_files --dataset first-stratum
-   python LLMRepair clean_prompt_files --dataset first-stratum
-   ```
-
-### Advanced Combination Examples
-Complex commands combining multiple functionalities:
-
-1. **Extract Data with Multiple Flags for Bug IDs, Projects, and Docker**
-   ```sh
-   python LLMRepair extract --bugids pandas:45, scipy:20 --include-projects projectC --exclude-projects projectD --use-docker
-   ```
-
-2. **Prepare and Clean Data for Specific Dataset with Custom Environment Path**
-   ```sh
-   python LLMRepair prep --dataset second-stratum --envs-dir /path/to/special/envs
-   python LLMRepair clean_response_files --dataset second-stratum --output-dir /path/to/cleanup
-   ```
-
+```sh
+maniple clean_log_files --dataset first-stratum
+maniple clean_prompt_files --dataset first-stratum
+```
 
 
 ## Running Experiments
@@ -197,12 +154,16 @@ bgp extract_features --bugids black:4 --envs-dir /Volumes/SSD2T/bgp_cache
 
 ## Structure of Directories
 
-The repository is structured as follows to organize the data and results of the experiments:
+The project is organized into several directories, each serving a specific purpose:
 
-- `preliminary-study`: Contains data related to perfect prompts.
-- `first-stratum`: Contains data from the 106 dataset, which focuses on simple bugs. Results can be found [here](https://docs.google.com/spreadsheets/d/100q3GdNcR0SfvsLZoskePINhFVXp8jx1bY5IbZzf6rs/edit?usp=sharing).
-- `second-stratum`: Contains data from the 395 dataset, which includes more complex bugs.
-- Files such as `preliminary-study/first-stratum/black-10/f2-1-1.md` include individual facts.
+```plaintext
+data/               # Contains the raw data files and datasets used
+maniple/            # The main package containing the script and its modules
+    summarization/  # Contains the script for running summarization experiments
+    utils/          # Contains utility functions and modules used by the script
+    tests/          # Contains test files and scripts for testing the project
+    metrics/        # Contains the script for calculating metrics
+```
 
 ## Contributing
 
