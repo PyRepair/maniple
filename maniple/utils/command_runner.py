@@ -44,9 +44,11 @@ def run_clone_command(
             print(f"Cloning {bugid} using command: '{' '.join(command)}'")
 
         # Run the subprocess
+        subprocess.run(command, check=True)
 
     except subprocess.CalledProcessError as e:
         print_in_red(f"Failed to clone {bugid}")
+        os.makedirs("logs", exist_ok=True)
         with open(f"logs/{path_bugid_name}_clone_fail_log.txt", "w") as f:
             f.write(e.stdout.decode("utf-8") + e.stderr.decode("utf-8"))
         return False
@@ -99,6 +101,7 @@ def run_prepare_command(
     all_output = output.stdout.decode("utf-8") + output.stderr.decode("utf-8")
     if "TestStatus.PASS" not in all_output:
         print_in_red(f"Failed to prepare {bugid}")
+        os.makedirs("logs", exist_ok=True)
         with open(f"logs/{path_bugid_name}_prep_fail_log.txt", "w") as f:
             f.write(all_output)
         return False
