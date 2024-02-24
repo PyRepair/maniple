@@ -49,8 +49,10 @@ Run the following command to validate results.
 maniple validate --output-dir my-new-experiment-folder --envs-dir ~/Desktop/bgp_envs_dir
 ```
 
-Wait for the validation to finish. Once it is done, you can check the result in the `my-new-experiment-folder` folder.
-
+Wait for the validation to finish. Once it is done, you can check the result in the `my-new-experiment-folder` folder via following command.
+```sh
+check_pass_k new-experiment-folder
+```
 
 
 ## Usage
