@@ -10,8 +10,8 @@ import re
 from openai import OpenAI
 from typing import List
 from ..utils.misc import print_in_red, print_in_yellow, divide_list
-from maniple.utils.openai_utils import get_and_save_response_with_fix_path, combine_token_usage
-from prompt_template import generate_variable_angelic_info, generate_variable_runtime_info
+from ..utils.openai_utils import get_and_save_response_with_fix_path, combine_token_usage
+from .prompt_template import generate_variable_angelic_info, generate_variable_runtime_info
 from fact_bitvector_generator import bitvector_map, strata_bitvector_map
 
 client = OpenAI(api_key="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")
