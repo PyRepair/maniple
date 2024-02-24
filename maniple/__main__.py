@@ -4,8 +4,10 @@ import shutil
 import threading
 from typing import List
 
-from utils import divide_list, print_in_red, print_in_yellow
-from cleaner import (
+from utils import (
+    divide_list, 
+    print_in_red, 
+    print_in_yellow,
     clear_features,
     clear_logs,
     clear_prompts,

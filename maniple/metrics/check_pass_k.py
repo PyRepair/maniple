@@ -1,12 +1,10 @@
 import argparse
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from pathlib import Path
-from dataclasses import dataclass, field, fields
-from utils import iter_bugid_folders
-import os
 import json
-from typing import Dict, List, Set
 import numpy as np
+
+from ..utils import iter_bugid_folders
 
 
 def pass_at_k(n, c, k):

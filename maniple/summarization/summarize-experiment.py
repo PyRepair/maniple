@@ -7,7 +7,7 @@ from typing import Any, List
 
 import tiktoken
 
-from gpt_utils import get_responses_from_prompt, QueryException, get_and_save_response_with_fix_path
+from maniple.utils.openai_utils import get_responses_from_prompt, QueryException, get_and_save_response_with_fix_path
 from utils import print_in_red, print_in_yellow, iter_bugid_folders, divide_list, print_in_green
 
 total_usage = 0

@@ -9,8 +9,8 @@ import re
 
 from openai import OpenAI
 from typing import List
-from utils import print_in_red, print_in_yellow, divide_list
-from gpt_utils import get_and_save_response_with_fix_path, combine_token_usage
+from ..utils.misc import print_in_red, print_in_yellow, divide_list
+from maniple.utils.openai_utils import get_and_save_response_with_fix_path, combine_token_usage
 from prompt_template import generate_variable_angelic_info, generate_variable_runtime_info
 from fact_bitvector_generator import bitvector_map, strata_bitvector_map
 
@@ -166,8 +166,6 @@ class PromptGenerator:
         if self.actual_bitvector["3.1.1"] != 0 and self.actual_bitvector["3.1.2"] != 0:
             self.generate_issue_section()
             self.prompt += "\n\n"
-
-        self.collect_fact_content_in_prompt()
 
     def generate_cot(self):
         if self.actual_bitvector["cot"] == 1:
@@ -468,24 +466,23 @@ class PromptGenerator:
             if selected == 0:
                 return
 
-        with open(os.path.join(self.output_dir, "facts-in-prompt.json"), "w") as prompt_facts_file:
-            source_code_pattern = r"# The source code of the buggy function\n```python\n(.*?)```"
-            match = re.search(source_code_pattern, self.prompt, re.DOTALL)
-            facts_content_strata = {
-                "1": self.strata_1_content,
-                "2": self.strata_2_content,
-                "3": self.strata_3_content,
-                "4": self.strata_4_content,
-                "5": self.strata_5_content,
-                "6": self.strata_6_content,
-                "7": self.strata_7_content,
-                "8": self.strata_8_content,
-                "9": self.strata_9_content,
-                "1.3.3": self.generate_imports_body(),
-                "source_code_body": self.generate_source_code_body()
-            }
+        source_code_pattern = r"# The source code of the buggy function\n```python\n(.*?)```"
+        match = re.search(source_code_pattern, self.prompt, re.DOTALL)
+        facts_content_strata = {
+            "1": self.strata_1_content,
+            "2": self.strata_2_content,
+            "3": self.strata_3_content,
+            "4": self.strata_4_content,
+            "5": self.strata_5_content,
+            "6": self.strata_6_content,
+            "7": self.strata_7_content,
+            "8": self.strata_8_content,
+            "9": self.strata_9_content,
+            "1.3.3": self.generate_imports_body(),
+            "source_code_body": self.generate_source_code_body()
+        }
 
-            json.dump(facts_content_strata, prompt_facts_file, indent=4)
+        return facts_content_strata
 
     def generate_response(self, start_index: int, trial_number: int, gpt_model: str):
         bitvector_flatten = ""

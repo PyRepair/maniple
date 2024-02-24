@@ -2,7 +2,7 @@ import json
 from typing import List, Literal, Tuple, Union
 import os
 
-from utils import NotSupportedError
+from maniple.utils.misc import NotSupportedError
 
 BGP100PATH = os.path.abspath(
     os.path.join(

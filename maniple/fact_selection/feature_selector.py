@@ -6,7 +6,7 @@ from typing import List
 
 import tiktoken
 
-from gpt_utils import get_responses_from_prompt, QueryException
+from maniple.utils.openai_utils import get_responses_from_prompt, QueryException
 from utils import print_in_red, iter_bugid_folders, print_in_yellow
 
 question_template = """

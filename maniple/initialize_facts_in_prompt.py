@@ -1,6 +1,7 @@
 import json
 import os
-from prompt_generator import PromptGenerator
+
+from .strata_based.prompt_generator import PromptGenerator
 
 database_path = os.path.join("..", "experiment-initialization-resources", "bug-data")
 bitvector_path = os.path.join("..", "experiment-initialization-resources", "strata-bitvectors")
@@ -9,8 +10,6 @@ for file in os.listdir(bitvector_path):
     if "0" not in file:
         with open(os.path.join(bitvector_path, file), "r") as input_bitvector_file:
             bitvector_strata = json.load(input_bitvector_file)
-
-# print(bitvector_strata)
 
 projects = os.listdir(database_path)
 for project in projects:
@@ -23,14 +22,9 @@ for project in projects:
         if not os.path.isdir(bug_dir_path):
             continue
 
-        # if project != "pandas":
-        #     continue
-        #
-        # if bid != "122":
-        #     continue
-
         try:
             prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
+            prompt_generator.collect_fact_content_in_prompt()
 
         except Exception as e:
             print(f"{project}:{bid} fail to extract facts in prompt")

@@ -10,7 +10,7 @@ import openai
 import tiktoken
 from openai import OpenAI
 
-from utils import estimate_function_code_length, print_in_red, print_in_yellow, \
+from maniple.utils.misc import estimate_function_code_length, print_in_red, print_in_yellow, \
     extract_function_and_imports_from_code_block, find_patch_from_response
 
 client = OpenAI(api_key="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")

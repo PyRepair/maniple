@@ -9,7 +9,7 @@ from command_runner import (
     run_extract_features_command,
 )
 
-from utils import (
+from maniple.utils.misc import (
     NotSupportedError,
     get_fact_map,
     print_in_green,

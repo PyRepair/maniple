@@ -7,7 +7,7 @@ from command_runner import (
     run_prepare_command,
     run_validate_patch_command,
 )
-from utils import print_in_green, print_in_red, print_in_yellow
+from maniple.utils.misc import print_in_green, print_in_red, print_in_yellow
 
 
 def is_patch_file_ok(patchfile_path: str, result_file_path: str, bugid: str) -> bool:

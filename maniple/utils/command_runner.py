@@ -3,7 +3,7 @@ import signal
 import subprocess
 import os
 from typing import Optional
-from utils import print_in_green, print_in_yellow, print_in_red
+from maniple.utils.misc import print_in_green, print_in_yellow, print_in_red
 
 
 def run_clone_command(
