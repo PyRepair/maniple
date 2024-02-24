@@ -50,20 +50,7 @@ def resolve_cli_args():
     group_resource.add_argument(
         "--dataset",
         type=str,
-        choices=[
-            "BGP100",
-            "BGP215",
-            "first-stratum",
-            "second-stratum",
-            "all",
-        ],
         help="Which dataset to prepare",
-        default="all",
-    )
-    group_resource.add_argument(
-        "--use-bugs-directory",
-        type=str,
-        help="load bugids from specified directory",
         default=None,
     )
 

@@ -3,9 +3,7 @@ import json
 import os.path
 import shutil
 
-from numpy import require
-
-from maniple.utils.misc import print_in_red
+from maniple.utils.misc import print_in_red, print_in_yellow
 
 
 def init_data(output_dir: str, dataset):
@@ -29,11 +27,11 @@ def init_data(output_dir: str, dataset):
                     - ...
     """
     if dataset is None:
+        print_in_yellow("no dataset specified, using default dataset: 16-16-dataset")
         dataset = "16-16-dataset"
 
     init_data_folder = os.path.join(
-        os.path.dirname(__file__),
-        "..",
+        os.getcwd(),
         "experiment-initialization-resources"
     )
 
@@ -44,7 +42,7 @@ def init_data(output_dir: str, dataset):
     )
 
     if not os.path.exists(dataset_path):
-        print_in_red(f"dataset: {dataset} not exist")
+        print_in_red(f"dataset: {dataset} not exist, please ensure experiment-initialization-resources folder is under current working directory")
     else:
         with open(dataset_path, "r") as dataset_file:
             bug_list: dict = json.load(dataset_file)
