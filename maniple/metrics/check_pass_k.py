@@ -2,9 +2,10 @@ import argparse
 from collections import defaultdict
 from pathlib import Path
 import json
+from typing import List
 import numpy as np
 
-from ..utils import iter_bugid_folders
+from maniple.utils.misc import iter_bugid_folders
 
 
 def pass_at_k(n, c, k):
@@ -19,14 +20,19 @@ def pass_at_k(n, c, k):
     return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
 
 
-def analyze(folder: str):
+def analyze(folder: List[Path]):
     fixes_per_bug = defaultdict[str, int](lambda: 0) # all 1 bitvector
     trials_per_bug = defaultdict[str, int](lambda: 0) # all 1 bitvector
 
     total_fixes_per_bug = defaultdict[str, int](lambda: 0)
     total_trials_per_bug = defaultdict[str, int](lambda: 0)
+
+    lst = []
+    for f in folder:
+        _lst = iter_bugid_folders(f)
+        lst.extend(_lst)
     
-    for bugid, project_folder, bugid_folder in iter_bugid_folders(Path(folder)):
+    for bugid, project_folder, bugid_folder in lst:
         max_len = 0
         max_bitvector = ""
         for file in bugid_folder.iterdir():
@@ -87,9 +93,19 @@ def print_result(trials_per_bug, fixes_per_bug, benchmark_trials_per_bug, benchm
         print(f"pass@{k} current: {pass_k_sum[k - 1] / len(fixes_per_bug.keys())} benchmark: {benchmark_pass_k_sum[k - 1] / len(fixes_per_bug.keys())}")
 
 
-def main(path: str):
-    fixes_per_bug, trials_per_bug, total_fixes_per_bug, total_trials_per_bug = analyze(path)
-    benchmark_fixes_per_bug, benchmark_trials_per_bug, benchmark_total_fixes_per_bug, benchmark_total_trials_per_bug = analyze("/Users/jerry/Documents/GitHub/LPPR/test-data/bench")
+def main():
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument("path", help="Path to be taken")
+    
+    args = args_parser.parse_args()
+
+    path = args.path
+
+    fixes_per_bug, trials_per_bug, total_fixes_per_bug, total_trials_per_bug = analyze([Path(path)])
+    benchmark_fixes_per_bug, benchmark_trials_per_bug, benchmark_total_fixes_per_bug, benchmark_total_trials_per_bug = analyze([
+        Path.cwd() / "data" / "16-100-dataset-new-group",
+        Path.cwd() / "data" / "16-215-dataset-new-group",
+    ])
 
     print("All 1 bitvector")
     print_result(trials_per_bug, fixes_per_bug, benchmark_trials_per_bug, benchmark_fixes_per_bug)
@@ -101,9 +117,4 @@ def main(path: str):
 
 
 if __name__ == "__main__":
-    args_parser = argparse.ArgumentParser()
-    args_parser.add_argument("path", help="Path to be taken")
-    
-    args = args_parser.parse_args()
-
-    main(args.path)
+    main()

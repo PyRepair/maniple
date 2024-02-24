@@ -14,8 +14,44 @@ Before installing the project, ensure you have the following prerequisites insta
 Follow these steps to install and set up the project on your local machine:
 
 ```sh
-pip install -r LLMRepair/requirements.txt
+python3 -m pip install .
 ```
+
+## Doing Summarization Experiment with Maniple
+
+Do installation by following previous section. This will install maniple CLI tool on your system.
+
+Create a folder to store virtual environments for bugs.
+```sh
+mkdir /path/to/envs
+```
+
+Create bug folder containing your prompt and response files. By default maniple will initialize using BGP32 dataset. Please using the following command to create the bug folder.
+```sh
+maniple init --output-dir /path/to/bug-folder
+```
+
+Exploring the script file under `maniple/summarization/run_experiment.py` to see the example code for doing the experiment.
+
+Run this script via following command.
+```sh
+python3 -m maniple.summarization.run_experiment
+```
+
+Check the result in the `/path/to/bug-folder/pandas/122` folder.
+
+Once you are satisfied with the result, commit your changes and push it to Github.
+
+Then login to VNC server and navigate to `/home/ubuntu/LPPR` folder. Do a git pull to get the latest changes.
+
+Run the following command to validate results.
+```sh
+maniple validate --output-dir my-new-experiment-folder --envs-dir ~/Desktop/bgp_envs_dir
+```
+
+Wait for the validation to finish. Once it is done, you can check the result in the `my-new-experiment-folder` folder.
+
+
 
 ## Usage
 

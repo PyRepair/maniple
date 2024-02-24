@@ -21,7 +21,8 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "maniple=maniple.maniple:main"
+            "maniple=maniple.maniple:main",
+            "check_pass_k=maniple.metrics.check_pass_k:main",
         ]
     },
     include_package_data=True,
