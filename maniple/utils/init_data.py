@@ -5,10 +5,10 @@ import shutil
 
 from numpy import require
 
-from .utils.misc import print_in_red
+from maniple.utils.misc import print_in_red
 
 
-def main(output_dir: str, dataset):
+def init_data(output_dir: str, dataset):
     """
     Initialize the dataset by copying the bug data from the experiment-initialization-resources/bug-data to the
     output directory. The bug data is organized in the following way:
@@ -88,4 +88,4 @@ if __name__ == "__main__":
     )
     args = arg_parser.parse_args()
 
-    main(args.output_dir, args.dataset)
+    init_data(args.output_dir, args.dataset)

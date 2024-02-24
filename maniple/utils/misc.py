@@ -73,7 +73,7 @@ def iter_bugid_folders(path: Path):
     :param path: path to the folder containing the bugid folders
     :return: a list of tuples containing the bugid, project folder path and bugid folder path
     """
-    result = []
+    result: List[Tuple[str, Path, Path]] = []
     for project_folder in path.iterdir():
         if not project_folder.is_dir():
             continue

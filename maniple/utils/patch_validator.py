@@ -2,7 +2,7 @@ import json
 import os
 from typing import Optional
 
-from command_runner import (
+from maniple.utils.command_runner import (
     ensure_clone_and_prep_complete,
     run_prepare_command,
     run_validate_patch_command,

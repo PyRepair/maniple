@@ -1,11 +1,13 @@
 import argparse
+import json
 import os
-import shutil
+from pathlib import Path
 import threading
 from typing import List
 
-from utils import (
-    divide_list, 
+from maniple.utils.misc import (
+    divide_list,
+    iter_bugid_folders, 
     print_in_red, 
     print_in_yellow,
     clear_features,
@@ -14,10 +16,10 @@ from utils import (
     clear_results,
     clear_responses,
 )
-from features_extractor import collect_facts, NotSupportedError
-from patch_validator import validate_patches
-from dataset_manager import load_bugids_from_dataset, split_bugids_from_dataset
-from command_runner import ensure_clone_and_prep_complete
+from maniple.utils.features_extractor import collect_facts, NotSupportedError
+from maniple.utils.patch_validator import validate_patches
+from maniple.utils.command_runner import ensure_clone_and_prep_complete
+from maniple.utils.init_data import init_data
 
 
 def resolve_cli_args():
@@ -25,10 +27,10 @@ def resolve_cli_args():
     args_parser.add_argument(
         "command",
         choices=[
+            "init",
             "prep",
             "extract",
             "validate",
-            "copy",
             "clean_feature_files",
             "clean_response_files",
             "clean_result_files",
@@ -141,28 +143,17 @@ def resolve_cli_args():
 
     args = args_parser.parse_args()
 
+    if args.command in ["init", "validate", "extract"] and args.output_dir is None:
+        print_in_red("ERROR: output-dir is required for init, validate and extract")
+        exit(-1)
+    
     return args
 
 
-def copy_bugids(bugids: List[str], source_dir: str, dest_dir: str):
+def run_single_partition_bugids(args, bugids: List[str]):
     for bugid in bugids:
-        dest_path = os.path.join(dest_dir, *bugid.split(":"))
-        os.makedirs(dest_path, exist_ok=True)
-        shutil.copytree(source_dir, dest_path, dirs_exist_ok=True)
-
-
-def run_single_partition_bugids(args, bugids: List[str], source_dir: str):
-    for bugid in bugids:
-        # if we are not copying files, we are allowed to switch destination directory
-        if args.output_dir is not None and args.command != "copy":
-            source_dir = args.output_dir
-
-        # if destination directory is specified, make sure it exists
-        if args.output_dir is not None and not os.path.exists(args.output_dir):
-            os.makedirs(args.output_dir)
-
-        # make sure the working directory exists
-        bwd = os.path.join(source_dir, *bugid.split(":"))
+        # make sure the output directory exists
+        bwd = os.path.join(args.output_dir, *bugid.split(":"))
         if not os.path.exists(bwd):
             os.makedirs(bwd)
 
@@ -197,12 +188,6 @@ def run_single_partition_bugids(args, bugids: List[str], source_dir: str):
                     args.verbose_logging,
                 )
 
-            elif args.command == "copy":
-                if args.output_dir is None:
-                    print_in_red("FATAL: output_dir not specified")
-                    exit(-1)
-                copy_bugids(bugids, bwd, args.output_dir)
-
             elif args.command == "clean_feature_files":
                 clear_features(bwd)
             elif args.command == "clean_log_files":
@@ -218,14 +203,14 @@ def run_single_partition_bugids(args, bugids: List[str], source_dir: str):
             print_in_yellow(f"WARNING: {e}, skip bugid: {bugid}")
 
 
-def start_multithread_task(args, bugids: List[str], source_dir: str):
+def start_multithread_task(args, bugids: List[str]):
     bugids_partitions = divide_list(bugids, args.partitions)
 
     threads = []
     for bugids_partition in bugids_partitions:
         thread = threading.Thread(
             target=run_single_partition_bugids,
-            args=(args, bugids_partition, source_dir),
+            args=(args, bugids_partition),
         )
         thread.start()
         threads.append(thread)
@@ -234,54 +219,44 @@ def start_multithread_task(args, bugids: List[str], source_dir: str):
         thread.join()
 
 
-def main(args):
+def start_batch_task(args):
+    bugids: List[str] = []
+    
     if len(args.bugids) > 0:
-        bugids = split_bugids_from_dataset(
-            args.bugids,
-            exclude_projects=args.exclude_projects,
-            include_projects=args.include_projects,
-        )
+        bugids = args.bugids
 
-    elif args.use_bugs_directory is not None:
-        # load bugids from specified directory
-        src_dir = args.use_bugs_directory
+    elif args.output_dir is not None:
+        bugids = [bid for bid, _, _ in iter_bugid_folders(Path(args.output_dir))]
 
-        # build bugids list by traversing the directory
-        bugids_list = []
-        for project_name in os.listdir(src_dir):
-            project_path = os.path.join(src_dir, project_name)
-            if not os.path.isdir(project_path):
-                continue
-            for bugid in os.listdir(project_path):
-                bug_path = os.path.join(project_path, bugid)
-                if not os.path.isdir(bug_path):
-                    continue
-                bugids_list.append(f"{project_name}:{bugid}")
-
-        bugids = split_bugids_from_dataset(
-            bugids_list,
-            exclude_projects=args.exclude_projects,
-            include_projects=args.include_projects,
-        )
-
+    elif args.dataset is not None:
+        _p = Path(__file__).parent.parent / "experiment-initialization-resources" / "datasets-list" / args.dataset
+        if not _p.exists():
+            print_in_red(f"ERROR: dataset {args.dataset} not found")
+            return
+        
+        with open(_p) as f:
+            _j = json.load(f)
+            for key, value in _j.items():
+                bugids.append(f"{key}:{value}")
+    
     else:
-        bugids = load_bugids_from_dataset(
-            args.dataset,
-            exclude_projects=args.exclude_projects,
-            include_projects=args.include_projects,
-        )
+        print_in_red("ERROR: no bugids specified")
+        return
+    
+    print(f"Bugids: {bugids}, total: {len(bugids)}")
+    for bugid in bugids:
+        start_multithread_task(args, bugids)
 
-    for source_dir, bugids in bugids:
-        if len(bugids) == 0:
-            continue
 
-        print(
-            f"Output directory: {source_dir if args.output_dir is None else args.output_dir}"
-        )
-        print(f"Bugids: {bugids}, total: {len(bugids)}")
-        start_multithread_task(args, bugids, source_dir)
+def main():
+    args = resolve_cli_args()
+
+    if args.command == "init":
+        init_data(args.output_dir, args.dataset)
+    else:
+        start_batch_task(args)
+    
 
 
 if __name__ == "__main__":
-    args = resolve_cli_args()
-    main(args)
+    main()

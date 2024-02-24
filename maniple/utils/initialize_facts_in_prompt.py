@@ -1,7 +1,7 @@
 import json
 import os
 
-from .strata_based.prompt_generator import PromptGenerator
+from ..strata_based.prompt_generator import PromptGenerator
 
 database_path = os.path.join("..", "experiment-initialization-resources", "bug-data")
 bitvector_path = os.path.join("..", "experiment-initialization-resources", "strata-bitvectors")

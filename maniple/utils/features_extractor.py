@@ -4,7 +4,7 @@ import json
 import re
 from typing import Any, List, Optional, Tuple
 
-from command_runner import (
+from maniple.utils.command_runner import (
     ensure_clone_and_prep_complete,
     run_extract_features_command,
 )
