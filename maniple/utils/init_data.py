@@ -6,7 +6,7 @@ import shutil
 from maniple.utils.misc import print_in_red, print_in_yellow
 
 
-def init_data(output_dir: str, dataset):
+def init_data(output_dir: str, dataset, init_data_folder=None):
     """
     Initialize the dataset by copying the bug data from the experiment-initialization-resources/bug-data to the
     output directory. The bug data is organized in the following way:
@@ -30,7 +30,7 @@ def init_data(output_dir: str, dataset):
         print_in_yellow("no dataset specified, using default dataset: 16-16-dataset")
         dataset = "16-16-dataset"
 
-    init_data_folder = os.path.join(
+    init_data_folder = init_data_folder if init_data_folder is not None else os.path.join(
         os.getcwd(),
         "experiment-initialization-resources"
     )

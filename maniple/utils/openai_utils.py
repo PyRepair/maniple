@@ -16,10 +16,10 @@ from maniple.utils.misc import estimate_function_code_length, print_in_red, prin
 client = OpenAI(api_key="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")
 
 
-def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_file_name_prefix: str, database_dir: Path,
+def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_file_name_prefix: str, database_dir: str,
                                         project_name: str, bug_id: str, trial: int, data_to_store: dict = None) -> dict:
 
-    output_dir: str = str(database_dir / project_name / bug_id)
+    output_dir: str = os.path.join(database_dir, project_name, bug_id)
 
     require_generation = False
     for index in range(trial):
