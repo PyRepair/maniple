@@ -11,6 +11,8 @@ from maniple.utils.openai_utils import get_responses_from_prompt, QueryException
 from maniple.utils.misc import print_in_red, print_in_yellow, iter_bugid_folders, divide_list, print_in_green
 from maniple.utils.patch_validator import validate_patches
 from maniple.utils.init_data import init_data
+from maniple.metrics.check_pass_k import analyze as check_pass_k, pass_at_k
+from maniple.maniple import clear_responses, clear_results
 
 TOTAL_USAGE = 0
 LOG_MODE = False
@@ -245,3 +247,26 @@ class Dataset:
                              envs_dir=self.envs_dir,
                              use_docker=False,
                              overwrite=True)
+            
+    def show_pass_k(self):
+        _, _, total_fixes_per_bug, total_trials_per_bug = check_pass_k([Path(self.database_path)])
+
+        pass_k_sum = [0.0] * 10
+
+        for _bugid in total_trials_per_bug.keys():
+            fixes_count = total_fixes_per_bug[_bugid]
+            trials_count = total_trials_per_bug[_bugid]
+
+            print(
+                f"Bug {_bugid} current: {fixes_count}/{total_trials_per_bug[_bugid]}"
+            )
+
+            for k in range(1, 11):
+                pass_k_sum[k - 1] += pass_at_k(trials_count, fixes_count, k)
+
+        for k in range(1, 11):
+            print(f"pass@{k} current: {pass_k_sum[k - 1] / len(total_fixes_per_bug.keys())}")
+
+    def clear(self):
+        clear_responses(self.database_path)
+        clear_results(self.database_path)
