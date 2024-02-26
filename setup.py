@@ -23,6 +23,8 @@ setup(
         "console_scripts": [
             "maniple=maniple.maniple:main",
             "check_pass_k=maniple.metrics.check_pass_k:main",
+            "check_patch=maniple.metrics.check_patch:main",
+            "check_results=maniple.metrics.check_results:main",
         ]
     },
     include_package_data=True,

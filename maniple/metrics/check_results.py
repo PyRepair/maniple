@@ -114,7 +114,7 @@ def aggregate_stats(pass_stats_list: Dict[int, PassStats]):
     return PassStats(**aggregated_values)
 
 
-def main(path: str, top=None):
+def check(path: str, top=None, verbose=None):
     # A dictionary of pass index to PassStats
     allPassStats = defaultdict[int, PassStats](PassStats)
 
@@ -215,7 +215,10 @@ def main(path: str, top=None):
     # print_top10_bitvectors_for_each_bug(allPassStats)
 
     # print_top5_bitvectors_and_fix_rate(allPassStats)
-
+    
+    if not verbose:
+        return
+    
     accumulated_fixed_bugids = set()
     accumulated_postive_labels = set()
 
@@ -283,12 +286,19 @@ def main(path: str, top=None):
         print()
 
 
-if __name__ == "__main__":
+def main():
     args_parser = argparse.ArgumentParser()
     args_parser.add_argument("path", help="Path to be taken")
     args_parser.add_argument(
         "--top", help="Top number of passed to be printed", type=int, default=None
     )
+    args_parser.add_argument(
+        "--verbose", help="Print verbose information", action="store_true", default=None
+    )
 
     args = args_parser.parse_args()
-    main(args.path, args.top)
+    check(args.path, args.top, args.verbose)
+
+
+if __name__ == "__main__":
+    main()
