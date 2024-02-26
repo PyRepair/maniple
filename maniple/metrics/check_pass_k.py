@@ -131,16 +131,19 @@ def check_pass_k(current_path: List[Path], benchmark_path: List[Path] | None = N
         print_result(total_trials_per_bug, total_fixes_per_bug, benchmark_total_trials_per_bug, benchmark_total_fixes_per_bug)
 
 
+def path_list(string: str) -> List[Path]:
+    return [Path(p) for p in string.split(',')]
+
+
 def main():
     args_parser = argparse.ArgumentParser()
-    args_parser.add_argument("current_path", type=lambda x: [Path(p) for p in x.split(",")])
-    args_parser.add_argument("--benchmark-path", type=lambda x: [Path(p) for p in x.split(",")], required=False, default=None)
+    args_parser.add_argument("current_path", type=Path, nargs='+')
+    args_parser.add_argument("--benchmark-path", type=Path, nargs='+', required=False, default=None)
     args_parser.add_argument("--show-full-bitvector", action="store_true", required=False)
     
     args = args_parser.parse_args()
 
     check_pass_k(args.current_path, args.benchmark_path, args.show_full_bitvector)
-
 
 if __name__ == "__main__":
     main()
