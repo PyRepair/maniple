@@ -1,5 +1,6 @@
 import json
 import pickle
+from re import S
 import threading
 from pathlib import Path
 from typing import Any, List, Callable
@@ -7,31 +8,22 @@ import os
 
 import tiktoken
 
-from maniple.utils.openai_utils import get_responses_from_prompt, QueryException, get_and_save_response_with_fix_path
-from maniple.utils.misc import print_in_red, print_in_yellow, iter_bugid_folders, divide_list, print_in_green
+from maniple.utils.openai_utils import (
+    get_responses_from_prompt,
+    QueryException,
+    get_and_save_response_with_fix_path,
+)
+from maniple.utils.misc import (
+    print_in_red,
+    print_in_yellow,
+    iter_bugid_folders,
+    divide_list,
+    print_in_green,
+)
 from maniple.utils.patch_validator import validate_patches
 from maniple.utils.init_data import init_data
 from maniple.metrics.check_pass_k import analyze as check_pass_k, pass_at_k
 from maniple.maniple import clear_responses, clear_results
-
-TOTAL_USAGE = 0
-LOG_MODE = False
-COMPRESSION_CAP = 0
-
-
-def log_red(message: str):
-    if LOG_MODE:
-        print_in_red(message)
-
-
-def log_yellow(message: str):
-    if LOG_MODE:
-        log_yellow(message)
-
-
-def log(*args, sep=' ', end='\n', file=None):
-    if LOG_MODE:
-        print(*args, sep=sep, end=end, file=file)
 
 
 class Processor:
@@ -45,7 +37,9 @@ class Processor:
             json_data = json.load(f)
             __tmp0 = list(json_data[bugid].values())[0]
             self.function_source_code = __tmp0["buggy_functions"][0]["function_code"]
-            self.file_path = self._remove_project_root(bugid, list(json_data[bugid].keys())[0])
+            self.file_path = self._remove_project_root(
+                bugid, list(json_data[bugid].keys())[0]
+            )
 
         with open(bug_folder / "facts.json") as f:
             self.fact_data = json.load(f)
@@ -58,11 +52,14 @@ class Processor:
         title = "## A failing test function for the buggy function"
         test_cases = self.facts_in_prompt["4"].split(title)
         test_cases = [d.strip() for d in test_cases if d.strip() != ""]
-        test_cases = [f"## Test case {i + 1} for the buggy function\n{d}" for i, d in enumerate(test_cases)]
+        test_cases = [
+            f"## Test case {i + 1} for the buggy function\n{d}"
+            for i, d in enumerate(test_cases)
+        ]
 
-        self.test_and_error_message = "\n\n\n".join([
-            f"{a}\n\n{b}" for a, b in zip(test_cases, error_messages)
-        ])
+        self.test_and_error_message = "\n\n\n".join(
+            [f"{a}\n\n{b}" for a, b in zip(test_cases, error_messages)]
+        )
 
     @staticmethod
     def _remove_project_root(bugid: str, path: str):
@@ -74,9 +71,9 @@ class Processor:
             idx = path.find(project_name)
             if idx == -1:
                 return path
-            return path[idx + len(project_name) + 1:]
+            return path[idx + len(project_name) + 1 :]
 
-        return path[idx + len(bugid_label) + 1:]
+        return path[idx + len(bugid_label) + 1 :]
 
     @property
     def source_code_without_imports(self):
@@ -127,44 +124,10 @@ def count_tokens(prompt: str) -> int:
     return len(encoding.encode(prompt))
 
 
-def get_response_and_store_results(prompt: str, prompt_file: Path, response_file: Path, pkl_file: Path, trials=1) -> List[str]:
-    global TOTAL_USAGE
-
-    # if this prompt is too long just set bit to 0
-    # we need to estimate tokens first
-    encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-    num_tokens = len(encoding.encode(prompt))
-    if num_tokens > 16000:
-        raise QueryException(f"Prompt is exceeding 16000 tokens")
-
-    gpt_response = get_responses_from_prompt(
-        prompt=prompt,
-        model="gpt-3.5-turbo-1106",
-        trial=trials,
-        temperature=1
-    )
-    responses: List[str] = gpt_response["responses"]
-    TOTAL_USAGE += gpt_response["total_token_usage"].total_tokens
-
-    # prompt file
-    prompt_file.write_text(prompt)
-
-    # response file
-    response_dir = response_file.parent
-    response_filename = response_file.stem
-    for i, response in enumerate(responses):
-        file_with_suffix = response_dir / f"{response_filename}_{i + 1}.md"
-        file_with_suffix.write_text(response)
-
-    # pkl file
-    with open(pkl_file, "wb") as dump_pickle_file:
-        pickle.dump(responses, dump_pickle_file)
-
-    return responses
-
-
 class Dataset:
-    def __init__(self, dataset:str, output_path=None, envs_dir=None, init_data_folder=None) -> None:
+    def __init__(
+        self, dataset: str, output_path=None, envs_dir=None, init_data_folder=None
+    ) -> None:
         self.database_path = dataset if output_path is None else output_path
 
         # If not initialized, create the database
@@ -173,26 +136,48 @@ class Dataset:
 
         self.envs_dir = envs_dir
 
-    def for_each_bug(self, fn: Callable[[Processor], str] | None=None, n_partitions=1, compression_cap=0, restricted_bugs=None, gen_patch=False, trials=1):
-        global TOTAL_USAGE
-        TOTAL_USAGE = 0
+        self.log_mode = False
 
-        global LOG_MODE
-        LOG_MODE = n_partitions == 1
+        self._total_usage = 0
 
-        global COMPRESSION_CAP
-        COMPRESSION_CAP = compression_cap
+    def log_red(self, message: str):
+        if self.log_mode:
+            print_in_red(message)
 
-        if restricted_bugs is None:
-            restricted_bugs = []  # list of bugids to restrict
 
-        partitions = divide_list(iter_bugid_folders(Path(self.database_path)), n_partitions)
+    def log_yellow(self, message: str):
+        if self.log_mode:
+            print_in_yellow(message)
+
+
+    def log(self, *args, sep=" ", end="\n", file=None):
+        if self.log_mode:
+            print(*args, sep=sep, end=end, file=file)
+
+    def for_each_bug(
+        self,
+        task_name="prompt",
+        fn: Callable[[Processor], str] | None = None,
+        n_partitions=1,
+        bugids=None,
+        gen_patch=False,
+        trials=1,
+        model="gpt-3.5-turbo-1106",
+    ):
+        origin_log_mode = self.log_mode
+        if n_partitions == 1:
+            self.log_mode = False
+
+        if bugids is None:
+            bugids = []  # list of bugids to restrict
+
+        partitions = divide_list(
+            iter_bugid_folders(Path(self.database_path)), n_partitions
+        )
 
         def thread_func(folders):
-            global TOTAL_USAGE
-
             for bugid, project_folder, bugid_folder in folders:
-                if restricted_bugs and bugid not in restricted_bugs:
+                if bugids and bugid not in bugids:
                     continue
 
                 print_in_green(f"Processing {bugid}...")
@@ -206,19 +191,24 @@ class Dataset:
                         f.write(prompt)
 
                 if gen_patch:
-                    log("Generating patch response. Prompt tokens:", count_tokens(prompt))
-                    token_usage: Any = get_and_save_response_with_fix_path(prompt=prompt,
-                                                                        gpt_model="gpt-3.5-turbo-1106",
-                                                                        response_file_name_prefix="prompt",
-                                                                        database_dir=self.database_path,
-                                                                        project_name=project_folder.name,
-                                                                        bug_id=bugid_folder.name,
-                                                                        trial=trials)
+                    self.log(
+                        "Generating patch response. Prompt tokens:",
+                        count_tokens(prompt),
+                    )
+                    token_usage: Any = get_and_save_response_with_fix_path(
+                        prompt=prompt,
+                        gpt_model=model,
+                        response_file_name_prefix=task_name,
+                        database_dir=self.database_path,
+                        project_name=project_folder.name,
+                        bug_id=bugid_folder.name,
+                        trial=trials,
+                    )
 
                     if type(token_usage) is dict:
-                        TOTAL_USAGE += token_usage["total_tokens"]
+                        self._total_usage += token_usage["total_tokens"]
                     else:
-                        TOTAL_USAGE += token_usage.total_tokens
+                        self._total_usage += token_usage.total_tokens
 
         threads = []  # List to keep track of the threads
 
@@ -232,24 +222,58 @@ class Dataset:
         for thread in threads:
             thread.join()
 
-        print_in_yellow(f"Total token usage: {TOTAL_USAGE}, estimate ${TOTAL_USAGE / 1000_000}")
+        print_in_yellow(
+            f"Total token usage: {self._total_usage}, estimate ${self._total_usage / 1000_000}"
+        )
 
+        self.log_mode = origin_log_mode
 
-    def validate_each_bug(self, restricted_bugs=None):
-        if restricted_bugs is None:
+    def get_response_and_store_results(
+        self, prompt: str, prompt_file: Path, response_file: Path, pkl_file: Path, trials=1
+    ) -> List[str]:
+        # if this prompt is too long just set bit to 0
+        # we need to estimate tokens first
+        encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        num_tokens = len(encoding.encode(prompt))
+        if num_tokens > 16000:
+            raise QueryException(f"Prompt is exceeding 16000 tokens")
+
+        gpt_response = get_responses_from_prompt(
+            prompt=prompt, model="gpt-3.5-turbo-1106", trial=trials, temperature=1
+        )
+        responses: List[str] = gpt_response["responses"]
+        self._total_usage += gpt_response["total_token_usage"].total_tokens
+
+        # prompt file
+        prompt_file.write_text(prompt)
+
+        # response file
+        response_dir = response_file.parent
+        response_filename = response_file.stem
+        for i, response in enumerate(responses):
+            file_with_suffix = response_dir / f"{response_filename}_{i + 1}.md"
+            file_with_suffix.write_text(response)
+
+        # pkl file
+        with open(pkl_file, "wb") as dump_pickle_file:
+            pickle.dump(responses, dump_pickle_file)
+
+        return responses
+
+    def validate_each_bug(self, bugids=None):
+        if bugids is None:
             bugids = [s for s, _, _ in iter_bugid_folders(Path(self.database_path))]
-        else:
-            bugids = restricted_bugs
 
         for bugid in bugids:
             bwd = os.path.join(self.database_path, *bugid.split(":"))
-            validate_patches(bugid, bwd, 
-                             envs_dir=self.envs_dir,
-                             use_docker=False,
-                             overwrite=True)
-            
+            validate_patches(
+                bugid, bwd, envs_dir=self.envs_dir, use_docker=False, overwrite=True
+            )
+
     def show_pass_k(self):
-        _, _, total_fixes_per_bug, total_trials_per_bug = check_pass_k([Path(self.database_path)])
+        _, _, total_fixes_per_bug, total_trials_per_bug = check_pass_k(
+            [Path(self.database_path)]
+        )
 
         pass_k_sum = [0.0] * 10
 
@@ -257,15 +281,15 @@ class Dataset:
             fixes_count = total_fixes_per_bug[_bugid]
             trials_count = total_trials_per_bug[_bugid]
 
-            print(
-                f"Bug {_bugid} current: {fixes_count}/{total_trials_per_bug[_bugid]}"
-            )
+            print(f"Bug {_bugid} current: {fixes_count}/{total_trials_per_bug[_bugid]}")
 
             for k in range(1, 11):
                 pass_k_sum[k - 1] += pass_at_k(trials_count, fixes_count, k)
 
         for k in range(1, 11):
-            print(f"pass@{k} current: {pass_k_sum[k - 1] / len(total_fixes_per_bug.keys())}")
+            print(
+                f"pass@{k} current: {pass_k_sum[k - 1] / len(total_fixes_per_bug.keys())}"
+            )
 
     def clear(self):
         clear_responses(self.database_path)
