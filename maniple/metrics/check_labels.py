@@ -2,10 +2,10 @@ import json
 import os.path
 import numpy as np
 
-dataset = ["import-instruction-default"]
+dataset = ["16-100-dataset-new-group", "16-215-dataset-new-group"]
 dataset_path = []
 for dataset in dataset:
-    dataset_path.append(os.path.join("..", "training-data", dataset))
+    dataset_path.append(os.path.join("..", "..", "data", dataset))
 
 
 def collect_result_table(target_trial: int):
@@ -88,7 +88,7 @@ for trial in range(1, 11):
     if trial == 1:
         aggregate_result, fix_patch_count, correct_fix_patch_count = collect_result_table(1)
         total_correct_fix_patch_count = correct_fix_patch_count
-        print(f"Positive label number after combine trial {trial}: {correct_fix_patch_count}")
+        print(f"Positive label bug-bitvector pair number after combine trial {trial}: {correct_fix_patch_count}")
 
     else:
         next_trial_result, fix_patch_count_next, correct_fix_patch_count_next = collect_result_table(trial)
@@ -102,11 +102,11 @@ for trial in range(1, 11):
         original_correct_fix_patch_count = correct_fix_patch_count
         correct_fix_patch_count = calculate_result_table_size(aggregate_result)
 
-        print(f"Positive label number after combine trial {trial}: {correct_fix_patch_count}")
+        print(f"Positive label bug-bitvector pair number after combine trial {trial}: {correct_fix_patch_count}")
         print(f"Improve: {((correct_fix_patch_count / original_correct_fix_patch_count) * 100) - 100}%")
 
 
-print(f"total fix patch count in 10 trials: {fix_patch_count}")
+print(f"total fix patch count in 20 trials: {fix_patch_count}")
 print(f"total correct fix patch count in 10 trials: {total_correct_fix_patch_count}")
 
 for k in range(1, 11):
