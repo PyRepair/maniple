@@ -78,32 +78,42 @@ def analyze(folder: List[Path]):
 
 def print_result(trials_per_bug, fixes_per_bug, benchmark_trials_per_bug=None, benchmark_fixes_per_bug=None):
     pass_k_sum = [0.0] * 10
+    pass_k_sum_count = [0] * 10
     benchmark_pass_k_sum = [0.0] * 10
+    benchmark_pass_k_sum_count = [0] * 10
 
     for _bugid in trials_per_bug.keys():
         fixes_count = fixes_per_bug[_bugid]
         trials_count = trials_per_bug[_bugid]
 
         if benchmark_trials_per_bug is not None and benchmark_fixes_per_bug is not None:
-            if benchmark_trials_per_bug[_bugid] == 0:
-                print("nothing to compare")
-            else:
-                print(
-                    f"Bug {_bugid} current: {fixes_count}/{trials_per_bug[_bugid]} benchmark: {benchmark_fixes_per_bug[_bugid]}/{benchmark_trials_per_bug[_bugid]}"
-                )
+            print(
+                f"Bug {_bugid} current: {fixes_count}/{trials_per_bug[_bugid]} benchmark: {benchmark_fixes_per_bug[_bugid]}/{benchmark_trials_per_bug[_bugid]}"
+            )
         else:
             print(f"Bug {_bugid} {fixes_count}/{trials_per_bug[_bugid]}")
 
         for k in range(1, 11):
-            pass_k_sum[k - 1] += pass_at_k(trials_count, fixes_count, k)
+            if trials_count > 0:
+                pass_k_sum[k - 1] += pass_at_k(trials_count, fixes_count, k)
+                pass_k_sum_count[k - 1] += 1
+            else:
+                print(f"Exlcuding bug {_bugid} from pass@{k} calculation for current")
+            
             if benchmark_trials_per_bug is not None and benchmark_fixes_per_bug is not None:
-                benchmark_pass_k_sum[k - 1] += pass_at_k(benchmark_trials_per_bug[_bugid], benchmark_fixes_per_bug[_bugid], k)
+                benchmark_trials_count = benchmark_trials_per_bug[_bugid]
+                benchmark_fixes_count = benchmark_fixes_per_bug[_bugid]
+                if benchmark_trials_count > 0:
+                    benchmark_pass_k_sum[k - 1] += pass_at_k(benchmark_trials_count, benchmark_fixes_count, k)
+                    benchmark_pass_k_sum_count[k - 1] += 1
+                else:
+                    print(f"Exlcuding bug {_bugid} from pass@{k} calculation for benchmark")
 
     for k in range(1, 11):
         if benchmark_trials_per_bug is not None and benchmark_fixes_per_bug is not None:
-            print(f"pass@{k} current: {pass_k_sum[k - 1] / len(fixes_per_bug.keys())} benchmark: {benchmark_pass_k_sum[k - 1] / len(fixes_per_bug.keys())}")
+            print(f"pass@{k} current: {pass_k_sum[k - 1] / pass_k_sum_count[k - 1]} benchmark: {benchmark_pass_k_sum[k - 1] / benchmark_pass_k_sum_count[k - 1]}")
         else:
-            print(f"pass@{k} {pass_k_sum[k - 1] / len(fixes_per_bug.keys())}")
+            print(f"pass@{k} {pass_k_sum[k - 1] / pass_k_sum_count[k - 1]}")
 
 
 def check_pass_k(current_path: List[Path], benchmark_path: List[Path] | None = None, show_full_bitvector=False):
