@@ -198,7 +198,7 @@ class Dataset:
                     token_usage: Any = get_and_save_response_with_fix_path(
                         prompt=prompt,
                         gpt_model=model,
-                        response_file_name_prefix=task_name,
+                        actual_group_bitvector=task_name,
                         database_dir=self.database_path,
                         project_name=project_folder.name,
                         bug_id=bugid_folder.name,

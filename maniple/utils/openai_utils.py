@@ -16,28 +16,31 @@ from maniple.utils.misc import estimate_function_code_length, print_in_red, prin
 client = OpenAI(api_key="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")
 
 
-def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_file_name_prefix: str, database_dir: str,
+def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, actual_group_bitvector: str, database_dir: str,
                                         project_name: str, bug_id: str, trial: int, data_to_store: dict = None) -> dict:
+    bug_dir = os.path.join(database_dir, project_name, bug_id)
+    output_dir: str = os.path.join(database_dir, project_name, bug_id, actual_group_bitvector)
 
-    output_dir: str = os.path.join(database_dir, project_name, bug_id)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-    require_generation = False
-    for index in range(trial):
-        file_index = index + 1
-        response_md_file_name = response_file_name_prefix + "_response_" + str(file_index) + ".md"
-        response_md_file_path = os.path.join(output_dir, response_md_file_name)
-        if not os.path.exists(response_md_file_path):
-            require_generation = True
-            break
+    # require_generation = False
+    # for index in range(trial):
+    #     file_index = index + 1
+    #     response_md_file_name = actual_group_bitvector + "_response_" + str(file_index) + ".md"
+    #     response_md_file_path = os.path.join(output_dir, response_md_file_name)
+    #     if not os.path.exists(response_md_file_path):
+    #         require_generation = True
+    #         break
+    #
+    # if not require_generation:
+    #     return {
+    #         "prompt_tokens": 0,
+    #         "completion_tokens": 0,
+    #         "total_tokens": 0
+    #     }
 
-    if not require_generation:
-        return {
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "total_tokens": 0
-        }
-
-    with open(os.path.join(output_dir, "bug-data.json"), "r") as bug_data_file:
+    with open(os.path.join(bug_dir, "bug-data.json"), "r") as bug_data_file:
         bug_data: dict = next(iter(json.load(bug_data_file).values()))
         user_dir: str = list(bug_data)[0]
         buggy_function_name: str = bug_data[user_dir]["buggy_functions"][0]["function_name"]
@@ -61,8 +64,8 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_fi
 
     for index in range(trial):
         file_index = index + 1
-        response_md_file_name = response_file_name_prefix + "_response_" + str(file_index) + ".md"
-        response_json_file_name = response_file_name_prefix + "_response_" + str(file_index) + ".json"
+        response_md_file_name = "response_" + str(file_index) + ".md"
+        response_json_file_name = "response_" + str(file_index) + ".json"
 
         response_md_file_path = os.path.join(output_dir, response_md_file_name)
         response_json_file_path = os.path.join(output_dir, response_json_file_name)
@@ -114,8 +117,7 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, response_fi
             print_in_yellow(f"write response error to {response_md_file_path}")
 
     if responses is not None:
-        completion_file_name = response_file_name_prefix + "_completion" + ".pkl"
-        completion_file_path = os.path.join(output_dir, completion_file_name)
+        completion_file_path = os.path.join(output_dir, "raw_data.pkl")
 
         with open(completion_file_path, 'wb') as completion_file:
             pickle.dump((responses["prompt_messages"], responses["response_completions"]), completion_file)

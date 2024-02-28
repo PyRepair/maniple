@@ -9,10 +9,10 @@ import re
 
 from openai import OpenAI
 from typing import List
-from ..utils.misc import print_in_red, print_in_yellow, divide_list
-from ..utils.openai_utils import get_and_save_response_with_fix_path, combine_token_usage
-from .prompt_template import generate_variable_angelic_info, generate_variable_runtime_info
-from fact_bitvector_generator import bitvector_map, strata_bitvector_map
+from maniple.utils.misc import print_in_red, print_in_yellow, divide_list
+from maniple.utils.openai_utils import get_and_save_response_with_fix_path, combine_token_usage
+from maniple.strata_based.prompt_template import generate_variable_angelic_info, generate_variable_runtime_info
+from maniple.strata_based.fact_bitvector_generator import bitvector_map, strata_bitvector_map
 
 client = OpenAI(api_key="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")
 
@@ -453,12 +453,15 @@ class PromptGenerator:
         return text
 
     def write_prompt(self):
-        prompt_file_name = ""
-        for value in self.bitvector.values():
-            prompt_file_name = prompt_file_name + str(value)
+        bitvector_flatten = ""
+        for value in self.actual_strata_bitvector.values():
+            bitvector_flatten = bitvector_flatten + str(value)
 
-        prompt_file_name += "_prompt.md"
-        with open(os.path.join(self.output_dir, prompt_file_name), "w", encoding='utf-8') as output_file:
+        bitvector_path = os.path.join(self.output_dir, bitvector_flatten)
+        if not os.path.exists(bitvector_path):
+            os.makedirs(bitvector_path)
+
+        with open(os.path.join(bitvector_path, "prompt.md"), "w", encoding='utf-8') as output_file:
             output_file.write(self.prompt)
 
     def collect_fact_content_in_prompt(self):
@@ -487,7 +490,7 @@ class PromptGenerator:
     def generate_response(self, start_index: int, trial_number: int, gpt_model: str):
         bitvector_flatten = ""
 
-        for value in self.bitvector.values():
+        for value in self.actual_strata_bitvector.values():
             bitvector_flatten = bitvector_flatten + str(value)
 
         data_to_store = {
@@ -497,7 +500,7 @@ class PromptGenerator:
             "available_strata": self.actual_strata_bitvector
         }
 
-        return get_and_save_response_with_fix_path(self.prompt, gpt_model, bitvector_flatten, Path(self.database_dir),
+        return get_and_save_response_with_fix_path(self.prompt, gpt_model, bitvector_flatten, self.database_dir,
                                                    self.project_name, self.bug_id, trial_number, data_to_store)
 
 
@@ -519,7 +522,7 @@ def run_single_bitvector_partition(partition_bitvectors, start_index, trial_numb
                 if not prompt_generator.exist_null_strata():
                     prompt_generator.write_prompt()
                     print(f"\ngenerate response for {project}:{bid}")
-                    token_usage = prompt_generator.generate_response(start_index, trial_number, "gpt-3.5-turbo-1106")
+                    token_usage = prompt_generator.generate_response(start_index, trial_number, "gpt-3.5-turbo-0125")
 
                     with lock:
                         total_token_usage = combine_token_usage(total_token_usage, token_usage)
