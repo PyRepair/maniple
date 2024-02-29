@@ -1,0 +1,221 @@
+{
+    "1.1.1": "def array_equivalent(left, right, strict_nan=False):\n    \n\n    left, right = np.asarray(left), np.asarray(right)\n\n    # shape compat\n    if left.shape != right.shape:\n        return False\n\n    # Object arrays can contain None, NaN and NaT.\n    # string dtypes must be come to this path for NumPy 1.7.1 compat\n    if is_string_dtype(left) or is_string_dtype(right):\n\n        if not strict_nan:\n            # isna considers NaN and None to be equivalent.\n            return lib.array_equivalent_object(\n                ensure_object(left.ravel()), ensure_object(right.ravel())\n            )\n\n        for left_value, right_value in zip(left, right):\n            if left_value is NaT and right_value is not NaT:\n                return False\n\n            elif isinstance(left_value, float) and np.isnan(left_value):\n                if not isinstance(right_value, float) or not np.isnan(right_value):\n                    return False\n            else:\n                if left_value != right_value:\n                    return False\n        return True\n\n    # NaNs can occur in float and complex arrays.\n    if is_float_dtype(left) or is_complex_dtype(left):\n\n        # empty\n        if not (np.prod(left.shape) and np.prod(right.shape)):\n            return True\n        return ((left == right) | (isna(left) & isna(right))).all()\n\n    # numpy will will not allow this type of datetimelike vs integer comparison\n    elif is_datetimelike_v_numeric(left, right):\n        return False\n\n    # M8/m8\n    elif needs_i8_conversion(left) and needs_i8_conversion(right):\n        if not is_dtype_equal(left.dtype, right.dtype):\n            return False\n\n        left = left.view(\"i8\")\n        right = right.view(\"i8\")\n\n    # if we have structured dtypes, compare first\n    if left.dtype.type is np.void or right.dtype.type is np.void:\n        if left.dtype != right.dtype:\n            return False\n\n    return np.array_equal(left, right)\n",
+    "1.1.2": "True if two arrays, left and right, have equal non-NaN elements, and NaNs\nin corresponding locations.  False otherwise. It is assumed that left and\nright are NumPy arrays of the same dtype. The behavior of this function\n(particularly with respect to NaNs) is not defined if the dtypes are\ndifferent.\n\nParameters\n----------\nleft, right : ndarrays\nstrict_nan : bool, default False\n    If True, consider NaN and None to be different.\n\nReturns\n-------\nb : bool\n    Returns True if the arrays are equivalent.\n\nExamples\n--------\n>>> array_equivalent(\n...     np.array([1, 2, np.nan]),\n...     np.array([1, 2, np.nan]))\nTrue\n>>> array_equivalent(\n...     np.array([1, np.nan, 2]),\n...     np.array([1, 2, np.nan]))\nFalse",
+    "1.2.1": "pandas/core/dtypes/missing.py",
+    "1.2.2": "import numpy as np\nfrom pandas._libs import lib\nfrom pandas._libs.tslibs import NaT, iNaT\nfrom .common import _NS_DTYPE, _TD_DTYPE, ensure_object, is_bool_dtype, is_complex_dtype, is_datetime64_dtype, is_datetime64tz_dtype, is_datetimelike, is_datetimelike_v_numeric, is_dtype_equal, is_extension_array_dtype, is_float_dtype, is_integer_dtype, is_object_dtype, is_period_dtype, is_scalar, is_string_dtype, is_string_like_dtype, is_timedelta64_dtype, needs_i8_conversion, pandas_dtype",
+    "1.3.1": null,
+    "1.3.2": null,
+    "1.4.1": null,
+    "1.4.2": [
+        "isna(obj)"
+    ],
+    "1.5.1": [
+        "def test_array_equivalent_nested():\n    # reached in groupby aggregations, make sure we use np.any when checking\n    #  if the comparison is truthy\n    left = np.array([np.array([50, 70, 90]), np.array([20, 30, 40])], dtype=object)\n    right = np.array([np.array([50, 70, 90]), np.array([20, 30, 40])], dtype=object)\n\n    assert array_equivalent(left, right, strict_nan=True)\n    assert not array_equivalent(left, right[::-1], strict_nan=True)\n\n    left = np.array([np.array([50, 50, 50]), np.array([40, 40, 40])], dtype=object)\n    right = np.array([50, 40])\n    assert not array_equivalent(left, right, strict_nan=True)"
+    ],
+    "1.5.2": [
+        "pandas/tests/dtypes/test_missing.py"
+    ],
+    "2.1.1": [
+        [
+            "E                   ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "def test_array_equivalent_nested():\n        # reached in groupby aggregations, make sure we use np.any when checking\n        #  if the comparison is truthy\n        left = np.array([np.array([50, 70, 90]), np.array([20, 30, 40])], dtype=object)\n        right = np.array([np.array([50, 70, 90]), np.array([20, 30, 40])], dtype=object)\n    \n>       assert array_equivalent(left, right, strict_nan=True)\n\npandas/tests/dtypes/test_missing.py:369: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nleft = array([[50, 70, 90],\n       [20, 30, 40]], dtype=object)\nright = array([[50, 70, 90],\n       [20, 30, 40]], dtype=object)\nstrict_nan = True\n\n    def array_equivalent(left, right, strict_nan=False):\n        \"\"\"\n        True if two arrays, left and right, have equal non-NaN elements, and NaNs\n        in corresponding locations.  False otherwise. It is assumed that left and\n        right are NumPy arrays of the same dtype. The behavior of this function\n        (particularly with respect to NaNs) is not defined if the dtypes are\n        different.\n    \n        Parameters\n        ----------\n        left, right : ndarrays\n        strict_nan : bool, default False\n            If True, consider NaN and None to be different.\n    \n        Returns\n        -------\n        b : bool\n            Returns True if the arrays are equivalent.\n    \n        Examples\n        --------\n        >>> array_equivalent(\n        ...     np.array([1, 2, np.nan]),\n        ...     np.array([1, 2, np.nan]))\n        True\n        >>> array_equivalent(\n        ...     np.array([1, np.nan, 2]),\n        ...     np.array([1, 2, np.nan]))\n        False\n        \"\"\"\n    \n        left, right = np.asarray(left), np.asarray(right)\n    \n        # shape compat\n        if left.shape != right.shape:\n            return False\n    \n        # Object arrays can contain None, NaN and NaT.\n        # string dtypes must be come to this path for NumPy 1.7.1 compat\n        if is_string_dtype(left) or is_string_dtype(right):\n    \n            if not strict_nan:\n                # isna considers NaN and None to be equivalent.\n                return lib.array_equivalent_object(\n                    ensure_object(left.ravel()), ensure_object(right.ravel())\n                )\n    \n            for left_value, right_value in zip(left, right):\n                if left_value is NaT and right_value is not NaT:\n                    return False\n    \n                elif isinstance(left_value, float) and np.isnan(left_value):\n                    if not isinstance(right_value, float) or not np.isnan(right_value):\n                        return False\n                else:\n>                   if left_value != right_value:",
+            "\npandas/core/dtypes/missing.py:448: ValueError"
+        ]
+    ],
+    "2.2.1": null,
+    "2.2.2": null,
+    "2.3.1": [
+        [
+            {
+                "left": {
+                    "value": "array([[50, 70, 90],\n       [20, 30, 40]], dtype=object)",
+                    "shape": "(2, 3)",
+                    "omitted": false
+                },
+                "right": {
+                    "value": "array([[50, 70, 90],\n       [20, 30, 40]], dtype=object)",
+                    "shape": "(2, 3)",
+                    "omitted": false
+                },
+                "left.shape": {
+                    "value": "(2, 3)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "right.shape": {
+                    "value": "(2, 3)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "strict_nan": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "left.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "right.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            },
+            {
+                "left_value": {
+                    "value": "array([20, 30, 40], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "right_value": {
+                    "value": "array([20, 30, 40], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "left": {
+                    "value": "array([[50, 70, 90],\n       [20, 30, 40]], dtype=object)",
+                    "shape": "(2, 3)",
+                    "omitted": false
+                },
+                "right": {
+                    "value": "array([[20, 30, 40],\n       [50, 70, 90]], dtype=object)",
+                    "shape": "(2, 3)",
+                    "omitted": false
+                },
+                "left.shape": {
+                    "value": "(2, 3)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "right.shape": {
+                    "value": "(2, 3)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "strict_nan": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "left.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "right.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            },
+            {
+                "left_value": {
+                    "value": "array([50, 70, 90], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "right_value": {
+                    "value": "array([20, 30, 40], dtype=object)",
+                    "shape": "(3,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "left": {
+                    "value": "array([[50, 50, 50],\n       [40, 40, 40]], dtype=object)",
+                    "shape": "(2, 3)",
+                    "omitted": false
+                },
+                "right": {
+                    "value": "array([50, 40])",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "left.shape": {
+                    "value": "(2, 3)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "right.shape": {
+                    "value": "(2,)",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "strict_nan": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "left.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "right.dtype": {
+                    "value": "dtype('int64')",
+                    "shape": "()",
+                    "omitted": false
+                }
+            },
+            {}
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "left": "ndarray",
+                "right": "ndarray",
+                "left.shape": "tuple",
+                "right.shape": "tuple",
+                "strict_nan": "bool",
+                "left.dtype": "dtype",
+                "right.dtype": "dtype"
+            },
+            {
+                "left_value": "ndarray",
+                "right_value": "ndarray"
+            }
+        ],
+        [
+            {
+                "left": "ndarray",
+                "right": "ndarray",
+                "left.shape": "tuple",
+                "right.shape": "tuple",
+                "strict_nan": "bool",
+                "left.dtype": "dtype",
+                "right.dtype": "dtype"
+            },
+            {
+                "left_value": "ndarray",
+                "right_value": "ndarray"
+            }
+        ],
+        [
+            {
+                "left": "ndarray",
+                "right": "ndarray",
+                "left.shape": "tuple",
+                "right.shape": "tuple",
+                "strict_nan": "bool",
+                "left.dtype": "dtype",
+                "right.dtype": "dtype"
+            },
+            {}
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

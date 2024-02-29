@@ -1,0 +1,266 @@
+{
+    "1.1.1": "def process_response(self, request, response, spider):\n    if (request.meta.get('dont_redirect', False) or\n            response.status in getattr(spider, 'handle_httpstatus_list', []) or\n            response.status in request.meta.get('handle_httpstatus_list', []) or\n            request.meta.get('handle_httpstatus_all', False)):\n        return response\n\n    allowed_status = (301, 302, 303, 307, 308)\n    if 'Location' not in response.headers or response.status not in allowed_status:\n        return response\n\n    location = safe_url_string(response.headers['location'])\n\n    redirected_url = urljoin(request.url, location)\n\n    if response.status in (301, 307, 308) or request.method == 'HEAD':\n        redirected = request.replace(url=redirected_url)\n        return self._redirect(redirected, request, spider, response.status)\n\n    redirected = self._redirect_request_using_get(request, redirected_url)\n    return self._redirect(redirected, request, spider, response.status)\n",
+    "1.1.2": null,
+    "1.2.1": "scrapy/downloadermiddlewares/redirect.py",
+    "1.2.2": "from six.moves.urllib.parse import urljoin\nfrom w3lib.url import safe_url_string",
+    "1.3.1": "class RedirectMiddleware(BaseRedirectMiddleware)",
+    "1.3.2": "Handle redirection of requests based on response status\nand meta-refresh html tag.",
+    "1.4.1": null,
+    "1.4.2": [
+        "_redirect(self, redirected, request, spider, reason)",
+        "_redirect_request_using_get(self, request, redirect_url)"
+    ],
+    "1.5.1": [
+        "    def test_redirect_302_relative(self):\n        url = 'http://www.example.com/302'\n        url2 = '///i8n.example2.com/302'\n        url3 = 'http://i8n.example2.com/302'\n        req = Request(url, method='HEAD')\n        rsp = Response(url, headers={'Location': url2}, status=302)\n\n        req2 = self.mw.process_response(req, rsp, self.spider)\n        assert isinstance(req2, Request)\n        self.assertEqual(req2.url, url3)\n        self.assertEqual(req2.method, 'HEAD')\n\n        # response without Location header but with status code is 3XX should be ignored\n        del rsp.headers['Location']\n        assert self.mw.process_response(req, rsp, self.spider) is rsp"
+    ],
+    "1.5.2": [
+        "tests/test_downloadermiddleware_redirect.py"
+    ],
+    "2.1.1": [
+        [
+            "E       AssertionError: 'http://www.example.com/i8n.example2.com/302' != 'http://i8n.example2.com/302'\nE       - http://www.example.com/i8n.example2.com/302\nE       ?       ----------------\nE       + http://i8n.example2.com/302"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <tests.test_downloadermiddleware_redirect.RedirectMiddlewareTest testMethod=test_redirect_302_relative>\n\n    def test_redirect_302_relative(self):\n        url = 'http://www.example.com/302'\n        url2 = '///i8n.example2.com/302'\n        url3 = 'http://i8n.example2.com/302'\n        req = Request(url, method='HEAD')\n        rsp = Response(url, headers={'Location': url2}, status=302)\n    \n        req2 = self.mw.process_response(req, rsp, self.spider)\n        assert isinstance(req2, Request)\n>       self.assertEqual(req2.url, url3)",
+            "\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_3/tests/test_downloadermiddleware_redirect.py:118: AssertionError"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "request.meta": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "request": {
+                    "value": "<HEAD http://www.example.com/302>",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response.status": {
+                    "value": "302",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response": {
+                    "value": "<302 http://www.example.com/302>",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response.headers": {
+                    "value": "{b'Location': [b'///i8n.example2.com/302']}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "request.url": {
+                    "value": "'http://www.example.com/302'",
+                    "shape": "26",
+                    "omitted": false
+                },
+                "request.method": {
+                    "value": "'HEAD'",
+                    "shape": "4",
+                    "omitted": false
+                }
+            },
+            {
+                "allowed_status": {
+                    "value": "(301, 302, 303, 307, 308)",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "location": {
+                    "value": "'/i8n.example2.com/302'",
+                    "shape": "21",
+                    "omitted": false
+                },
+                "redirected_url": {
+                    "value": "'http://www.example.com/i8n.example2.com/302'",
+                    "shape": "43",
+                    "omitted": false
+                },
+                "redirected": {
+                    "value": "<HEAD http://www.example.com/i8n.example2.com/302>",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "request.meta": "dict",
+                "request": "Request",
+                "response.status": "int",
+                "response": "Response",
+                "response.headers": "Headers",
+                "request.url": "str",
+                "request.method": "str"
+            },
+            {
+                "allowed_status": "tuple",
+                "location": "str",
+                "redirected_url": "str",
+                "redirected": "Request"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "request.meta": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "request": {
+                    "value": "<HEAD http://www.example.com/302>",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response.status": {
+                    "value": "302",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response": {
+                    "value": "<302 http://www.example.com/302>",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response.headers": {
+                    "value": "{b'Location': [b'///i8n.example2.com/302']}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "request.url": {
+                    "value": "'http://www.example.com/302'",
+                    "shape": "26",
+                    "omitted": false
+                },
+                "request.method": {
+                    "value": "'HEAD'",
+                    "shape": "4",
+                    "omitted": false
+                }
+            },
+            {
+                "allowed_status": {
+                    "value": "(301, 302, 303, 307, 308)",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "location": {
+                    "value": "'http://i8n.example2.com/302'",
+                    "shape": "27",
+                    "omitted": false
+                },
+                "request_scheme": {
+                    "value": "'http'",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "redirected_url": {
+                    "value": "'http://i8n.example2.com/302'",
+                    "shape": "27",
+                    "omitted": false
+                },
+                "redirected": {
+                    "value": "<HEAD http://i8n.example2.com/302>",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "request.meta": {
+                    "value": "{'redirect_ttl': 20}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "request": {
+                    "value": "<HEAD http://www.example.com/302>",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response.status": {
+                    "value": "302",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response": {
+                    "value": "<302 http://www.example.com/302>",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response.headers": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "request.url": {
+                    "value": "'http://www.example.com/302'",
+                    "shape": "26",
+                    "omitted": false
+                },
+                "request.method": {
+                    "value": "'HEAD'",
+                    "shape": "4",
+                    "omitted": false
+                }
+            },
+            {
+                "allowed_status": {
+                    "value": "(301, 302, 303, 307, 308)",
+                    "shape": "5",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "request.meta": "dict",
+                "request": "Request",
+                "response.status": "int",
+                "response": "Response",
+                "response.headers": "Headers",
+                "request.url": "str",
+                "request.method": "str"
+            },
+            {
+                "allowed_status": "tuple",
+                "location": "str",
+                "request_scheme": "str",
+                "redirected_url": "str",
+                "redirected": "Request"
+            }
+        ],
+        [
+            {
+                "request.meta": "dict",
+                "request": "Request",
+                "response.status": "int",
+                "response": "Response",
+                "response.headers": "Headers",
+                "request.url": "str",
+                "request.method": "str"
+            },
+            {
+                "allowed_status": "tuple"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "Error 302 redirection with headers location starts with 3 slash\n"
+    ],
+    "3.1.2": [
+        "Description\nwhen the 302 response return a headers's location startswith 3 slash, the scrapy redirect to a url different from what the browser do.\n\nSteps to Reproduce\nscrapy shell https://www.hjenglish.com/new/p1285798/\nExpected behavior:\nredirect to https://fr.hujiang.com/new/p1285798/ as browser Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.132 Safari/537.36 do.\n\nActual behavior:\nredirct to https://www.hjenglish.com/fr.hujiang.com/new/p1285798\n\nReproduces how often:\n\neverytime\n\nVersions\nScrapy : 1.7.3\nlxml : 4.3.2.0\nlibxml2 : 2.9.9\ncssselect : 1.1.0\nparsel : 1.5.2\nw3lib : 1.20.0\nTwisted : 19.7.0\nPython : 3.7.3 (default, Mar 27 2019, 17:13:21) [MSC v.1915 64 bit (AMD64)]\npyOpenSSL : 19.0.0 (OpenSSL 1.1.1c 28 May 2019)\ncryptography : 2.6.1\nPlatform : Windows-10-10.0.17134-SP0\n\nAdditional context\nI check the defination of Location in rfc and end with reference resolution. But I fail to findout how to resolve the Location startswith ///. So I don't know why Chrome did so.\n\nThe behavior of scrapy is determined by redirect.py#L73, which will truncate /// to /\u3002\n\nI'm wandering the differents betweent scarpy and browser...\n"
+    ]
+}

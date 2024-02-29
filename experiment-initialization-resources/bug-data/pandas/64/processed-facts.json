@@ -1,0 +1,1832 @@
+{
+    "1.1.1": "def __init__(\n    self,\n    df,\n    na_rep: str = \"\",\n    float_format: Optional[str] = None,\n    cols: Optional[Sequence[Label]] = None,\n    header: Union[Sequence[Label], bool] = True,\n    index: bool = True,\n    index_label: Optional[Union[Label, Sequence[Label]]] = None,\n    merge_cells: bool = False,\n    inf_rep: str = \"inf\",\n    style_converter: Optional[Callable] = None,\n):\n    self.rowcounter = 0\n    self.na_rep = na_rep\n    if hasattr(df, \"render\"):\n        self.styler = df\n        df = df.data\n        if style_converter is None:\n            style_converter = CSSToExcelConverter()\n        self.style_converter = style_converter\n    else:\n        self.styler = None\n    self.df = df\n    if cols is not None:\n\n        # all missing, raise\n        if not len(Index(cols) & df.columns):\n            raise KeyError(\"passes columns are not ALL present dataframe\")\n\n        if len(Index(cols) & df.columns) != len(cols):\n            # Deprecated in GH#17295, enforced in 1.0.0\n            raise KeyError(\"Not all names specified in 'columns' are found\")\n\n        self.df = df\n\n    self.columns = self.df.columns\n    self.float_format = float_format\n    self.index = index\n    self.index_label = index_label\n    self.header = header\n    self.merge_cells = merge_cells\n    self.inf_rep = inf_rep\n",
+    "1.1.2": null,
+    "1.2.1": "pandas/io/formats/excel.py",
+    "1.2.2": "from typing import Callable, Dict, Optional, Sequence, Union\nfrom pandas._typing import Label\nfrom pandas import Index",
+    "1.3.1": "class ExcelFormatter()",
+    "1.3.2": "Class for formatting a DataFrame to a list of ExcelCells,\n\nParameters\n----------\ndf : DataFrame or Styler\nna_rep: na representation\nfloat_format : string, default None\n        Format string for floating point numbers\ncols : sequence, optional\n    Columns to write\nheader : boolean or list of string, default True\n    Write out column names. If a list of string is given it is\n    assumed to be aliases for the column names\nindex : boolean, default True\n    output row names (index)\nindex_label : string or sequence, default None\n        Column label for index column(s) if desired. If None is given, and\n        `header` and `index` are True, then the index names are used. A\n        sequence should be given if the DataFrame uses MultiIndex.\nmerge_cells : boolean, default False\n        Format MultiIndex and Hierarchical Rows as merged cells.\ninf_rep : string, default `'inf'`\n    representation for np.inf values (which aren't representable in Excel)\n    A `'-'` sign will be added in front of -inf.\nstyle_converter : callable, optional\n    This translates Styler styles (CSS) into ExcelWriter styles.\n    Defaults to ``CSSToExcelConverter()``.\n    It should have signature css_declarations string -> excel style.\n    This is only called for body cells.",
+    "1.4.1": null,
+    "1.4.2": null,
+    "1.5.1": [
+        "    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n\n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n\n        tm.assert_frame_equal(expected, read_frame)",
+        "    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n\n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n\n        tm.assert_frame_equal(expected, read_frame)",
+        "    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n\n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n\n        tm.assert_frame_equal(expected, read_frame)",
+        "    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n\n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n\n        tm.assert_frame_equal(expected, read_frame)",
+        "    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n\n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n\n        tm.assert_frame_equal(expected, read_frame)",
+        "    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n\n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n\n        tm.assert_frame_equal(expected, read_frame)",
+        "    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n\n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n\n        tm.assert_frame_equal(expected, read_frame)",
+        "    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n\n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n\n        tm.assert_frame_equal(expected, read_frame)"
+    ],
+    "1.5.2": [
+        "pandas/tests/io/excel/test_writers.py",
+        "pandas/tests/io/excel/test_writers.py",
+        "pandas/tests/io/excel/test_writers.py",
+        "pandas/tests/io/excel/test_writers.py",
+        "pandas/tests/io/excel/test_writers.py",
+        "pandas/tests/io/excel/test_writers.py",
+        "pandas/tests/io/excel/test_writers.py",
+        "pandas/tests/io/excel/test_writers.py"
+    ],
+    "2.1.1": [
+        [
+            "E       AssertionError: DataFrame are different\nE       \nE       DataFrame shape mismatch\nE       [left]:  (3, 2)\nE       [right]: (3, 3)"
+        ],
+        [
+            "E       AssertionError: DataFrame are different\nE       \nE       DataFrame shape mismatch\nE       [left]:  (3, 2)\nE       [right]: (3, 3)"
+        ],
+        [
+            "E       AssertionError: DataFrame are different\nE       \nE       DataFrame shape mismatch\nE       [left]:  (3, 2)\nE       [right]: (3, 3)"
+        ],
+        [
+            "E       AssertionError: DataFrame are different\nE       \nE       DataFrame shape mismatch\nE       [left]:  (3, 2)\nE       [right]: (3, 3)"
+        ],
+        [
+            "E       AssertionError: DataFrame are different\nE       \nE       DataFrame shape mismatch\nE       [left]:  (3, 2)\nE       [right]: (3, 3)"
+        ],
+        [
+            "E       AssertionError: DataFrame are different\nE       \nE       DataFrame shape mismatch\nE       [left]:  (3, 2)\nE       [right]: (3, 3)"
+        ],
+        [
+            "E       AssertionError: DataFrame are different\nE       \nE       DataFrame shape mismatch\nE       [left]:  (3, 2)\nE       [right]: (3, 3)"
+        ],
+        [
+            "E       AssertionError: DataFrame are different\nE       \nE       DataFrame shape mismatch\nE       [left]:  (3, 2)\nE       [right]: (3, 3)"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.io.excel.test_writers.TestExcelWriter object at 0x7efc12cb1c70>\npath = '/tmp/tmp_5ig7nva.xlsx', to_excel_index = True, read_excel_index_col = 0\n\n    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n    \n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n    \n>       tm.assert_frame_equal(expected, read_frame)",
+            "\npandas/tests/io/excel/test_writers.py:1070: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.io.excel.test_writers.TestExcelWriter object at 0x7efc11efa0d0>\npath = '/tmp/tmpsj6q6vp1.xlsm', to_excel_index = True, read_excel_index_col = 0\n\n    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n    \n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n    \n>       tm.assert_frame_equal(expected, read_frame)",
+            "\npandas/tests/io/excel/test_writers.py:1070: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.io.excel.test_writers.TestExcelWriter object at 0x7efc11df53a0>\npath = '/tmp/tmpxbu8u20g.xls', to_excel_index = True, read_excel_index_col = 0\n\n    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n    \n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n    \n>       tm.assert_frame_equal(expected, read_frame)",
+            "\npandas/tests/io/excel/test_writers.py:1070: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.io.excel.test_writers.TestExcelWriter object at 0x7efc11d885e0>\npath = '/tmp/tmpf6qf6xwl.xlsx', to_excel_index = True, read_excel_index_col = 0\n\n    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n    \n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n    \n>       tm.assert_frame_equal(expected, read_frame)",
+            "\npandas/tests/io/excel/test_writers.py:1070: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.io.excel.test_writers.TestExcelWriter object at 0x7efc11db2a30>\npath = '/tmp/tmp1pnmme8h.xlsx', to_excel_index = False\nread_excel_index_col = None\n\n    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n    \n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n    \n>       tm.assert_frame_equal(expected, read_frame)",
+            "\npandas/tests/io/excel/test_writers.py:1070: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.io.excel.test_writers.TestExcelWriter object at 0x7efc11d2e490>\npath = '/tmp/tmpemptk_2h.xlsm', to_excel_index = False\nread_excel_index_col = None\n\n    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n    \n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n    \n>       tm.assert_frame_equal(expected, read_frame)",
+            "\npandas/tests/io/excel/test_writers.py:1070: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.io.excel.test_writers.TestExcelWriter object at 0x7efc11d2e760>\npath = '/tmp/tmp90xfow7n.xls', to_excel_index = False\nread_excel_index_col = None\n\n    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n    \n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n    \n>       tm.assert_frame_equal(expected, read_frame)",
+            "\npandas/tests/io/excel/test_writers.py:1070: AssertionError"
+        ],
+        [
+            "self = <pandas.tests.io.excel.test_writers.TestExcelWriter object at 0x7efc120062e0>\npath = '/tmp/tmp2cwbovqq.xlsx', to_excel_index = False\nread_excel_index_col = None\n\n    @pytest.mark.parametrize(\n        \"to_excel_index,read_excel_index_col\",\n        [\n            (True, 0),  # Include index in write to file\n            (False, None),  # Dont include index in write to file\n        ],\n    )\n    def test_write_subset_columns(self, path, to_excel_index, read_excel_index_col):\n        # GH 31677\n        write_frame = DataFrame({\"A\": [1, 1, 1], \"B\": [2, 2, 2], \"C\": [3, 3, 3]})\n        write_frame.to_excel(\n            path, \"col_subset_bug\", columns=[\"A\", \"B\"], index=to_excel_index\n        )\n    \n        expected = write_frame[[\"A\", \"B\"]]\n        read_frame = pd.read_excel(\n            path, \"col_subset_bug\", index_col=read_excel_index_col\n        )\n    \n>       tm.assert_frame_equal(expected, read_frame)",
+            "\npandas/tests/io/excel/test_writers.py:1070: AssertionError"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B\n0  1  2\n1  1  2\n2  1  2",
+                    "shape": "(3, 2)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B'], dtype='object')",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B\n0  1  2\n1  1  2\n2  1  2",
+                    "shape": "(3, 2)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B'], dtype='object')",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B\n0  1  2\n1  1  2\n2  1  2",
+                    "shape": "(3, 2)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B'], dtype='object')",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B\n0  1  2\n1  1  2\n2  1  2",
+                    "shape": "(3, 2)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B'], dtype='object')",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B\n0  1  2\n1  1  2\n2  1  2",
+                    "shape": "(3, 2)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B'], dtype='object')",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B\n0  1  2\n1  1  2\n2  1  2",
+                    "shape": "(3, 2)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B'], dtype='object')",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B\n0  1  2\n1  1  2\n2  1  2",
+                    "shape": "(3, 2)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B'], dtype='object')",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "df": {
+                    "value": "   A  B  C\n0  1  2  3\n1  1  2  3\n2  1  2  3",
+                    "shape": "(3, 3)",
+                    "omitted": false
+                },
+                "cols": {
+                    "value": "['A', 'B']",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "df.columns": {
+                    "value": "Index(['A', 'B', 'C'], dtype='object')",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            },
+            {
+                "self.rowcounter": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.na_rep": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.df": {
+                    "value": "   A  B\n0  1  2\n1  1  2\n2  1  2",
+                    "shape": "(3, 2)",
+                    "omitted": false
+                },
+                "self.columns": {
+                    "value": "Index(['A', 'B'], dtype='object')",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.header": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.merge_cells": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.inf_rep": {
+                    "value": "'inf'",
+                    "shape": "3",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ],
+        [
+            {
+                "na_rep": "str",
+                "df": "DataFrame",
+                "cols": "list",
+                "df.columns": "Index",
+                "index": "bool",
+                "header": "bool",
+                "merge_cells": "bool",
+                "inf_rep": "str"
+            },
+            {
+                "self.rowcounter": "int",
+                "self.na_rep": "str",
+                "self.df": "DataFrame",
+                "self.columns": "Index",
+                "self.index": "bool",
+                "self.header": "bool",
+                "self.merge_cells": "bool",
+                "self.inf_rep": "str"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "Pandas excel output specify column names to write is broken in 1.0.0\n"
+    ],
+    "3.1.2": [
+        "Example code:\ndf = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),columns=['col_a', 'col_b', 'col_c'])\nexcelwritename = '/tmp/Test%s.xlsx' %pd.datetime.now(pytz.timezone('US/Pacific')).strftime('%b%d_%I_%M %p')\nwith pd.ExcelWriter(excelwritename, engine='xlsxwriter',datetime_format='mmm dd yyyy hh:mm AM/PM') as writer:\ndf.to_excel(writer,columns=['col_a','col_b'],sheet_name = 'xyz')\n\nProblem description:\nspecifying column names to output to excel is no longer working in pandas 1.0.0 and it outputs all columns in the df.\nChecked different versions of xlsxwriter, but pandas 0.25.3 works fine, while 1.0.0 does not.\n\nExpected Output\nIt should only output columns that are specified, but it outputs all columns of df\n"
+    ]
+}

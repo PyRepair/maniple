@@ -1,0 +1,579 @@
+{
+    "1.1.1": "@rpc_method(allow_null=False)\ndef get_work(self, host=None, assistant=False, current_tasks=None, worker=None, **kwargs):\n    # TODO: remove any expired nodes\n\n    # Algo: iterate over all nodes, find the highest priority node no dependencies and available\n    # resources.\n\n    # Resource checking looks both at currently available resources and at which resources would\n    # be available if all running tasks died and we rescheduled all workers greedily. We do both\n    # checks in order to prevent a worker with many low-priority tasks from starving other\n    # workers with higher priority tasks that share the same resources.\n\n    # TODO: remove tasks that can't be done, figure out if the worker has absolutely\n    # nothing it can wait for\n\n    if self._config.prune_on_get_work:\n        self.prune()\n\n    assert worker is not None\n    worker_id = worker\n    # Return remaining tasks that have no FAILED descendants\n    self.update(worker_id, {'host': host}, get_work=True)\n    if assistant:\n        self.add_worker(worker_id, [('assistant', assistant)])\n\n    batched_params, unbatched_params, batched_tasks, max_batch_size = None, None, [], 1\n    best_task = None\n    if current_tasks is not None:\n        ct_set = set(current_tasks)\n        for task in sorted(self._state.get_running_tasks(), key=self._rank):\n            if task.worker_running == worker_id and task.id not in ct_set:\n                best_task = task\n\n    if current_tasks is not None:\n        # batch running tasks that weren't claimed since the last get_work go back in the pool\n        self._reset_orphaned_batch_running_tasks(worker_id)\n\n    locally_pending_tasks = 0\n    running_tasks = []\n    upstream_table = {}\n\n    greedy_resources = collections.defaultdict(int)\n    n_unique_pending = 0\n\n    worker = self._state.get_worker(worker_id)\n    if worker.is_trivial_worker(self._state):\n        relevant_tasks = worker.get_pending_tasks(self._state)\n        used_resources = collections.defaultdict(int)\n        greedy_workers = dict()  # If there's no resources, then they can grab any task\n    else:\n        relevant_tasks = self._state.get_pending_tasks()\n        used_resources = self._used_resources()\n        activity_limit = time.time() - self._config.worker_disconnect_delay\n        active_workers = self._state.get_active_workers(last_get_work_gt=activity_limit)\n        greedy_workers = dict((worker.id, worker.info.get('workers', 1))\n                              for worker in active_workers)\n    tasks = list(relevant_tasks)\n    tasks.sort(key=self._rank, reverse=True)\n\n    for task in tasks:\n        in_workers = (assistant and getattr(task, 'runnable', bool(task.workers))) or worker_id in task.workers\n        if task.status == RUNNING and in_workers:\n            # Return a list of currently running tasks to the client,\n            # makes it easier to troubleshoot\n            other_worker = self._state.get_worker(task.worker_running)\n            more_info = {'task_id': task.id, 'worker': str(other_worker)}\n            if other_worker is not None:\n                more_info.update(other_worker.info)\n                running_tasks.append(more_info)\n\n        if task.status == PENDING and in_workers:\n            upstream_status = self._upstream_status(task.id, upstream_table)\n            if upstream_status != UPSTREAM_DISABLED:\n                locally_pending_tasks += 1\n                if len(task.workers) == 1 and not assistant:\n                    n_unique_pending += 1\n\n        if (best_task and batched_params and task.family == best_task.family and\n                len(batched_tasks) < max_batch_size and task.is_batchable() and all(\n                task.params.get(name) == value for name, value in unbatched_params.items())):\n            for name, params in batched_params.items():\n                params.append(task.params.get(name))\n            batched_tasks.append(task)\n        if best_task:\n            continue\n\n        if task.status == RUNNING and (task.worker_running in greedy_workers):\n            greedy_workers[task.worker_running] -= 1\n            for resource, amount in six.iteritems((task.resources or {})):\n                greedy_resources[resource] += amount\n\n        if self._schedulable(task) and self._has_resources(task.resources, greedy_resources):\n            if in_workers and self._has_resources(task.resources, used_resources):\n                best_task = task\n                batch_param_names, max_batch_size = self._state.get_batcher(\n                    worker_id, task.family)\n                if batch_param_names and task.is_batchable():\n                    try:\n                        batched_params = {\n                            name: [task.params[name]] for name in batch_param_names\n                        }\n                        unbatched_params = {\n                            name: value for name, value in task.params.items()\n                            if name not in batched_params\n                        }\n                        batched_tasks.append(task)\n                    except KeyError:\n                        batched_params, unbatched_params = None, None\n            else:\n                workers = itertools.chain(task.workers, [worker_id]) if assistant else task.workers\n                for task_worker in workers:\n                    if greedy_workers.get(task_worker, 0) > 0:\n                        # use up a worker\n                        greedy_workers[task_worker] -= 1\n\n                        # keep track of the resources used in greedy scheduling\n                        for resource, amount in six.iteritems((task.resources or {})):\n                            greedy_resources[resource] += amount\n\n                        break\n\n    reply = {'n_pending_tasks': locally_pending_tasks,\n             'running_tasks': running_tasks,\n             'task_id': None,\n             'n_unique_pending': n_unique_pending}\n\n    if len(batched_tasks) > 1:\n        batch_string = '|'.join(task.id for task in batched_tasks)\n        batch_id = hashlib.md5(batch_string.encode('utf-8')).hexdigest()\n        for task in batched_tasks:\n            self._state.set_batch_running(task, batch_id, worker_id)\n\n        combined_params = best_task.params.copy()\n        combined_params.update(batched_params)\n\n        reply['task_id'] = None\n        reply['task_family'] = best_task.family\n        reply['task_module'] = getattr(best_task, 'module', None)\n        reply['task_params'] = combined_params\n        reply['batch_id'] = batch_id\n        reply['batch_task_ids'] = [task.id for task in batched_tasks]\n\n    elif best_task:\n        self._state.set_status(best_task, RUNNING, self._config)\n        best_task.worker_running = worker_id\n        best_task.time_running = time.time()\n        self._update_task_history(best_task, RUNNING, host=host)\n\n        reply['task_id'] = best_task.id\n        reply['task_family'] = best_task.family\n        reply['task_module'] = getattr(best_task, 'module', None)\n        reply['task_params'] = best_task.params\n\n    return reply\n",
+    "1.1.2": null,
+    "1.2.1": "luigi/scheduler.py",
+    "1.2.2": "import collections\nimport hashlib\nimport itertools\nimport time\nfrom luigi import six\nfrom luigi.task_status import DISABLED, DONE, FAILED, PENDING, RUNNING, SUSPENDED, UNKNOWN, BATCH_RUNNING",
+    "1.3.1": "class Scheduler(object)",
+    "1.3.2": "Async scheduler that can handle multiple workers, etc.\n\nCan be run locally or on a server (using RemoteScheduler + server.Server).",
+    "1.4.1": [
+        "prune(self)",
+        "update(self, worker_id, worker_reference=None, get_work=False)",
+        "add_worker(self, worker, info, **kwargs)",
+        "_has_resources(self, needed_resources, used_resources)",
+        "_used_resources(self)",
+        "_rank(self, task)",
+        "_schedulable(self, task)",
+        "_reset_orphaned_batch_running_tasks(self, worker_id)",
+        "_upstream_status(self, task_id, upstream_status_table)",
+        "resources(self)",
+        "_update_task_history(self, task, status, host=None)"
+    ],
+    "1.4.2": [
+        "rpc_method(**request_args)",
+        "is_batchable(self)",
+        "update(self, worker_reference, get_work=False)",
+        "prune(self, config)",
+        "get_pending_tasks(self, state)",
+        "is_trivial_worker(self, state)",
+        "assistant(self)",
+        "get_running_tasks(self)",
+        "get_pending_tasks(self)",
+        "get_batcher(self, worker_id, family)",
+        "set_batch_running(self, task, batch_id, worker_id)",
+        "set_status(self, task, new_status, config=None)",
+        "get_active_workers(self, last_active_lt=None, last_get_work_gt=None)",
+        "get_worker(self, worker_id)",
+        "prune(self)",
+        "update(self, worker_id, worker_reference=None, get_work=False)",
+        "add_worker(self, worker, info, **kwargs)",
+        "_has_resources(self, needed_resources, used_resources)",
+        "_used_resources(self)",
+        "_rank(self, task)",
+        "_schedulable(self, task)",
+        "_reset_orphaned_batch_running_tasks(self, worker_id)",
+        "_upstream_status(self, task_id, upstream_status_table)",
+        "resources(self)",
+        "_update_task_history(self, task, status, host=None)"
+    ],
+    "1.5.1": [
+        "    def test_batch_ignore_items_not_ready(self):\n        self.sch.add_task_batcher(worker=WORKER, task_family='A', batched_args=['a'])\n        self.sch.add_task(\n            worker=WORKER, task_id='A_a_1', family='A', params={'a': '1'}, batchable=True)\n        self.sch.add_task(\n            worker=WORKER, task_id='A_a_2', family='A', params={'a': '2'}, deps=['NOT_DONE'],\n            batchable=True)\n        self.sch.add_task(\n            worker=WORKER, task_id='A_a_3', family='A', params={'a': '3'}, deps=['DONE'],\n            batchable=True)\n        self.sch.add_task(\n            worker=WORKER, task_id='A_a_4', family='A', params={'a': '4'}, deps=['DONE'],\n            batchable=True)\n        self.sch.add_task(\n            worker=WORKER, task_id='A_a_5', family='A', params={'a': '5'}, deps=['NOT_DONE'],\n            batchable=True)\n\n        self.sch.add_task(worker=WORKER, task_id='NOT_DONE', runnable=False)\n        self.sch.add_task(worker=WORKER, task_id='DONE', status=DONE)\n\n        response = self.sch.get_work(worker=WORKER)\n        self.assertIsNone(response['task_id'])\n        self.assertEqual({'a': ['1', '3', '4']}, response['task_params'])\n        self.assertEqual('A', response['task_family'])"
+    ],
+    "1.5.2": [
+        "test/scheduler_api_test.py"
+    ],
+    "2.1.1": [
+        [
+            "E       AssertionError: {'a': ['1', '3', '4']} != {'a': ['1', '2', '3', '4', '5']}\nE       - {'a': ['1', '3', '4']}\nE       + {'a': ['1', '2', '3', '4', '5']}\nE       ?             +++++        +++++"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <scheduler_api_test.SchedulerApiTest testMethod=test_batch_ignore_items_not_ready>\n\n    def test_batch_ignore_items_not_ready(self):\n        self.sch.add_task_batcher(worker=WORKER, task_family='A', batched_args=['a'])\n        self.sch.add_task(\n            worker=WORKER, task_id='A_a_1', family='A', params={'a': '1'}, batchable=True)\n        self.sch.add_task(\n            worker=WORKER, task_id='A_a_2', family='A', params={'a': '2'}, deps=['NOT_DONE'],\n            batchable=True)\n        self.sch.add_task(\n            worker=WORKER, task_id='A_a_3', family='A', params={'a': '3'}, deps=['DONE'],\n            batchable=True)\n        self.sch.add_task(\n            worker=WORKER, task_id='A_a_4', family='A', params={'a': '4'}, deps=['DONE'],\n            batchable=True)\n        self.sch.add_task(\n            worker=WORKER, task_id='A_a_5', family='A', params={'a': '5'}, deps=['NOT_DONE'],\n            batchable=True)\n    \n        self.sch.add_task(worker=WORKER, task_id='NOT_DONE', runnable=False)\n        self.sch.add_task(worker=WORKER, task_id='DONE', status=DONE)\n    \n        response = self.sch.get_work(worker=WORKER)\n        self.assertIsNone(response['task_id'])\n>       self.assertEqual({'a': ['1', '3', '4']}, response['task_params'])",
+            "\ntest/scheduler_api_test.py:206: AssertionError"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "self._config": {
+                    "value": "scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10, state_path=/var/lib/luigi-server/state.pickle, disable_window=10, retry_count=3, disable_hard_timeout=3600, disable_persist=10, max_shown_tasks=100000, max_graph_nodes=100000, record_task_history=False, prune_on_get_work=False)",
+                    "shape": null,
+                    "omitted": false
+                },
+                "worker": {
+                    "value": "'myworker'",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "assistant": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "worker_id": {
+                    "value": "'myworker'",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "batched_params": {
+                    "value": "{'a': ['1', '2', '3', '4', '5']}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "unbatched_params": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "batched_tasks": {
+                    "value": "[Task({'id': 'A_a_1', 'stakeholders': {'myworker'} ... {'a': '5'}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7f97f0ef3e50>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': True, 'batch_id': 'f079ea67d37d7ab25e3fefc7e0b4cc79'})]",
+                    "shape": "5",
+                    "omitted": true
+                },
+                "max_batch_size": {
+                    "value": "inf",
+                    "shape": null,
+                    "omitted": false
+                },
+                "best_task": {
+                    "value": "Task({'id': 'A_a_1', 'stakeholders': {'myworker'} ... {'a': '1'}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7f97f0efc5e0>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': True, 'batch_id': 'f079ea67d37d7ab25e3fefc7e0b4cc79'})",
+                    "shape": null,
+                    "omitted": true
+                },
+                "task": {
+                    "value": "Task({'id': 'A_a_5', 'stakeholders': {'myworker'} ... {'a': '5'}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7f97f0ef3e50>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': True, 'batch_id': 'f079ea67d37d7ab25e3fefc7e0b4cc79'})",
+                    "shape": null,
+                    "omitted": true
+                },
+                "task.worker_running": {
+                    "value": "'myworker'",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "task.id": {
+                    "value": "'A_a_5'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "locally_pending_tasks": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "running_tasks": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "upstream_table": {
+                    "value": "{'A_a_1': 'UPSTREAM_MISSING_INPUT', 'A_a_2': 'UPSTREAM_MISSING_INPUT', 'NOT_DONE': 'UPSTREAM_MISSING_INPUT', 'A_a_3': '', 'A_a_4': '', 'A_a_5': 'UPSTREAM_MISSING_INPUT'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "greedy_resources": {
+                    "value": "defaultdict(<class 'int'>, {})",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "n_unique_pending": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "used_resources": {
+                    "value": "defaultdict(<class 'int'>, {})",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "greedy_workers": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "worker.id": {
+                    "value": "'myworker'",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "worker.info": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tasks": {
+                    "value": "[Task({'id': 'A_a_1', 'stakeholders': {'myworker'} ... {'a': '5'}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7f97f0ef3e50>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': True, 'batch_id': 'f079ea67d37d7ab25e3fefc7e0b4cc79'})]",
+                    "shape": "6",
+                    "omitted": true
+                },
+                "in_workers": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "task.workers": {
+                    "value": "{'myworker'}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "task.status": {
+                    "value": "'BATCH_RUNNING'",
+                    "shape": "13",
+                    "omitted": false
+                },
+                "upstream_status": {
+                    "value": "'UPSTREAM_MISSING_INPUT'",
+                    "shape": "22",
+                    "omitted": false
+                },
+                "task.family": {
+                    "value": "'A'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "best_task.family": {
+                    "value": "'A'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "task.params": {
+                    "value": "{'a': '5'}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "name": {
+                    "value": "'a'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "params": {
+                    "value": "['1', '2', '3', '4', '5']",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "task.resources": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "batch_param_names": {
+                    "value": "['a']",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "reply": {
+                    "value": "{'n_pending_tasks': 5, 'running_tasks': [], 'task_id': None, 'n_unique_pending': 5, 'task_family': 'A', 'task_module': None, 'task_params': {'a': ['1', '2', '3', '4', '5']}, 'batch_id': 'f079ea67d37d7ab25e3fefc7e0b4cc79', 'batch_task_ids': ['A_a_1', 'A_a_2', 'A_a_3', 'A_a_4', 'A_a_5']}",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "batch_string": {
+                    "value": "'A_a_1",
+                    "shape": "A_a_2",
+                    "omitted": false
+                },
+                "batch_id": {
+                    "value": "'f079ea67d37d7ab25e3fefc7e0b4cc79'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "combined_params": {
+                    "value": "{'a': ['1', '2', '3', '4', '5']}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "best_task.params": {
+                    "value": "{'a': '1'}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "best_task.worker_running": {
+                    "value": "'myworker'",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "best_task.id": {
+                    "value": "'A_a_1'",
+                    "shape": "5",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "self._config": "scheduler",
+                "worker": "str",
+                "assistant": "bool"
+            },
+            {
+                "worker_id": "str",
+                "batched_params": "dict",
+                "unbatched_params": "dict",
+                "batched_tasks": "list",
+                "max_batch_size": "float",
+                "best_task": "Task",
+                "task": "Task",
+                "task.worker_running": "str",
+                "task.id": "str",
+                "locally_pending_tasks": "int",
+                "running_tasks": "list",
+                "upstream_table": "dict",
+                "greedy_resources": "defaultdict",
+                "n_unique_pending": "int",
+                "used_resources": "defaultdict",
+                "greedy_workers": "dict",
+                "worker.id": "str",
+                "worker.info": "dict",
+                "tasks": "list",
+                "in_workers": "bool",
+                "task.workers": "set",
+                "task.status": "str",
+                "upstream_status": "str",
+                "task.family": "str",
+                "best_task.family": "str",
+                "task.params": "dict",
+                "name": "str",
+                "params": "list",
+                "task.resources": "dict",
+                "batch_param_names": "list",
+                "reply": "dict",
+                "batch_string": "str",
+                "batch_id": "str",
+                "combined_params": "dict",
+                "best_task.params": "dict",
+                "best_task.worker_running": "str",
+                "best_task.id": "str"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "self._config": {
+                    "value": "scheduler(retry_delay=100, remove_delay=1000, worker_disconnect_delay=10, state_path=/var/lib/luigi-server/state.pickle, disable_window=10, retry_count=3, disable_hard_timeout=3600, disable_persist=10, max_shown_tasks=100000, max_graph_nodes=100000, record_task_history=False, prune_on_get_work=False)",
+                    "shape": null,
+                    "omitted": false
+                },
+                "worker": {
+                    "value": "'myworker'",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "assistant": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "worker_id": {
+                    "value": "'myworker'",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "batched_params": {
+                    "value": "{'a': ['1', '3', '4']}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "unbatched_params": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "batched_tasks": {
+                    "value": "[Task({'id': 'A_a_1', 'stakeholders': {'myworker'} ... {'a': '4'}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7fca611e86d0>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': True, 'batch_id': '8b7819c05539a0765701c79834556b76'})]",
+                    "shape": "3",
+                    "omitted": true
+                },
+                "max_batch_size": {
+                    "value": "inf",
+                    "shape": null,
+                    "omitted": false
+                },
+                "best_task": {
+                    "value": "Task({'id': 'A_a_1', 'stakeholders': {'myworker'} ... {'a': '1'}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7fca611e8af0>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': True, 'batch_id': '8b7819c05539a0765701c79834556b76'})",
+                    "shape": null,
+                    "omitted": true
+                },
+                "task": {
+                    "value": "Task({'id': 'A_a_4', 'stakeholders': {'myworker'} ... {'a': '4'}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7fca611e86d0>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': True, 'batch_id': '8b7819c05539a0765701c79834556b76'})",
+                    "shape": null,
+                    "omitted": true
+                },
+                "task.worker_running": {
+                    "value": "'myworker'",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "task.id": {
+                    "value": "'A_a_4'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "locally_pending_tasks": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "running_tasks": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "upstream_table": {
+                    "value": "{'A_a_1': 'UPSTREAM_MISSING_INPUT', 'A_a_2': 'UPSTREAM_MISSING_INPUT', 'NOT_DONE': 'UPSTREAM_MISSING_INPUT', 'A_a_3': '', 'A_a_4': '', 'A_a_5': 'UPSTREAM_MISSING_INPUT'}",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "greedy_resources": {
+                    "value": "defaultdict(<class 'int'>, {})",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "n_unique_pending": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "used_resources": {
+                    "value": "defaultdict(<class 'int'>, {})",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "greedy_workers": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "worker.id": {
+                    "value": "'myworker'",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "worker.info": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "tasks": {
+                    "value": "[Task({'id': 'A_a_1', 'stakeholders': {'myworker'} ... {'a': '5'}, 'retry_policy': RetryPolicy(retry_count=3, disable_hard_timeout=3600, disable_window=10), 'failures': <luigi.scheduler.Failures object at 0x7fca611e85b0>, 'tracking_url': None, 'status_message': None, 'scheduler_disable_time': None, 'runnable': True, 'batchable': True, 'batch_id': None})]",
+                    "shape": "6",
+                    "omitted": true
+                },
+                "in_workers": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "task.workers": {
+                    "value": "{'myworker'}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "task.status": {
+                    "value": "'BATCH_RUNNING'",
+                    "shape": "13",
+                    "omitted": false
+                },
+                "upstream_status": {
+                    "value": "'UPSTREAM_MISSING_INPUT'",
+                    "shape": "22",
+                    "omitted": false
+                },
+                "task.family": {
+                    "value": "'A'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "best_task.family": {
+                    "value": "'A'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "task.params": {
+                    "value": "{'a': '4'}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "name": {
+                    "value": "'a'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "params": {
+                    "value": "['1', '3', '4']",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "task.resources": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "batch_param_names": {
+                    "value": "['a']",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "reply": {
+                    "value": "{'n_pending_tasks': 5, 'running_tasks': [], 'task_id': None, 'n_unique_pending': 5, 'task_family': 'A', 'task_module': None, 'task_params': {'a': ['1', '3', '4']}, 'batch_id': '8b7819c05539a0765701c79834556b76', 'batch_task_ids': ['A_a_1', 'A_a_3', 'A_a_4']}",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "batch_string": {
+                    "value": "'A_a_1",
+                    "shape": "A_a_3",
+                    "omitted": false
+                },
+                "batch_id": {
+                    "value": "'8b7819c05539a0765701c79834556b76'",
+                    "shape": "32",
+                    "omitted": false
+                },
+                "combined_params": {
+                    "value": "{'a': ['1', '3', '4']}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "best_task.params": {
+                    "value": "{'a': '1'}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "best_task.worker_running": {
+                    "value": "'myworker'",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "best_task.id": {
+                    "value": "'A_a_1'",
+                    "shape": "5",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "self._config": "scheduler",
+                "worker": "str",
+                "assistant": "bool"
+            },
+            {
+                "worker_id": "str",
+                "batched_params": "dict",
+                "unbatched_params": "dict",
+                "batched_tasks": "list",
+                "max_batch_size": "float",
+                "best_task": "Task",
+                "task": "Task",
+                "task.worker_running": "str",
+                "task.id": "str",
+                "locally_pending_tasks": "int",
+                "running_tasks": "list",
+                "upstream_table": "dict",
+                "greedy_resources": "defaultdict",
+                "n_unique_pending": "int",
+                "used_resources": "defaultdict",
+                "greedy_workers": "dict",
+                "worker.id": "str",
+                "worker.info": "dict",
+                "tasks": "list",
+                "in_workers": "bool",
+                "task.workers": "set",
+                "task.status": "str",
+                "upstream_status": "str",
+                "task.family": "str",
+                "best_task.family": "str",
+                "task.params": "dict",
+                "name": "str",
+                "params": "list",
+                "task.resources": "dict",
+                "batch_param_names": "list",
+                "reply": "dict",
+                "batch_string": "str",
+                "batch_id": "str",
+                "combined_params": "dict",
+                "best_task.params": "dict",
+                "best_task.worker_running": "str",
+                "best_task.id": "str"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

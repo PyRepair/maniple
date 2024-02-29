@@ -1,0 +1,1784 @@
+{
+    "1.1.1": "def cut(\n    x,\n    bins,\n    right: bool = True,\n    labels=None,\n    retbins: bool = False,\n    precision: int = 3,\n    include_lowest: bool = False,\n    duplicates: str = \"raise\",\n):\n    \n    # NOTE: this binning code is changed a bit from histogram for var(x) == 0\n\n    # for handling the cut for datetime and timedelta objects\n    original = x\n    x = _preprocess_for_cut(x)\n    x, dtype = _coerce_to_type(x)\n\n    if not np.iterable(bins):\n        if is_scalar(bins) and bins < 1:\n            raise ValueError(\"`bins` should be a positive integer.\")\n\n        try:  # for array-like\n            sz = x.size\n        except AttributeError:\n            x = np.asarray(x)\n            sz = x.size\n\n        if sz == 0:\n            raise ValueError(\"Cannot cut empty array\")\n\n        rng = (nanops.nanmin(x), nanops.nanmax(x))\n        mn, mx = [mi + 0.0 for mi in rng]\n\n        if np.isinf(mn) or np.isinf(mx):\n            # GH 24314\n            raise ValueError(\n                \"cannot specify integer `bins` when input data contains infinity\"\n            )\n        elif mn == mx:  # adjust end points before binning\n            mn -= 0.001 * abs(mn) if mn != 0 else 0.001\n            mx += 0.001 * abs(mx) if mx != 0 else 0.001\n            bins = np.linspace(mn, mx, bins + 1, endpoint=True)\n        else:  # adjust end points after binning\n            bins = np.linspace(mn, mx, bins + 1, endpoint=True)\n            adj = (mx - mn) * 0.001  # 0.1% of the range\n            if right:\n                bins[0] -= adj\n            else:\n                bins[-1] += adj\n\n    elif isinstance(bins, IntervalIndex):\n        if bins.is_overlapping:\n            raise ValueError(\"Overlapping IntervalIndex is not accepted.\")\n\n    else:\n        if is_datetime64tz_dtype(bins):\n            bins = np.asarray(bins, dtype=_NS_DTYPE)\n        else:\n            bins = np.asarray(bins)\n        bins = _convert_bin_to_numeric_type(bins, dtype)\n\n        # GH 26045: cast to float64 to avoid an overflow\n        if (np.diff(bins.astype(\"float64\")) < 0).any():\n            raise ValueError(\"bins must increase monotonically.\")\n\n    fac, bins = _bins_to_cuts(\n        x,\n        bins,\n        right=right,\n        labels=labels,\n        precision=precision,\n        include_lowest=include_lowest,\n        dtype=dtype,\n        duplicates=duplicates,\n    )\n\n    return _postprocess_for_cut(fac, bins, retbins, dtype, original)\n",
+    "1.1.2": "Bin values into discrete intervals.\n\nUse `cut` when you need to segment and sort data values into bins. This\nfunction is also useful for going from a continuous variable to a\ncategorical variable. For example, `cut` could convert ages to groups of\nage ranges. Supports binning into an equal number of bins, or a\npre-specified array of bins.\n\nParameters\n----------\nx : array-like\n    The input array to be binned. Must be 1-dimensional.\nbins : int, sequence of scalars, or IntervalIndex\n    The criteria to bin by.\n\n    * int : Defines the number of equal-width bins in the range of `x`. The\n      range of `x` is extended by .1% on each side to include the minimum\n      and maximum values of `x`.\n    * sequence of scalars : Defines the bin edges allowing for non-uniform\n      width. No extension of the range of `x` is done.\n    * IntervalIndex : Defines the exact bins to be used. Note that\n      IntervalIndex for `bins` must be non-overlapping.\n\nright : bool, default True\n    Indicates whether `bins` includes the rightmost edge or not. If\n    ``right == True`` (the default), then the `bins` ``[1, 2, 3, 4]``\n    indicate (1,2], (2,3], (3,4]. This argument is ignored when\n    `bins` is an IntervalIndex.\nlabels : array or False, default None\n    Specifies the labels for the returned bins. Must be the same length as\n    the resulting bins. If False, returns only integer indicators of the\n    bins. This affects the type of the output container (see below).\n    This argument is ignored when `bins` is an IntervalIndex. If True,\n    raises an error.\nretbins : bool, default False\n    Whether to return the bins or not. Useful when bins is provided\n    as a scalar.\nprecision : int, default 3\n    The precision at which to store and display the bins labels.\ninclude_lowest : bool, default False\n    Whether the first interval should be left-inclusive or not.\nduplicates : {default 'raise', 'drop'}, optional\n    If bin edges are not unique, raise ValueError or drop non-uniques.\n\n    .. versionadded:: 0.23.0\n\nReturns\n-------\nout : Categorical, Series, or ndarray\n    An array-like object representing the respective bin for each value\n    of `x`. The type depends on the value of `labels`.\n\n    * True (default) : returns a Series for Series `x` or a\n      Categorical for all other inputs. The values stored within\n      are Interval dtype.\n\n    * sequence of scalars : returns a Series for Series `x` or a\n      Categorical for all other inputs. The values stored within\n      are whatever the type in the sequence is.\n\n    * False : returns an ndarray of integers.\n\nbins : numpy.ndarray or IntervalIndex.\n    The computed or specified bins. Only returned when `retbins=True`.\n    For scalar or sequence `bins`, this is an ndarray with the computed\n    bins. If set `duplicates=drop`, `bins` will drop non-unique bin. For\n    an IntervalIndex `bins`, this is equal to `bins`.\n\nSee Also\n--------\nqcut : Discretize variable into equal-sized buckets based on rank\n    or based on sample quantiles.\nCategorical : Array type for storing data that come from a\n    fixed set of values.\nSeries : One-dimensional array with axis labels (including time series).\nIntervalIndex : Immutable Index implementing an ordered, sliceable set.\n\nNotes\n-----\nAny NA values will be NA in the result. Out of bounds values will be NA in\nthe resulting Series or Categorical object.\n\nExamples\n--------\nDiscretize into three equal-sized bins.\n\n>>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3)\n... # doctest: +ELLIPSIS\n[(0.994, 3.0], (5.0, 7.0], (3.0, 5.0], (3.0, 5.0], (5.0, 7.0], ...\nCategories (3, interval[float64]): [(0.994, 3.0] < (3.0, 5.0] ...\n\n>>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3, retbins=True)\n... # doctest: +ELLIPSIS\n([(0.994, 3.0], (5.0, 7.0], (3.0, 5.0], (3.0, 5.0], (5.0, 7.0], ...\nCategories (3, interval[float64]): [(0.994, 3.0] < (3.0, 5.0] ...\narray([0.994, 3.   , 5.   , 7.   ]))\n\nDiscovers the same bins, but assign them specific labels. Notice that\nthe returned Categorical's categories are `labels` and is ordered.\n\n>>> pd.cut(np.array([1, 7, 5, 4, 6, 3]),\n...        3, labels=[\"bad\", \"medium\", \"good\"])\n[bad, good, medium, medium, good, bad]\nCategories (3, object): [bad < medium < good]\n\n``labels=False`` implies you just want the bins back.\n\n>>> pd.cut([0, 1, 1, 2], bins=4, labels=False)\narray([0, 1, 1, 3])\n\nPassing a Series as an input returns a Series with categorical dtype:\n\n>>> s = pd.Series(np.array([2, 4, 6, 8, 10]),\n...               index=['a', 'b', 'c', 'd', 'e'])\n>>> pd.cut(s, 3)\n... # doctest: +ELLIPSIS\na    (1.992, 4.667]\nb    (1.992, 4.667]\nc    (4.667, 7.333]\nd     (7.333, 10.0]\ne     (7.333, 10.0]\ndtype: category\nCategories (3, interval[float64]): [(1.992, 4.667] < (4.667, ...\n\nPassing a Series as an input returns a Series with mapping value.\nIt is used to map numerically to intervals based on bins.\n\n>>> s = pd.Series(np.array([2, 4, 6, 8, 10]),\n...               index=['a', 'b', 'c', 'd', 'e'])\n>>> pd.cut(s, [0, 2, 4, 6, 8, 10], labels=False, retbins=True, right=False)\n... # doctest: +ELLIPSIS\n(a    0.0\n b    1.0\n c    2.0\n d    3.0\n e    4.0\n dtype: float64, array([0, 2, 4, 6, 8]))\n\nUse `drop` optional when bins is not unique\n\n>>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,\n...        right=False, duplicates='drop')\n... # doctest: +ELLIPSIS\n(a    0.0\n b    1.0\n c    2.0\n d    3.0\n e    3.0\n dtype: float64, array([0, 2, 4, 6, 8]))\n\nPassing an IntervalIndex for `bins` results in those categories exactly.\nNotice that values not covered by the IntervalIndex are set to NaN. 0\nis to the left of the first bin (which is closed on the right), and 1.5\nfalls between two bins.\n\n>>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])\n>>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)\n[NaN, (0, 1], NaN, (2, 3], (4, 5]]\nCategories (3, interval[int64]): [(0, 1] < (2, 3] < (4, 5]]",
+    "1.2.1": "pandas/core/reshape/tile.py",
+    "1.2.2": "import numpy as np\nfrom pandas.core.dtypes.common import _NS_DTYPE, ensure_int64, is_bool_dtype, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype, is_datetime_or_timedelta_dtype, is_integer, is_list_like, is_scalar, is_timedelta64_dtype\nfrom pandas import Categorical, Index, IntervalIndex, to_datetime, to_timedelta\nimport pandas.core.nanops as nanops",
+    "1.3.1": null,
+    "1.3.2": null,
+    "1.4.1": null,
+    "1.4.2": [
+        "_bins_to_cuts(x, bins, right: bool=True, labels=None, precision: int=3, include_lowest: bool=False, dtype=None, duplicates: str='raise')",
+        "_coerce_to_type(x)",
+        "_convert_bin_to_numeric_type(bins, dtype)",
+        "_preprocess_for_cut(x)",
+        "_postprocess_for_cut(fac, bins, retbins: bool, dtype, original)"
+    ],
+    "1.5.1": [
+        "@pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n@pytest.mark.parametrize(\"right\", [True, False])\n@pytest.mark.parametrize(\"include_lowest\", [True, False])\ndef test_cut(bins, right, include_lowest):\n    a = np.random.randint(0, 10, size=50).astype(object)\n    a[::2] = np.nan\n    result = pd.cut(\n        pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n    )\n    expected = pd.cut(a, bins, right=right, include_lowest=include_lowest)\n    tm.assert_categorical_equal(result, expected)",
+        "@pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n@pytest.mark.parametrize(\"right\", [True, False])\n@pytest.mark.parametrize(\"include_lowest\", [True, False])\ndef test_cut(bins, right, include_lowest):\n    a = np.random.randint(0, 10, size=50).astype(object)\n    a[::2] = np.nan\n    result = pd.cut(\n        pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n    )\n    expected = pd.cut(a, bins, right=right, include_lowest=include_lowest)\n    tm.assert_categorical_equal(result, expected)",
+        "@pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n@pytest.mark.parametrize(\"right\", [True, False])\n@pytest.mark.parametrize(\"include_lowest\", [True, False])\ndef test_cut(bins, right, include_lowest):\n    a = np.random.randint(0, 10, size=50).astype(object)\n    a[::2] = np.nan\n    result = pd.cut(\n        pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n    )\n    expected = pd.cut(a, bins, right=right, include_lowest=include_lowest)\n    tm.assert_categorical_equal(result, expected)",
+        "@pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n@pytest.mark.parametrize(\"right\", [True, False])\n@pytest.mark.parametrize(\"include_lowest\", [True, False])\ndef test_cut(bins, right, include_lowest):\n    a = np.random.randint(0, 10, size=50).astype(object)\n    a[::2] = np.nan\n    result = pd.cut(\n        pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n    )\n    expected = pd.cut(a, bins, right=right, include_lowest=include_lowest)\n    tm.assert_categorical_equal(result, expected)",
+        "@pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n@pytest.mark.parametrize(\"right\", [True, False])\n@pytest.mark.parametrize(\"include_lowest\", [True, False])\ndef test_cut(bins, right, include_lowest):\n    a = np.random.randint(0, 10, size=50).astype(object)\n    a[::2] = np.nan\n    result = pd.cut(\n        pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n    )\n    expected = pd.cut(a, bins, right=right, include_lowest=include_lowest)\n    tm.assert_categorical_equal(result, expected)",
+        "@pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n@pytest.mark.parametrize(\"right\", [True, False])\n@pytest.mark.parametrize(\"include_lowest\", [True, False])\ndef test_cut(bins, right, include_lowest):\n    a = np.random.randint(0, 10, size=50).astype(object)\n    a[::2] = np.nan\n    result = pd.cut(\n        pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n    )\n    expected = pd.cut(a, bins, right=right, include_lowest=include_lowest)\n    tm.assert_categorical_equal(result, expected)",
+        "@pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n@pytest.mark.parametrize(\"right\", [True, False])\n@pytest.mark.parametrize(\"include_lowest\", [True, False])\ndef test_cut(bins, right, include_lowest):\n    a = np.random.randint(0, 10, size=50).astype(object)\n    a[::2] = np.nan\n    result = pd.cut(\n        pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n    )\n    expected = pd.cut(a, bins, right=right, include_lowest=include_lowest)\n    tm.assert_categorical_equal(result, expected)",
+        "@pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n@pytest.mark.parametrize(\"right\", [True, False])\n@pytest.mark.parametrize(\"include_lowest\", [True, False])\ndef test_cut(bins, right, include_lowest):\n    a = np.random.randint(0, 10, size=50).astype(object)\n    a[::2] = np.nan\n    result = pd.cut(\n        pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n    )\n    expected = pd.cut(a, bins, right=right, include_lowest=include_lowest)\n    tm.assert_categorical_equal(result, expected)"
+    ],
+    "1.5.2": [
+        "pandas/tests/arrays/test_integer.py",
+        "pandas/tests/arrays/test_integer.py",
+        "pandas/tests/arrays/test_integer.py",
+        "pandas/tests/arrays/test_integer.py",
+        "pandas/tests/arrays/test_integer.py",
+        "pandas/tests/arrays/test_integer.py",
+        "pandas/tests/arrays/test_integer.py",
+        "pandas/tests/arrays/test_integer.py"
+    ],
+    "2.1.1": [
+        [
+            "E   TypeError: boolean value of NA is ambiguous"
+        ],
+        [
+            "E   TypeError: boolean value of NA is ambiguous"
+        ],
+        [
+            "E   TypeError: boolean value of NA is ambiguous"
+        ],
+        [
+            "E   TypeError: boolean value of NA is ambiguous"
+        ],
+        [
+            "E   TypeError: boolean value of NA is ambiguous"
+        ],
+        [
+            "E   TypeError: boolean value of NA is ambiguous"
+        ],
+        [
+            "E   TypeError: boolean value of NA is ambiguous"
+        ],
+        [
+            "E   TypeError: boolean value of NA is ambiguous"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "bins = 3, right = True, include_lowest = True\n\n    @pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n    @pytest.mark.parametrize(\"right\", [True, False])\n    @pytest.mark.parametrize(\"include_lowest\", [True, False])\n    def test_cut(bins, right, include_lowest):\n        a = np.random.randint(0, 10, size=50).astype(object)\n        a[::2] = np.nan\n>       result = pd.cut(\n            pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n        )\n\npandas/tests/arrays/test_integer.py:1070: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/reshape/tile.py:256: in cut\n    fac, bins = _bins_to_cuts(\npandas/core/reshape/tile.py:386: in _bins_to_cuts\n    ids = ensure_int64(bins.searchsorted(x, side=side))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise TypeError(\"boolean value of NA is ambiguous\")",
+            "\npandas/_libs/missing.pyx:360: TypeError"
+        ],
+        [
+            "bins = [0, 5, 15], right = True, include_lowest = True\n\n    @pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n    @pytest.mark.parametrize(\"right\", [True, False])\n    @pytest.mark.parametrize(\"include_lowest\", [True, False])\n    def test_cut(bins, right, include_lowest):\n        a = np.random.randint(0, 10, size=50).astype(object)\n        a[::2] = np.nan\n>       result = pd.cut(\n            pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n        )\n\npandas/tests/arrays/test_integer.py:1070: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/reshape/tile.py:256: in cut\n    fac, bins = _bins_to_cuts(\npandas/core/reshape/tile.py:386: in _bins_to_cuts\n    ids = ensure_int64(bins.searchsorted(x, side=side))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise TypeError(\"boolean value of NA is ambiguous\")",
+            "\npandas/_libs/missing.pyx:360: TypeError"
+        ],
+        [
+            "bins = 3, right = False, include_lowest = True\n\n    @pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n    @pytest.mark.parametrize(\"right\", [True, False])\n    @pytest.mark.parametrize(\"include_lowest\", [True, False])\n    def test_cut(bins, right, include_lowest):\n        a = np.random.randint(0, 10, size=50).astype(object)\n        a[::2] = np.nan\n>       result = pd.cut(\n            pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n        )\n\npandas/tests/arrays/test_integer.py:1070: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/reshape/tile.py:256: in cut\n    fac, bins = _bins_to_cuts(\npandas/core/reshape/tile.py:386: in _bins_to_cuts\n    ids = ensure_int64(bins.searchsorted(x, side=side))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise TypeError(\"boolean value of NA is ambiguous\")",
+            "\npandas/_libs/missing.pyx:360: TypeError"
+        ],
+        [
+            "bins = [0, 5, 15], right = False, include_lowest = True\n\n    @pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n    @pytest.mark.parametrize(\"right\", [True, False])\n    @pytest.mark.parametrize(\"include_lowest\", [True, False])\n    def test_cut(bins, right, include_lowest):\n        a = np.random.randint(0, 10, size=50).astype(object)\n        a[::2] = np.nan\n>       result = pd.cut(\n            pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n        )\n\npandas/tests/arrays/test_integer.py:1070: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/reshape/tile.py:256: in cut\n    fac, bins = _bins_to_cuts(\npandas/core/reshape/tile.py:386: in _bins_to_cuts\n    ids = ensure_int64(bins.searchsorted(x, side=side))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise TypeError(\"boolean value of NA is ambiguous\")",
+            "\npandas/_libs/missing.pyx:360: TypeError"
+        ],
+        [
+            "bins = 3, right = True, include_lowest = False\n\n    @pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n    @pytest.mark.parametrize(\"right\", [True, False])\n    @pytest.mark.parametrize(\"include_lowest\", [True, False])\n    def test_cut(bins, right, include_lowest):\n        a = np.random.randint(0, 10, size=50).astype(object)\n        a[::2] = np.nan\n>       result = pd.cut(\n            pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n        )\n\npandas/tests/arrays/test_integer.py:1070: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/reshape/tile.py:256: in cut\n    fac, bins = _bins_to_cuts(\npandas/core/reshape/tile.py:386: in _bins_to_cuts\n    ids = ensure_int64(bins.searchsorted(x, side=side))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise TypeError(\"boolean value of NA is ambiguous\")",
+            "\npandas/_libs/missing.pyx:360: TypeError"
+        ],
+        [
+            "bins = [0, 5, 15], right = True, include_lowest = False\n\n    @pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n    @pytest.mark.parametrize(\"right\", [True, False])\n    @pytest.mark.parametrize(\"include_lowest\", [True, False])\n    def test_cut(bins, right, include_lowest):\n        a = np.random.randint(0, 10, size=50).astype(object)\n        a[::2] = np.nan\n>       result = pd.cut(\n            pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n        )\n\npandas/tests/arrays/test_integer.py:1070: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/reshape/tile.py:256: in cut\n    fac, bins = _bins_to_cuts(\npandas/core/reshape/tile.py:386: in _bins_to_cuts\n    ids = ensure_int64(bins.searchsorted(x, side=side))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise TypeError(\"boolean value of NA is ambiguous\")",
+            "\npandas/_libs/missing.pyx:360: TypeError"
+        ],
+        [
+            "bins = 3, right = False, include_lowest = False\n\n    @pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n    @pytest.mark.parametrize(\"right\", [True, False])\n    @pytest.mark.parametrize(\"include_lowest\", [True, False])\n    def test_cut(bins, right, include_lowest):\n        a = np.random.randint(0, 10, size=50).astype(object)\n        a[::2] = np.nan\n>       result = pd.cut(\n            pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n        )\n\npandas/tests/arrays/test_integer.py:1070: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/reshape/tile.py:256: in cut\n    fac, bins = _bins_to_cuts(\npandas/core/reshape/tile.py:386: in _bins_to_cuts\n    ids = ensure_int64(bins.searchsorted(x, side=side))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise TypeError(\"boolean value of NA is ambiguous\")",
+            "\npandas/_libs/missing.pyx:360: TypeError"
+        ],
+        [
+            "bins = [0, 5, 15], right = False, include_lowest = False\n\n    @pytest.mark.parametrize(\"bins\", [3, [0, 5, 15]])\n    @pytest.mark.parametrize(\"right\", [True, False])\n    @pytest.mark.parametrize(\"include_lowest\", [True, False])\n    def test_cut(bins, right, include_lowest):\n        a = np.random.randint(0, 10, size=50).astype(object)\n        a[::2] = np.nan\n>       result = pd.cut(\n            pd.array(a, dtype=\"Int64\"), bins, right=right, include_lowest=include_lowest\n        )\n\npandas/tests/arrays/test_integer.py:1070: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/reshape/tile.py:256: in cut\n    fac, bins = _bins_to_cuts(\npandas/core/reshape/tile.py:386: in _bins_to_cuts\n    ids = ensure_int64(bins.searchsorted(x, side=side))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise TypeError(\"boolean value of NA is ambiguous\")",
+            "\npandas/_libs/missing.pyx:360: TypeError"
+        ]
+    ],
+    "2.2.1": null,
+    "2.2.2": null,
+    "2.3.1": [
+        [
+            {
+                "x": {
+                    "value": "<IntegerArray>\n[<NA>,    5, <NA>,    0, <NA>,    9, <NA>,    8, <NA>,    0, <NA>,    4, <NA>,\n    5, <NA>,    3, <NA>,    8, <NA>,    4, <NA>,    5, <NA>,    9, <NA>,    9,\n <NA>,    5, <NA>,    1, <NA>,    5, <NA>,    6, <NA>,    3, <NA>,    1, <NA>,\n    0, <NA>,    9, <NA>,    8, <NA>,    8, <NA>,    5, <NA>,    3]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "Int64Dtype()",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "right": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "<IntegerArray>\n[<NA>,    5, <NA>,    0, <NA>,    9, <NA>,    8, <NA>,    0, <NA>,    4, <NA>,\n    5, <NA>,    3, <NA>,    8, <NA>,    4, <NA>,    5, <NA>,    9, <NA>,    9,\n <NA>,    5, <NA>,    1, <NA>,    5, <NA>,    6, <NA>,    3, <NA>,    1, <NA>,\n    0, <NA>,    9, <NA>,    8, <NA>,    8, <NA>,    5, <NA>,    3]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x": {
+                    "value": "array([nan, 5, nan, 0, nan, 9, nan, 8, nan, 0, nan, 4, nan, 5, nan, 3,\n       nan, 8, nan, 4, nan, 5, nan, 9, nan, 9, nan, 5, nan, 1, nan, 5,\n       nan, 6, nan, 3, nan, 1, nan, 0, nan, 9, nan, 8, nan, 8, nan, 5,\n       nan, 3], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([-0.009,  3.   ,  6.   ,  9.   ])",
+                    "shape": "(4,)",
+                    "omitted": false
+                },
+                "sz": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "rng": {
+                    "value": "(0, 9)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "mn": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "mx": {
+                    "value": "9.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "adj": {
+                    "value": "0.009000000000000001",
+                    "shape": null,
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, (-0.009999999999999998, 3.0], NaN, (-0.009999999999999998, 3.0], NaN, ..., (-0.009999999999999998, 3.0], NaN, (-0.009999999999999998, 3.0], NaN, (-0.009999999999999998, 3.0]]\nLength: 50\nCategories (3, interval[float64]): [(-0.009999999999999998, 3.0] < (3.0, 6.0] < (6.0, 9.0]]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "array([nan, 5, nan, 0, nan, 9, nan, 8, nan, 0, nan, 4, nan, 5, nan, 3,\n       nan, 8, nan, 4, nan, 5, nan, 9, nan, 9, nan, 5, nan, 1, nan, 5,\n       nan, 6, nan, 3, nan, 1, nan, 0, nan, 9, nan, 8, nan, 8, nan, 5,\n       nan, 3], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "right": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "array([nan, 5, nan, 0, nan, 9, nan, 8, nan, 0, nan, 4, nan, 5, nan, 3,\n       nan, 8, nan, 4, nan, 5, nan, 9, nan, 9, nan, 5, nan, 1, nan, 5,\n       nan, 6, nan, 3, nan, 1, nan, 0, nan, 9, nan, 8, nan, 8, nan, 5,\n       nan, 3], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([-0.009,  3.   ,  6.   ,  9.   ])",
+                    "shape": "(4,)",
+                    "omitted": false
+                },
+                "sz": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "rng": {
+                    "value": "(0, 9)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "mn": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "mx": {
+                    "value": "9.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "adj": {
+                    "value": "0.009000000000000001",
+                    "shape": null,
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, (-0.009999999999999998, 3.0], NaN, (-0.009999999999999998, 3.0], NaN, ..., (-0.009999999999999998, 3.0], NaN, (-0.009999999999999998, 3.0], NaN, (-0.009999999999999998, 3.0]]\nLength: 50\nCategories (3, interval[float64]): [(-0.009999999999999998, 3.0] < (3.0, 6.0] < (6.0, 9.0]]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "<IntegerArray>\n[<NA>,    2, <NA>,    2, <NA>,    1, <NA>,    1, <NA>,    0, <NA>,    1, <NA>,\n    4, <NA>,    1, <NA>,    4, <NA>,    1, <NA>,    9, <NA>,    9, <NA>,    2,\n <NA>,    3, <NA>,    0, <NA>,    9, <NA>,    3, <NA>,    6, <NA>,    9, <NA>,\n    5, <NA>,    7, <NA>,    2, <NA>,    9, <NA>,    3, <NA>,    4]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "Int64Dtype()",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "[0, 5, 15]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "right": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "<IntegerArray>\n[<NA>,    2, <NA>,    2, <NA>,    1, <NA>,    1, <NA>,    0, <NA>,    1, <NA>,\n    4, <NA>,    1, <NA>,    4, <NA>,    1, <NA>,    9, <NA>,    9, <NA>,    2,\n <NA>,    3, <NA>,    0, <NA>,    9, <NA>,    3, <NA>,    6, <NA>,    9, <NA>,\n    5, <NA>,    7, <NA>,    2, <NA>,    9, <NA>,    3, <NA>,    4]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x": {
+                    "value": "array([nan, 2, nan, 2, nan, 1, nan, 1, nan, 0, nan, 1, nan, 4, nan, 1,\n       nan, 4, nan, 1, nan, 9, nan, 9, nan, 2, nan, 3, nan, 0, nan, 9,\n       nan, 3, nan, 6, nan, 9, nan, 5, nan, 7, nan, 2, nan, 9, nan, 3,\n       nan, 4], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([ 0,  5, 15])",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, (-0.001, 5.0], NaN, (-0.001, 5.0], NaN, ..., (-0.001, 5.0], NaN, (-0.001, 5.0], NaN, (-0.001, 5.0]]\nLength: 50\nCategories (2, interval[float64]): [(-0.001, 5.0] < (5.0, 15.0]]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "array([nan, 2, nan, 2, nan, 1, nan, 1, nan, 0, nan, 1, nan, 4, nan, 1,\n       nan, 4, nan, 1, nan, 9, nan, 9, nan, 2, nan, 3, nan, 0, nan, 9,\n       nan, 3, nan, 6, nan, 9, nan, 5, nan, 7, nan, 2, nan, 9, nan, 3,\n       nan, 4], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "[0, 5, 15]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "right": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "array([nan, 2, nan, 2, nan, 1, nan, 1, nan, 0, nan, 1, nan, 4, nan, 1,\n       nan, 4, nan, 1, nan, 9, nan, 9, nan, 2, nan, 3, nan, 0, nan, 9,\n       nan, 3, nan, 6, nan, 9, nan, 5, nan, 7, nan, 2, nan, 9, nan, 3,\n       nan, 4], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([ 0,  5, 15])",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, (-0.001, 5.0], NaN, (-0.001, 5.0], NaN, ..., (-0.001, 5.0], NaN, (-0.001, 5.0], NaN, (-0.001, 5.0]]\nLength: 50\nCategories (2, interval[float64]): [(-0.001, 5.0] < (5.0, 15.0]]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "<IntegerArray>\n[<NA>,    3, <NA>,    3, <NA>,    5, <NA>,    8, <NA>,    2, <NA>,    9, <NA>,\n    6, <NA>,    1, <NA>,    3, <NA>,    7, <NA>,    6, <NA>,    3, <NA>,    0,\n <NA>,    7, <NA>,    3, <NA>,    5, <NA>,    6, <NA>,    8, <NA>,    0, <NA>,\n    6, <NA>,    5, <NA>,    1, <NA>,    9, <NA>,    9, <NA>,    3]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "Int64Dtype()",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "right": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "<IntegerArray>\n[<NA>,    3, <NA>,    3, <NA>,    5, <NA>,    8, <NA>,    2, <NA>,    9, <NA>,\n    6, <NA>,    1, <NA>,    3, <NA>,    7, <NA>,    6, <NA>,    3, <NA>,    0,\n <NA>,    7, <NA>,    3, <NA>,    5, <NA>,    6, <NA>,    8, <NA>,    0, <NA>,\n    6, <NA>,    5, <NA>,    1, <NA>,    9, <NA>,    9, <NA>,    3]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x": {
+                    "value": "array([nan, 3, nan, 3, nan, 5, nan, 8, nan, 2, nan, 9, nan, 6, nan, 1,\n       nan, 3, nan, 7, nan, 6, nan, 3, nan, 0, nan, 7, nan, 3, nan, 5,\n       nan, 6, nan, 8, nan, 0, nan, 6, nan, 5, nan, 1, nan, 9, nan, 9,\n       nan, 3], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([0.   , 3.   , 6.   , 9.009])",
+                    "shape": "(4,)",
+                    "omitted": false
+                },
+                "sz": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "rng": {
+                    "value": "(0, 9)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "mn": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "mx": {
+                    "value": "9.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "adj": {
+                    "value": "0.009000000000000001",
+                    "shape": null,
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, NaN, NaN, NaN, NaN, ..., NaN, NaN, NaN, NaN, NaN]\nLength: 50\nCategories (3, interval[float64]): [[0.0, 3.0) < [3.0, 6.0) < [6.0, 9.009)]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "array([nan, 3, nan, 3, nan, 5, nan, 8, nan, 2, nan, 9, nan, 6, nan, 1,\n       nan, 3, nan, 7, nan, 6, nan, 3, nan, 0, nan, 7, nan, 3, nan, 5,\n       nan, 6, nan, 8, nan, 0, nan, 6, nan, 5, nan, 1, nan, 9, nan, 9,\n       nan, 3], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "right": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "array([nan, 3, nan, 3, nan, 5, nan, 8, nan, 2, nan, 9, nan, 6, nan, 1,\n       nan, 3, nan, 7, nan, 6, nan, 3, nan, 0, nan, 7, nan, 3, nan, 5,\n       nan, 6, nan, 8, nan, 0, nan, 6, nan, 5, nan, 1, nan, 9, nan, 9,\n       nan, 3], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([0.   , 3.   , 6.   , 9.009])",
+                    "shape": "(4,)",
+                    "omitted": false
+                },
+                "sz": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "rng": {
+                    "value": "(0, 9)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "mn": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "mx": {
+                    "value": "9.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "adj": {
+                    "value": "0.009000000000000001",
+                    "shape": null,
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, NaN, NaN, NaN, NaN, ..., NaN, NaN, NaN, NaN, NaN]\nLength: 50\nCategories (3, interval[float64]): [[0.0, 3.0) < [3.0, 6.0) < [6.0, 9.009)]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "<IntegerArray>\n[<NA>,    7, <NA>,    3, <NA>,    2, <NA>,    9, <NA>,    2, <NA>,    9, <NA>,\n    1, <NA>,    7, <NA>,    6, <NA>,    5, <NA>,    8, <NA>,    3, <NA>,    3,\n <NA>,    7, <NA>,    5, <NA>,    6, <NA>,    0, <NA>,    0, <NA>,    0, <NA>,\n    2, <NA>,    2, <NA>,    7, <NA>,    2, <NA>,    5, <NA>,    5]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "Int64Dtype()",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "[0, 5, 15]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "right": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "<IntegerArray>\n[<NA>,    7, <NA>,    3, <NA>,    2, <NA>,    9, <NA>,    2, <NA>,    9, <NA>,\n    1, <NA>,    7, <NA>,    6, <NA>,    5, <NA>,    8, <NA>,    3, <NA>,    3,\n <NA>,    7, <NA>,    5, <NA>,    6, <NA>,    0, <NA>,    0, <NA>,    0, <NA>,\n    2, <NA>,    2, <NA>,    7, <NA>,    2, <NA>,    5, <NA>,    5]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x": {
+                    "value": "array([nan, 7, nan, 3, nan, 2, nan, 9, nan, 2, nan, 9, nan, 1, nan, 7,\n       nan, 6, nan, 5, nan, 8, nan, 3, nan, 3, nan, 7, nan, 5, nan, 6,\n       nan, 0, nan, 0, nan, 0, nan, 2, nan, 2, nan, 7, nan, 2, nan, 5,\n       nan, 5], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([ 0,  5, 15])",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, NaN, NaN, NaN, NaN, ..., NaN, NaN, NaN, NaN, NaN]\nLength: 50\nCategories (2, interval[int64]): [[0, 5) < [5, 15)]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "array([nan, 7, nan, 3, nan, 2, nan, 9, nan, 2, nan, 9, nan, 1, nan, 7,\n       nan, 6, nan, 5, nan, 8, nan, 3, nan, 3, nan, 7, nan, 5, nan, 6,\n       nan, 0, nan, 0, nan, 0, nan, 2, nan, 2, nan, 7, nan, 2, nan, 5,\n       nan, 5], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "[0, 5, 15]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "right": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "array([nan, 7, nan, 3, nan, 2, nan, 9, nan, 2, nan, 9, nan, 1, nan, 7,\n       nan, 6, nan, 5, nan, 8, nan, 3, nan, 3, nan, 7, nan, 5, nan, 6,\n       nan, 0, nan, 0, nan, 0, nan, 2, nan, 2, nan, 7, nan, 2, nan, 5,\n       nan, 5], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([ 0,  5, 15])",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, NaN, NaN, NaN, NaN, ..., NaN, NaN, NaN, NaN, NaN]\nLength: 50\nCategories (2, interval[int64]): [[0, 5) < [5, 15)]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "<IntegerArray>\n[<NA>,    1, <NA>,    6, <NA>,    7, <NA>,    1, <NA>,    6, <NA>,    4, <NA>,\n    3, <NA>,    3, <NA>,    3, <NA>,    1, <NA>,    7, <NA>,    3, <NA>,    0,\n <NA>,    0, <NA>,    6, <NA>,    9, <NA>,    6, <NA>,    5, <NA>,    4, <NA>,\n    1, <NA>,    6, <NA>,    5, <NA>,    2, <NA>,    6, <NA>,    9]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "Int64Dtype()",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "right": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "<IntegerArray>\n[<NA>,    1, <NA>,    6, <NA>,    7, <NA>,    1, <NA>,    6, <NA>,    4, <NA>,\n    3, <NA>,    3, <NA>,    3, <NA>,    1, <NA>,    7, <NA>,    3, <NA>,    0,\n <NA>,    0, <NA>,    6, <NA>,    9, <NA>,    6, <NA>,    5, <NA>,    4, <NA>,\n    1, <NA>,    6, <NA>,    5, <NA>,    2, <NA>,    6, <NA>,    9]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x": {
+                    "value": "array([nan, 1, nan, 6, nan, 7, nan, 1, nan, 6, nan, 4, nan, 3, nan, 3,\n       nan, 3, nan, 1, nan, 7, nan, 3, nan, 0, nan, 0, nan, 6, nan, 9,\n       nan, 6, nan, 5, nan, 4, nan, 1, nan, 6, nan, 5, nan, 2, nan, 6,\n       nan, 9], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([-0.009,  3.   ,  6.   ,  9.   ])",
+                    "shape": "(4,)",
+                    "omitted": false
+                },
+                "sz": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "rng": {
+                    "value": "(0, 9)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "mn": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "mx": {
+                    "value": "9.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "adj": {
+                    "value": "0.009000000000000001",
+                    "shape": null,
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, (-0.009, 3.0], NaN, (-0.009, 3.0], NaN, ..., (-0.009, 3.0], NaN, (-0.009, 3.0], NaN, (-0.009, 3.0]]\nLength: 50\nCategories (3, interval[float64]): [(-0.009, 3.0] < (3.0, 6.0] < (6.0, 9.0]]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "array([nan, 1, nan, 6, nan, 7, nan, 1, nan, 6, nan, 4, nan, 3, nan, 3,\n       nan, 3, nan, 1, nan, 7, nan, 3, nan, 0, nan, 0, nan, 6, nan, 9,\n       nan, 6, nan, 5, nan, 4, nan, 1, nan, 6, nan, 5, nan, 2, nan, 6,\n       nan, 9], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "right": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "array([nan, 1, nan, 6, nan, 7, nan, 1, nan, 6, nan, 4, nan, 3, nan, 3,\n       nan, 3, nan, 1, nan, 7, nan, 3, nan, 0, nan, 0, nan, 6, nan, 9,\n       nan, 6, nan, 5, nan, 4, nan, 1, nan, 6, nan, 5, nan, 2, nan, 6,\n       nan, 9], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([-0.009,  3.   ,  6.   ,  9.   ])",
+                    "shape": "(4,)",
+                    "omitted": false
+                },
+                "sz": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "rng": {
+                    "value": "(0, 9)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "mn": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "mx": {
+                    "value": "9.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "adj": {
+                    "value": "0.009000000000000001",
+                    "shape": null,
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, (-0.009, 3.0], NaN, (-0.009, 3.0], NaN, ..., (-0.009, 3.0], NaN, (-0.009, 3.0], NaN, (-0.009, 3.0]]\nLength: 50\nCategories (3, interval[float64]): [(-0.009, 3.0] < (3.0, 6.0] < (6.0, 9.0]]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "<IntegerArray>\n[<NA>,    8, <NA>,    1, <NA>,    2, <NA>,    9, <NA>,    5, <NA>,    9, <NA>,\n    5, <NA>,    3, <NA>,    2, <NA>,    6, <NA>,    9, <NA>,    9, <NA>,    7,\n <NA>,    2, <NA>,    7, <NA>,    0, <NA>,    0, <NA>,    8, <NA>,    1, <NA>,\n    2, <NA>,    7, <NA>,    3, <NA>,    7, <NA>,    6, <NA>,    7]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "Int64Dtype()",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "[0, 5, 15]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "right": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "<IntegerArray>\n[<NA>,    8, <NA>,    1, <NA>,    2, <NA>,    9, <NA>,    5, <NA>,    9, <NA>,\n    5, <NA>,    3, <NA>,    2, <NA>,    6, <NA>,    9, <NA>,    9, <NA>,    7,\n <NA>,    2, <NA>,    7, <NA>,    0, <NA>,    0, <NA>,    8, <NA>,    1, <NA>,\n    2, <NA>,    7, <NA>,    3, <NA>,    7, <NA>,    6, <NA>,    7]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x": {
+                    "value": "array([nan, 8, nan, 1, nan, 2, nan, 9, nan, 5, nan, 9, nan, 5, nan, 3,\n       nan, 2, nan, 6, nan, 9, nan, 9, nan, 7, nan, 2, nan, 7, nan, 0,\n       nan, 0, nan, 8, nan, 1, nan, 2, nan, 7, nan, 3, nan, 7, nan, 6,\n       nan, 7], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([ 0,  5, 15])",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, (0.0, 5.0], NaN, (0.0, 5.0], NaN, ..., (0.0, 5.0], NaN, (0.0, 5.0], NaN, (0.0, 5.0]]\nLength: 50\nCategories (2, interval[int64]): [(0, 5] < (5, 15]]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "array([nan, 8, nan, 1, nan, 2, nan, 9, nan, 5, nan, 9, nan, 5, nan, 3,\n       nan, 2, nan, 6, nan, 9, nan, 9, nan, 7, nan, 2, nan, 7, nan, 0,\n       nan, 0, nan, 8, nan, 1, nan, 2, nan, 7, nan, 3, nan, 7, nan, 6,\n       nan, 7], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "[0, 5, 15]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "right": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "array([nan, 8, nan, 1, nan, 2, nan, 9, nan, 5, nan, 9, nan, 5, nan, 3,\n       nan, 2, nan, 6, nan, 9, nan, 9, nan, 7, nan, 2, nan, 7, nan, 0,\n       nan, 0, nan, 8, nan, 1, nan, 2, nan, 7, nan, 3, nan, 7, nan, 6,\n       nan, 7], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([ 0,  5, 15])",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, (0.0, 5.0], NaN, (0.0, 5.0], NaN, ..., (0.0, 5.0], NaN, (0.0, 5.0], NaN, (0.0, 5.0]]\nLength: 50\nCategories (2, interval[int64]): [(0, 5] < (5, 15]]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "<IntegerArray>\n[<NA>,    1, <NA>,    2, <NA>,    1, <NA>,    7, <NA>,    0, <NA>,    2, <NA>,\n    5, <NA>,    7, <NA>,    9, <NA>,    1, <NA>,    3, <NA>,    0, <NA>,    0,\n <NA>,    1, <NA>,    0, <NA>,    7, <NA>,    0, <NA>,    6, <NA>,    6, <NA>,\n    9, <NA>,    7, <NA>,    1, <NA>,    6, <NA>,    1, <NA>,    5]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "Int64Dtype()",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "right": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "<IntegerArray>\n[<NA>,    1, <NA>,    2, <NA>,    1, <NA>,    7, <NA>,    0, <NA>,    2, <NA>,\n    5, <NA>,    7, <NA>,    9, <NA>,    1, <NA>,    3, <NA>,    0, <NA>,    0,\n <NA>,    1, <NA>,    0, <NA>,    7, <NA>,    0, <NA>,    6, <NA>,    6, <NA>,\n    9, <NA>,    7, <NA>,    1, <NA>,    6, <NA>,    1, <NA>,    5]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x": {
+                    "value": "array([nan, 1, nan, 2, nan, 1, nan, 7, nan, 0, nan, 2, nan, 5, nan, 7,\n       nan, 9, nan, 1, nan, 3, nan, 0, nan, 0, nan, 1, nan, 0, nan, 7,\n       nan, 0, nan, 6, nan, 6, nan, 9, nan, 7, nan, 1, nan, 6, nan, 1,\n       nan, 5], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([0.   , 3.   , 6.   , 9.009])",
+                    "shape": "(4,)",
+                    "omitted": false
+                },
+                "sz": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "rng": {
+                    "value": "(0, 9)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "mn": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "mx": {
+                    "value": "9.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "adj": {
+                    "value": "0.009000000000000001",
+                    "shape": null,
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, NaN, NaN, NaN, NaN, ..., NaN, NaN, NaN, NaN, NaN]\nLength: 50\nCategories (3, interval[float64]): [[0.0, 3.0) < [3.0, 6.0) < [6.0, 9.009)]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "array([nan, 1, nan, 2, nan, 1, nan, 7, nan, 0, nan, 2, nan, 5, nan, 7,\n       nan, 9, nan, 1, nan, 3, nan, 0, nan, 0, nan, 1, nan, 0, nan, 7,\n       nan, 0, nan, 6, nan, 6, nan, 9, nan, 7, nan, 1, nan, 6, nan, 1,\n       nan, 5], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "right": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "array([nan, 1, nan, 2, nan, 1, nan, 7, nan, 0, nan, 2, nan, 5, nan, 7,\n       nan, 9, nan, 1, nan, 3, nan, 0, nan, 0, nan, 1, nan, 0, nan, 7,\n       nan, 0, nan, 6, nan, 6, nan, 9, nan, 7, nan, 1, nan, 6, nan, 1,\n       nan, 5], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([0.   , 3.   , 6.   , 9.009])",
+                    "shape": "(4,)",
+                    "omitted": false
+                },
+                "sz": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "rng": {
+                    "value": "(0, 9)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "mn": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "mx": {
+                    "value": "9.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "adj": {
+                    "value": "0.009000000000000001",
+                    "shape": null,
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, NaN, NaN, NaN, NaN, ..., NaN, NaN, NaN, NaN, NaN]\nLength: 50\nCategories (3, interval[float64]): [[0.0, 3.0) < [3.0, 6.0) < [6.0, 9.009)]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "<IntegerArray>\n[<NA>,    7, <NA>,    3, <NA>,    7, <NA>,    4, <NA>,    1, <NA>,    5, <NA>,\n    7, <NA>,    0, <NA>,    5, <NA>,    0, <NA>,    2, <NA>,    8, <NA>,    1,\n <NA>,    7, <NA>,    0, <NA>,    4, <NA>,    4, <NA>,    2, <NA>,    1, <NA>,\n    2, <NA>,    3, <NA>,    9, <NA>,    0, <NA>,    9, <NA>,    3]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "Int64Dtype()",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "[0, 5, 15]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "right": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "<IntegerArray>\n[<NA>,    7, <NA>,    3, <NA>,    7, <NA>,    4, <NA>,    1, <NA>,    5, <NA>,\n    7, <NA>,    0, <NA>,    5, <NA>,    0, <NA>,    2, <NA>,    8, <NA>,    1,\n <NA>,    7, <NA>,    0, <NA>,    4, <NA>,    4, <NA>,    2, <NA>,    1, <NA>,\n    2, <NA>,    3, <NA>,    9, <NA>,    0, <NA>,    9, <NA>,    3]\nLength: 50, dtype: Int64",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x": {
+                    "value": "array([nan, 7, nan, 3, nan, 7, nan, 4, nan, 1, nan, 5, nan, 7, nan, 0,\n       nan, 5, nan, 0, nan, 2, nan, 8, nan, 1, nan, 7, nan, 0, nan, 4,\n       nan, 4, nan, 2, nan, 1, nan, 2, nan, 3, nan, 9, nan, 0, nan, 9,\n       nan, 3], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([ 0,  5, 15])",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, NaN, NaN, NaN, NaN, ..., NaN, NaN, NaN, NaN, NaN]\nLength: 50\nCategories (2, interval[int64]): [[0, 5) < [5, 15)]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "array([nan, 7, nan, 3, nan, 7, nan, 4, nan, 1, nan, 5, nan, 7, nan, 0,\n       nan, 5, nan, 0, nan, 2, nan, 8, nan, 1, nan, 7, nan, 0, nan, 4,\n       nan, 4, nan, 2, nan, 1, nan, 2, nan, 3, nan, 9, nan, 0, nan, 9,\n       nan, 3], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "x.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "[0, 5, 15]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "50",
+                    "shape": null,
+                    "omitted": false
+                },
+                "right": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "precision": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_lowest": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "duplicates": {
+                    "value": "'raise'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "retbins": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "original": {
+                    "value": "array([nan, 7, nan, 3, nan, 7, nan, 4, nan, 1, nan, 5, nan, 7, nan, 0,\n       nan, 5, nan, 0, nan, 2, nan, 8, nan, 1, nan, 7, nan, 0, nan, 4,\n       nan, 4, nan, 2, nan, 1, nan, 2, nan, 3, nan, 9, nan, 0, nan, 9,\n       nan, 3], dtype=object)",
+                    "shape": "(50,)",
+                    "omitted": false
+                },
+                "bins": {
+                    "value": "array([ 0,  5, 15])",
+                    "shape": "(3,)",
+                    "omitted": false
+                },
+                "fac": {
+                    "value": "[NaN, NaN, NaN, NaN, NaN, ..., NaN, NaN, NaN, NaN, NaN]\nLength: 50\nCategories (2, interval[int64]): [[0, 5) < [5, 15)]",
+                    "shape": "(50,)",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "x": "IntegerArray",
+                "x.dtype": "Int64Dtype",
+                "bins": "int",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "IntegerArray",
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "ndarray",
+                "sz": "int",
+                "x.size": "int",
+                "rng": "tuple",
+                "mn": "float",
+                "mx": "float",
+                "adj": "float",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "int",
+                "x.size": "int",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "ndarray",
+                "bins": "ndarray",
+                "sz": "int",
+                "rng": "tuple",
+                "mn": "float",
+                "mx": "float",
+                "adj": "float",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "IntegerArray",
+                "x.dtype": "Int64Dtype",
+                "bins": "list",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "IntegerArray",
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "ndarray",
+                "x.size": "int",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "list",
+                "x.size": "int",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "ndarray",
+                "bins": "ndarray",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "IntegerArray",
+                "x.dtype": "Int64Dtype",
+                "bins": "int",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "IntegerArray",
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "ndarray",
+                "sz": "int",
+                "x.size": "int",
+                "rng": "tuple",
+                "mn": "float",
+                "mx": "float",
+                "adj": "float",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "int",
+                "x.size": "int",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "ndarray",
+                "bins": "ndarray",
+                "sz": "int",
+                "rng": "tuple",
+                "mn": "float",
+                "mx": "float",
+                "adj": "float",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "IntegerArray",
+                "x.dtype": "Int64Dtype",
+                "bins": "list",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "IntegerArray",
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "ndarray",
+                "x.size": "int",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "list",
+                "x.size": "int",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "ndarray",
+                "bins": "ndarray",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "IntegerArray",
+                "x.dtype": "Int64Dtype",
+                "bins": "int",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "IntegerArray",
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "ndarray",
+                "sz": "int",
+                "x.size": "int",
+                "rng": "tuple",
+                "mn": "float",
+                "mx": "float",
+                "adj": "float",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "int",
+                "x.size": "int",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "ndarray",
+                "bins": "ndarray",
+                "sz": "int",
+                "rng": "tuple",
+                "mn": "float",
+                "mx": "float",
+                "adj": "float",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "IntegerArray",
+                "x.dtype": "Int64Dtype",
+                "bins": "list",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "IntegerArray",
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "ndarray",
+                "x.size": "int",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "list",
+                "x.size": "int",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "ndarray",
+                "bins": "ndarray",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "IntegerArray",
+                "x.dtype": "Int64Dtype",
+                "bins": "int",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "IntegerArray",
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "ndarray",
+                "sz": "int",
+                "x.size": "int",
+                "rng": "tuple",
+                "mn": "float",
+                "mx": "float",
+                "adj": "float",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "int",
+                "x.size": "int",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "ndarray",
+                "bins": "ndarray",
+                "sz": "int",
+                "rng": "tuple",
+                "mn": "float",
+                "mx": "float",
+                "adj": "float",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "IntegerArray",
+                "x.dtype": "Int64Dtype",
+                "bins": "list",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "IntegerArray",
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "ndarray",
+                "x.size": "int",
+                "fac": "Categorical"
+            }
+        ],
+        [
+            {
+                "x": "ndarray",
+                "x.dtype": "dtype",
+                "bins": "list",
+                "x.size": "int",
+                "right": "bool",
+                "precision": "int",
+                "include_lowest": "bool",
+                "duplicates": "str",
+                "retbins": "bool"
+            },
+            {
+                "original": "ndarray",
+                "bins": "ndarray",
+                "fac": "Categorical"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

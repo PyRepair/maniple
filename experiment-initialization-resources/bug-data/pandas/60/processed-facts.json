@@ -1,0 +1,578 @@
+{
+    "1.1.1": "def apply(\n    self,\n    func,\n    raw: bool = False,\n    engine: str = \"cython\",\n    engine_kwargs: Optional[Dict] = None,\n    args: Optional[Tuple] = None,\n    kwargs: Optional[Dict] = None,\n):\n    if args is None:\n        args = ()\n    if kwargs is None:\n        kwargs = {}\n    kwargs.pop(\"_level\", None)\n    kwargs.pop(\"floor\", None)\n    window = self._get_window()\n    offset = calculate_center_offset(window) if self.center else 0\n    if not is_bool(raw):\n        raise ValueError(\"raw parameter must be `True` or `False`\")\n\n    if engine == \"cython\":\n        if engine_kwargs is not None:\n            raise ValueError(\"cython engine does not accept engine_kwargs\")\n        apply_func = self._generate_cython_apply_func(\n            args, kwargs, raw, offset, func\n        )\n    elif engine == \"numba\":\n        if raw is False:\n            raise ValueError(\"raw must be `True` when using the numba engine\")\n        if func in self._numba_func_cache:\n            # Return an already compiled version of roll_apply if available\n            apply_func = self._numba_func_cache[func]\n        else:\n            apply_func = generate_numba_apply_func(\n                args, kwargs, func, engine_kwargs\n            )\n    else:\n        raise ValueError(\"engine must be either 'numba' or 'cython'\")\n\n    # TODO: Why do we always pass center=False?\n    # name=func for WindowGroupByMixin._apply\n    return self._apply(\n        apply_func,\n        center=False,\n        floor=0,\n        name=func,\n        use_numba_cache=engine == \"numba\",\n    )\n",
+    "1.1.2": null,
+    "1.2.1": "pandas/core/window/rolling.py",
+    "1.2.2": "from typing import Callable, Dict, List, Optional, Set, Tuple, Union\nfrom pandas.core.dtypes.common import ensure_float64, is_bool, is_float_dtype, is_integer, is_integer_dtype, is_list_like, is_scalar, needs_i8_conversion\nfrom pandas.core.window.common import WindowGroupByMixin, _doc_template, _flex_binary_moment, _shared_docs, calculate_center_offset, calculate_min_periods, get_weighted_roll_func, zsqrt\nfrom pandas.core.window.numba_ import generate_numba_apply_func",
+    "1.3.1": "class _Rolling_and_Expanding(_Rolling)",
+    "1.3.2": null,
+    "1.4.1": [
+        "_generate_cython_apply_func(self, args, kwargs, raw, offset, func)",
+        "apply_func(values, begin, end, min_periods, raw=raw)"
+    ],
+    "1.4.2": [
+        "_get_window(self, other=None, win_type: Optional[str]=None) -> int",
+        "_apply(self, func: Callable, center: bool, require_min_periods: int=0, floor: int=1, is_weighted: bool=False, name: Optional[str]=None, use_numba_cache: bool=False, **kwargs)",
+        "_get_window(self, other=None, win_type: Optional[Union[str, Tuple]]=None) -> np.ndarray",
+        "_generate_cython_apply_func(self, args, kwargs, raw, offset, func)",
+        "apply_func(values, begin, end, min_periods, raw=raw)"
+    ],
+    "1.5.1": [
+        "    @pytest.mark.parametrize(\"expected_value,raw_value\", [[1.0, True], [0.0, False]])\n    def test_groupby_rolling(self, expected_value, raw_value):\n        # GH 31754\n\n        def foo(x):\n            return int(isinstance(x, np.ndarray))\n\n        df = pd.DataFrame({\"id\": [1, 1, 1], \"value\": [1, 2, 3]})\n        result = df.groupby(\"id\").value.rolling(1).apply(foo, raw=raw_value)\n        expected = Series(\n            [expected_value] * 3,\n            index=pd.MultiIndex.from_tuples(\n                ((1, 0), (1, 1), (1, 2)), names=[\"id\", None]\n            ),\n            name=\"value\",\n        )\n        tm.assert_series_equal(result, expected)"
+    ],
+    "1.5.2": [
+        "pandas/tests/window/test_grouper.py"
+    ],
+    "2.1.1": [
+        [
+            "E   AssertionError: Series are different\nE   \nE   Series values are different (100.0 %)\nE   [left]:  [0.0, 0.0, 0.0]\nE   [right]: [1.0, 1.0, 1.0]"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.window.test_grouper.TestGrouperGrouping object at 0x7fb1d228cd90>\nexpected_value = 1.0, raw_value = True\n\n    @pytest.mark.parametrize(\"expected_value,raw_value\", [[1.0, True], [0.0, False]])\n    def test_groupby_rolling(self, expected_value, raw_value):\n        # GH 31754\n    \n        def foo(x):\n            return int(isinstance(x, np.ndarray))\n    \n        df = pd.DataFrame({\"id\": [1, 1, 1], \"value\": [1, 2, 3]})\n        result = df.groupby(\"id\").value.rolling(1).apply(foo, raw=raw_value)\n        expected = Series(\n            [expected_value] * 3,\n            index=pd.MultiIndex.from_tuples(\n                ((1, 0), (1, 1), (1, 2)), names=[\"id\", None]\n            ),\n            name=\"value\",\n        )\n>       tm.assert_series_equal(result, expected)\n\npandas/tests/window/test_grouper.py:210: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/_libs/testing.pyx:65: in pandas._libs.testing.assert_almost_equal\n    cpdef assert_almost_equal(a, b,\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   raise_assert_detail(obj, msg, lobj, robj)",
+            "\npandas/_libs/testing.pyx:174: AssertionError"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "self": {
+                    "value": "RollingGroupby [window=1,center=False,axis=0]",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.center": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "raw": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "engine": {
+                    "value": "'cython'",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self._numba_func_cache": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "args": {
+                    "value": "()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "window": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offset": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "self": {
+                    "value": "Rolling [window=1,center=False,axis=0]",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.center": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "raw": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "engine": {
+                    "value": "'cython'",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self._numba_func_cache": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "args": {
+                    "value": "()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "window": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offset": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "self": {
+                    "value": "RollingGroupby [window=1,center=False,axis=0]",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.center": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "raw": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "engine": {
+                    "value": "'cython'",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self._numba_func_cache": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "args": {
+                    "value": "()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "window": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offset": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "self": {
+                    "value": "Rolling [window=1,center=False,axis=0]",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.center": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "raw": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "engine": {
+                    "value": "'cython'",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self._numba_func_cache": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "args": {
+                    "value": "()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "window": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offset": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "self": "RollingGroupby",
+                "self.center": "bool",
+                "raw": "bool",
+                "engine": "str",
+                "self._numba_func_cache": "dict"
+            },
+            {
+                "args": "tuple",
+                "kwargs": "dict",
+                "window": "int",
+                "offset": "int"
+            }
+        ],
+        [
+            {
+                "self": "Rolling",
+                "self.center": "bool",
+                "raw": "bool",
+                "engine": "str",
+                "self._numba_func_cache": "dict"
+            },
+            {
+                "args": "tuple",
+                "kwargs": "dict",
+                "window": "int",
+                "offset": "int"
+            }
+        ],
+        [
+            {
+                "self": "RollingGroupby",
+                "self.center": "bool",
+                "raw": "bool",
+                "engine": "str",
+                "self._numba_func_cache": "dict"
+            },
+            {
+                "args": "tuple",
+                "kwargs": "dict",
+                "window": "int",
+                "offset": "int"
+            }
+        ],
+        [
+            {
+                "self": "Rolling",
+                "self.center": "bool",
+                "raw": "bool",
+                "engine": "str",
+                "self._numba_func_cache": "dict"
+            },
+            {
+                "args": "tuple",
+                "kwargs": "dict",
+                "window": "int",
+                "offset": "int"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "self": {
+                    "value": "RollingGroupby [window=1,center=False,axis=0]",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.center": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "raw": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "engine": {
+                    "value": "'cython'",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self._numba_func_cache": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "args": {
+                    "value": "()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "window": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offset": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "self": {
+                    "value": "Rolling [window=1,center=False,axis=0]",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.center": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "raw": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "engine": {
+                    "value": "'cython'",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self._numba_func_cache": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "args": {
+                    "value": "()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "window": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offset": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "self": {
+                    "value": "RollingGroupby [window=1,center=False,axis=0]",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.center": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "raw": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "engine": {
+                    "value": "'cython'",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self._numba_func_cache": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "args": {
+                    "value": "()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "window": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offset": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "self": {
+                    "value": "Rolling [window=1,center=False,axis=0]",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.center": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "raw": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "engine": {
+                    "value": "'cython'",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "self._numba_func_cache": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "args": {
+                    "value": "()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "window": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offset": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "self": "RollingGroupby",
+                "self.center": "bool",
+                "raw": "bool",
+                "engine": "str",
+                "self._numba_func_cache": "dict"
+            },
+            {
+                "args": "tuple",
+                "kwargs": "dict",
+                "window": "int",
+                "offset": "int"
+            }
+        ],
+        [
+            {
+                "self": "Rolling",
+                "self.center": "bool",
+                "raw": "bool",
+                "engine": "str",
+                "self._numba_func_cache": "dict"
+            },
+            {
+                "args": "tuple",
+                "kwargs": "dict",
+                "window": "int",
+                "offset": "int"
+            }
+        ],
+        [
+            {
+                "self": "RollingGroupby",
+                "self.center": "bool",
+                "raw": "bool",
+                "engine": "str",
+                "self._numba_func_cache": "dict"
+            },
+            {
+                "args": "tuple",
+                "kwargs": "dict",
+                "window": "int",
+                "offset": "int"
+            }
+        ],
+        [
+            {
+                "self": "Rolling",
+                "self.center": "bool",
+                "raw": "bool",
+                "engine": "str",
+                "self._numba_func_cache": "dict"
+            },
+            {
+                "args": "tuple",
+                "kwargs": "dict",
+                "window": "int",
+                "offset": "int"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "raw=True no longer applies to groupby().rolling() in 1.0.0\n"
+    ],
+    "3.1.2": [
+        "Code Sample, a copy-pastable example if possible\ndf = pd.DataFrame({'id': [1, 1, 1], 'value': [1, 2, 3]})\n\ndef foo(x):\n    print(type(x))\n    return 0.0\n\nWhen setting raw=True\n>>> df.groupby(\"id\").value.rolling(1).apply(foo, raw=True, engine='numba')\n<class 'pandas.core.series.Series'>\n<class 'pandas.core.series.Series'>\n<class 'pandas.core.series.Series'>\nid\n1   0    0.0\n    1    0.0\n    2    0.0\nName: value, dtype: float64\n\n>>> df.groupby(\"id\").value.rolling(1).apply(foo, raw=True, engine='cython')\n<class 'pandas.core.series.Series'>\n<class 'pandas.core.series.Series'>\n<class 'pandas.core.series.Series'>\nid\n1   0    0.0\n    1    0.0\n    2    0.0\nName: value, dtype: float64\n\n>>> df.groupby(\"id\").value.rolling(1).apply(foo, raw=True)\n<class 'pandas.core.series.Series'>\n<class 'pandas.core.series.Series'>\n<class 'pandas.core.series.Series'>\nid\n1   0    0.0\n    1    0.0\n    2    0.0\nName: value, dtype: float64\n\nProblem description\nThis changes the behavior of raw=True, it seems it no long allows user to pass numpy array to a rolling udf.\n"
+    ]
+}

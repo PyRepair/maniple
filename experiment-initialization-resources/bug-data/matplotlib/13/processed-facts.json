@@ -1,0 +1,201 @@
+{
+    "1.1.1": "@classmethod\ndef make_compound_path(cls, *args):\n    \n    # Handle an empty list in args (i.e. no args).\n    if not args:\n        return Path(np.empty([0, 2], dtype=np.float32))\n\n    vertices = np.concatenate([x.vertices for x in args])\n    codes = np.empty(len(vertices), dtype=cls.code_type)\n    i = 0\n    for path in args:\n        if path.codes is None:\n            codes[i] = cls.MOVETO\n            codes[i + 1:i + len(path.vertices)] = cls.LINETO\n        else:\n            codes[i:i + len(path.codes)] = path.codes\n        i += len(path.vertices)\n\n    return cls(vertices, codes)\n",
+    "1.1.2": "Make a compound path from a list of Path objects.",
+    "1.2.1": "lib/matplotlib/path.py",
+    "1.2.2": "import numpy as np",
+    "1.3.1": "class Path()",
+    "1.3.2": "A series of possibly disconnected, possibly closed, line and curve\nsegments.\n\nThe underlying storage is made up of two parallel numpy arrays:\n\n- *vertices*: an Nx2 float array of vertices\n- *codes*: an N-length uint8 array of vertex types, or None\n\nThese two arrays always have the same length in the first\ndimension.  For example, to represent a cubic curve, you must\nprovide three vertices as well as three codes ``CURVE3``.\n\nThe code types are:\n\n- ``STOP``   :  1 vertex (ignored)\n    A marker for the end of the entire path (currently not required and\n    ignored)\n\n- ``MOVETO`` :  1 vertex\n    Pick up the pen and move to the given vertex.\n\n- ``LINETO`` :  1 vertex\n    Draw a line from the current position to the given vertex.\n\n- ``CURVE3`` :  1 control point, 1 endpoint\n    Draw a quadratic Bezier curve from the current position, with the given\n    control point, to the given end point.\n\n- ``CURVE4`` :  2 control points, 1 endpoint\n    Draw a cubic Bezier curve from the current position, with the given\n    control points, to the given end point.\n\n- ``CLOSEPOLY`` : 1 vertex (ignored)\n    Draw a line segment to the start point of the current polyline.\n\nIf *codes* is None, it is interpreted as a ``MOVETO`` followed by a series\nof ``LINETO``.\n\nUsers of Path objects should not access the vertices and codes arrays\ndirectly.  Instead, they should use `iter_segments` or `cleaned` to get the\nvertex/code pairs.  This helps, in particular, to consistently handle the\ncase of *codes* being None.\n\nSome behavior of Path objects can be controlled by rcParams. See the\nrcParams whose keys start with 'path.'.\n\n.. note::\n\n    The vertices and codes arrays should be treated as\n    immutable -- there are a number of optimizations and assumptions\n    made up front in the constructor that will not change when the\n    data changes.",
+    "1.4.1": [
+        "vertices(self)",
+        "vertices(self, vertices)",
+        "codes(self)",
+        "codes(self, codes)"
+    ],
+    "1.4.2": [
+        "vertices(self)",
+        "vertices(self, vertices)",
+        "codes(self)",
+        "codes(self, codes)"
+    ],
+    "1.5.1": [
+        "def test_make_compound_path_stops():\n    zero = [0, 0]\n    paths = 3*[Path([zero, zero], [Path.MOVETO, Path.STOP])]\n    compound_path = Path.make_compound_path(*paths)\n    assert np.sum(compound_path.codes == Path.STOP) == 1"
+    ],
+    "1.5.2": [
+        "lib/matplotlib/tests/test_path.py"
+    ],
+    "2.1.1": [
+        [
+            "E       assert 3 == 1\nE        +  where 3 = <function sum at 0x7f957ae991f0>(array([1, 0, 1, 0, 1, 0], dtype=uint8) == 0)\nE        +    where <function sum at 0x7f957ae991f0> = np.sum\nE        +    and   array([1, 0, 1, 0, 1, 0], dtype=uint8) = Path(array([[0., 0.],\\n       [0., 0.],\\n       [0., 0.],\\n       [0., 0.],\\n       [0., 0.],\\n       [0., 0.]]), array([1, 0, 1, 0, 1, 0], dtype=uint8)).codes\nE        +    and   0 = Path.STOP"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "def test_make_compound_path_stops():\n        zero = [0, 0]\n        paths = 3*[Path([zero, zero], [Path.MOVETO, Path.STOP])]\n        compound_path = Path.make_compound_path(*paths)\n>       assert np.sum(compound_path.codes == Path.STOP) == 1",
+            "\nlib/matplotlib/tests/test_path.py:154: AssertionError"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "args": {
+                    "value": "(Path(array([[0., 0.],\n       [0., 0.]]), array([1, 0], dtype=uint8)), Path(array([[0., 0.],\n       [0., 0.]]), array([1, 0], dtype=uint8)), Path(array([[0., 0.],\n       [0., 0.]]), array([1, 0], dtype=uint8)))",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "cls.MOVETO": {
+                    "value": "1",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "cls.LINETO": {
+                    "value": "2",
+                    "shape": "()",
+                    "omitted": false
+                }
+            },
+            {
+                "vertices": {
+                    "value": "array([[0., 0.],\n       [0., 0.],\n       [0., 0.],\n       [0., 0.],\n       [0., 0.],\n       [0., 0.]])",
+                    "shape": "(6, 2)",
+                    "omitted": false
+                },
+                "codes": {
+                    "value": "array([1, 0, 1, 0, 1, 0], dtype=uint8)",
+                    "shape": "(6,)",
+                    "omitted": false
+                },
+                "i": {
+                    "value": "6",
+                    "shape": null,
+                    "omitted": false
+                },
+                "path": {
+                    "value": "Path(array([[0., 0.],\n       [0., 0.]]), array([1, 0], dtype=uint8))",
+                    "shape": null,
+                    "omitted": false
+                },
+                "path.codes": {
+                    "value": "array([1, 0], dtype=uint8)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "path.vertices": {
+                    "value": "array([[0., 0.],\n       [0., 0.]])",
+                    "shape": "(2, 2)",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "args": "tuple",
+                "cls.MOVETO": "uint8",
+                "cls.LINETO": "uint8"
+            },
+            {
+                "vertices": "ndarray",
+                "codes": "ndarray",
+                "i": "int",
+                "path": "Path",
+                "path.codes": "ndarray",
+                "path.vertices": "ndarray"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "args": {
+                    "value": "(Path(array([[0., 0.],\n       [0., 0.]]), array([1, 0], dtype=uint8)), Path(array([[0., 0.],\n       [0., 0.]]), array([1, 0], dtype=uint8)), Path(array([[0., 0.],\n       [0., 0.]]), array([1, 0], dtype=uint8)))",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "cls.MOVETO": {
+                    "value": "1",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "cls.LINETO": {
+                    "value": "2",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "cls.STOP": {
+                    "value": "0",
+                    "shape": "()",
+                    "omitted": false
+                }
+            },
+            {
+                "vertices": {
+                    "value": "array([[0., 0.],\n       [0., 0.],\n       [0., 0.],\n       [0., 0.]])",
+                    "shape": "(4, 2)",
+                    "omitted": false
+                },
+                "codes": {
+                    "value": "array([1, 1, 1, 0], dtype=uint8)",
+                    "shape": "(4,)",
+                    "omitted": false
+                },
+                "i": {
+                    "value": "6",
+                    "shape": null,
+                    "omitted": false
+                },
+                "path": {
+                    "value": "Path(array([[0., 0.],\n       [0., 0.]]), array([1, 0], dtype=uint8))",
+                    "shape": null,
+                    "omitted": false
+                },
+                "path.codes": {
+                    "value": "array([1, 0], dtype=uint8)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "path.vertices": {
+                    "value": "array([[0., 0.],\n       [0., 0.]])",
+                    "shape": "(2, 2)",
+                    "omitted": false
+                },
+                "last_vert": {
+                    "value": "array([0., 0.])",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "codes.size": {
+                    "value": "4",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "args": "tuple",
+                "cls.MOVETO": "uint8",
+                "cls.LINETO": "uint8",
+                "cls.STOP": "uint8"
+            },
+            {
+                "vertices": "ndarray",
+                "codes": "ndarray",
+                "i": "int",
+                "path": "Path",
+                "path.codes": "ndarray",
+                "path.vertices": "ndarray",
+                "last_vert": "ndarray",
+                "codes.size": "int"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "Deprecate Path helpers in bezier.py\n"
+    ],
+    "3.1.2": [
+        "... in favor of the corresponding ones in path.py.\n(Strictly speaking, make_path_regular is closer to\ncleaned(remove_nans=False) but in practice cleaned() works equally\nwell.)\n\nNote that we may want to deprecate the STOP code, which is documented as \"not required and ignored\" but actually causes the rest of the path to be dropped silently; it gets appended by cleaned() and caused an earlier version of this PR to break (because the STOP would then cause the rest of the concatenated path to be dropped).\n\nPR Summary\nPR Checklist\n Has Pytest style unit tests\n Code is Flake 8 compliant\n New features are documented, with examples if plot related\n Documentation is sphinx and numpydoc compliant\n Added an entry to doc/users/next_whats_new/ if major new feature (follow instructions in README.rst there)\n Documented in doc/api/api_changes.rst if API changed in a backward-incompatible way\n"
+    ]
+}

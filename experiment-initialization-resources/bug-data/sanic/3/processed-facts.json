@@ -1,0 +1,683 @@
+{
+    "1.1.1": "def url_for(self, view_name: str, **kwargs):\n    r\"\"\"Build a URL based on a view name and the values provided.\n\n    In order to build a URL, all request parameters must be supplied as\n    keyword arguments, and each parameter must pass the test for the\n    specified parameter type. If these conditions are not met, a\n    `URLBuildError` will be thrown.\n\n    Keyword arguments that are not request parameters will be included in\n    the output URL's query string.\n\n    :param view_name: string referencing the view name\n    :param \\**kwargs: keys and values that are used to build request\n        parameters and query string arguments.\n\n    :return: the built URL\n\n    Raises:\n        URLBuildError\n    \"\"\"\n    # find the route by the supplied view name\n    kw: Dict[str, str] = {}\n    # special static files url_for\n    if view_name == \"static\":\n        kw.update(name=kwargs.pop(\"name\", \"static\"))\n    elif view_name.endswith(\".static\"):  # blueprint.static\n        kwargs.pop(\"name\", None)\n        kw.update(name=view_name)\n\n    uri, route = self.router.find_route_by_view_name(view_name, **kw)\n    if not (uri and route):\n        raise URLBuildError(\n            \"Endpoint with name `{}` was not found\".format(view_name)\n        )\n\n    if view_name == \"static\" or view_name.endswith(\".static\"):\n        filename = kwargs.pop(\"filename\", None)\n        # it's static folder\n        if \"<file_uri:\" in uri:\n            folder_ = uri.split(\"<file_uri:\", 1)[0]\n            if folder_.endswith(\"/\"):\n                folder_ = folder_[:-1]\n\n            if filename.startswith(\"/\"):\n                filename = filename[1:]\n\n            uri = \"{}/{}\".format(folder_, filename)\n\n    if uri != \"/\" and uri.endswith(\"/\"):\n        uri = uri[:-1]\n\n    out = uri\n\n    # find all the parameters we will need to build in the URL\n    matched_params = re.findall(self.router.parameter_pattern, uri)\n\n    # _method is only a placeholder now, don't know how to support it\n    kwargs.pop(\"_method\", None)\n    anchor = kwargs.pop(\"_anchor\", \"\")\n    # _external need SERVER_NAME in config or pass _server arg\n    external = kwargs.pop(\"_external\", False)\n    scheme = kwargs.pop(\"_scheme\", \"\")\n    if scheme and not external:\n        raise ValueError(\"When specifying _scheme, _external must be True\")\n\n    netloc = kwargs.pop(\"_server\", None)\n    if netloc is None and external:\n        netloc = self.config.get(\"SERVER_NAME\", \"\")\n\n    if external:\n        if not scheme:\n            if \":\" in netloc[:8]:\n                scheme = netloc[:8].split(\":\", 1)[0]\n            else:\n                scheme = \"http\"\n\n        if \"://\" in netloc[:8]:\n            netloc = netloc.split(\"://\", 1)[-1]\n\n    for match in matched_params:\n        name, _type, pattern = self.router.parse_parameter_string(match)\n        # we only want to match against each individual parameter\n        specific_pattern = \"^{}$\".format(pattern)\n        supplied_param = None\n\n        if name in kwargs:\n            supplied_param = kwargs.get(name)\n            del kwargs[name]\n        else:\n            raise URLBuildError(\n                \"Required parameter `{}` was not passed to url_for\".format(\n                    name\n                )\n            )\n\n        supplied_param = str(supplied_param)\n        # determine if the parameter supplied by the caller passes the test\n        # in the URL\n        passes_pattern = re.match(specific_pattern, supplied_param)\n\n        if not passes_pattern:\n            if _type != str:\n                msg = (\n                    'Value \"{}\" for parameter `{}` does not '\n                    \"match pattern for type `{}`: {}\".format(\n                        supplied_param, name, _type.__name__, pattern\n                    )\n                )\n            else:\n                msg = (\n                    'Value \"{}\" for parameter `{}` '\n                    \"does not satisfy pattern {}\".format(\n                        supplied_param, name, pattern\n                    )\n                )\n            raise URLBuildError(msg)\n\n        # replace the parameter in the URL with the supplied value\n        replacement_regex = \"(<{}.*?>)\".format(name)\n\n        out = re.sub(replacement_regex, supplied_param, out)\n\n    # parse the remainder of the keyword arguments into a querystring\n    query_string = urlencode(kwargs, doseq=True) if kwargs else \"\"\n    # scheme://netloc/path;parameters?query#fragment\n    out = urlunparse((scheme, netloc, out, \"\", query_string, anchor))\n\n    return out\n",
+    "1.1.2": "Build a URL based on a view name and the values provided.\n\nIn order to build a URL, all request parameters must be supplied as\nkeyword arguments, and each parameter must pass the test for the\nspecified parameter type. If these conditions are not met, a\n`URLBuildError` will be thrown.\n\nKeyword arguments that are not request parameters will be included in\nthe output URL's query string.\n\n:param view_name: string referencing the view name\n:param \\**kwargs: keys and values that are used to build request\n    parameters and query string arguments.\n\n:return: the built URL\n\nRaises:\n    URLBuildError",
+    "1.2.1": "sanic/app.py",
+    "1.2.2": "import re\nfrom typing import Any, Dict, Optional, Type, Union\nfrom urllib.parse import urlencode, urlunparse\nfrom sanic.exceptions import SanicException, ServerError, URLBuildError",
+    "1.3.1": "class Sanic()",
+    "1.3.2": null,
+    "1.4.1": [
+        "route(self, uri, methods=frozenset({'GET'}), host=None, strict_slashes=None, stream=False, version=None, name=None)",
+        "get(self, uri, host=None, strict_slashes=None, version=None, name=None)"
+    ],
+    "1.4.2": [
+        "route(self, uri, methods=frozenset({'GET'}), host=None, strict_slashes=None, stream=False, version=None, name=None)",
+        "get(self, uri, host=None, strict_slashes=None, version=None, name=None)"
+    ],
+    "1.5.1": [
+        "def test_routes_with_host(app):\n    @app.route(\"/\")\n    @app.route(\"/\", name=\"hostindex\", host=\"example.com\")\n    @app.route(\"/path\", name=\"hostpath\", host=\"path.example.com\")\n    def index(request):\n        pass\n\n    assert app.url_for(\"index\") == \"/\"\n    assert app.url_for(\"hostindex\") == \"/\"\n    assert app.url_for(\"hostpath\") == \"/path\"\n    assert app.url_for(\"hostindex\", _external=True) == \"http://example.com/\"\n    assert app.url_for(\"hostpath\", _external=True) == \"http://path.example.com/path\""
+    ],
+    "1.5.2": [
+        "tests/test_url_for.py"
+    ],
+    "2.1.1": [
+        [
+            "E       AssertionError: assert 'example.com' == '/'\nE         - example.com\nE         + /"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "app = <sanic.app.Sanic object at 0x7f12a44d13a0>\n\n    def test_routes_with_host(app):\n        @app.route(\"/\")\n        @app.route(\"/\", name=\"hostindex\", host=\"example.com\")\n        @app.route(\"/path\", name=\"hostpath\", host=\"path.example.com\")\n        def index(request):\n            pass\n    \n        assert app.url_for(\"index\") == \"/\"\n>       assert app.url_for(\"hostindex\") == \"/\"",
+            "\ntests/test_url_for.py:9: AssertionError"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "view_name": {
+                    "value": "'index'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.config": {
+                    "value": "{'REQUEST_MAX_SIZE': 100000000, ... , 'LOGO': '\\n\\n                 Sanic\\n         Build Fast. Run Fast.\\n\\n'}",
+                    "shape": "17",
+                    "omitted": true
+                }
+            },
+            {
+                "kw": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "uri": {
+                    "value": "'/'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "route": {
+                    "value": "Route(handler=<function test_routes_with_host.<locals>.index at 0x7f79723440d0>, methods=frozenset({'GET'}), pattern=re.compile('^/$'), parameters=[], name='index', uri='/')",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "out": {
+                    "value": "'/'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "matched_params": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "anchor": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "external": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "scheme": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "query_string": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "view_name": {
+                    "value": "'hostindex'",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.config": {
+                    "value": "{'REQUEST_MAX_SIZE': 100000000, ... , 'LOGO': '\\n\\n                 Sanic\\n         Build Fast. Run Fast.\\n\\n'}",
+                    "shape": "17",
+                    "omitted": true
+                }
+            },
+            {
+                "kw": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "uri": {
+                    "value": "'example.com'",
+                    "shape": "11",
+                    "omitted": false
+                },
+                "route": {
+                    "value": "Route(handler=<function test_routes_with_host.<locals>.index at 0x7f79723440d0>, methods=frozenset({'GET'}), pattern=re.compile('^example.com/$'), parameters=[], name='hostindex', uri='example.com/')",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "out": {
+                    "value": "'example.com'",
+                    "shape": "11",
+                    "omitted": false
+                },
+                "matched_params": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "anchor": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "external": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "scheme": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "query_string": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "view_name": "str",
+                "kwargs": "dict",
+                "self.config": "Config"
+            },
+            {
+                "kw": "dict",
+                "uri": "str",
+                "route": "Route",
+                "out": "str",
+                "matched_params": "list",
+                "anchor": "str",
+                "external": "bool",
+                "scheme": "str",
+                "query_string": "str"
+            }
+        ],
+        [
+            {
+                "view_name": "str",
+                "kwargs": "dict",
+                "self.config": "Config"
+            },
+            {
+                "kw": "dict",
+                "uri": "str",
+                "route": "Route",
+                "out": "str",
+                "matched_params": "list",
+                "anchor": "str",
+                "external": "bool",
+                "scheme": "str",
+                "query_string": "str"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "view_name": {
+                    "value": "'index'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.config": {
+                    "value": "{'REQUEST_MAX_SIZE': 100000000, ... , 'LOGO': '\\n\\n                 Sanic\\n         Build Fast. Run Fast.\\n\\n'}",
+                    "shape": "17",
+                    "omitted": true
+                }
+            },
+            {
+                "kw": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "uri": {
+                    "value": "'/'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "route": {
+                    "value": "Route(handler=<function test_routes_with_host.<locals>.index at 0x7f15a5f29af0>, methods=frozenset({'GET'}), pattern=re.compile('^/$'), parameters=[], name='index', uri='/')",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "out": {
+                    "value": "'/'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "matched_params": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "anchor": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "external": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "scheme": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "query_string": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "view_name": {
+                    "value": "'hostindex'",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.config": {
+                    "value": "{'REQUEST_MAX_SIZE': 100000000, ... , 'LOGO': '\\n\\n                 Sanic\\n         Build Fast. Run Fast.\\n\\n'}",
+                    "shape": "17",
+                    "omitted": true
+                }
+            },
+            {
+                "kw": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "uri": {
+                    "value": "'/'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "route": {
+                    "value": "Route(handler=<function test_routes_with_host.<locals>.index at 0x7f15a5f29af0>, methods=frozenset({'GET'}), pattern=re.compile('^example.com/$'), parameters=[], name='hostindex', uri='example.com/')",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "host": {
+                    "value": "'example.com'",
+                    "shape": "11",
+                    "omitted": false
+                },
+                "out": {
+                    "value": "'/'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "matched_params": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "anchor": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "external": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "scheme": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "query_string": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "view_name": {
+                    "value": "'hostpath'",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.config": {
+                    "value": "{'REQUEST_MAX_SIZE': 100000000, ... , 'LOGO': '\\n\\n                 Sanic\\n         Build Fast. Run Fast.\\n\\n'}",
+                    "shape": "17",
+                    "omitted": true
+                }
+            },
+            {
+                "kw": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "uri": {
+                    "value": "'/path'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "route": {
+                    "value": "Route(handler=<function test_routes_with_host.<locals>.index at 0x7f15a5f29af0>, methods=frozenset({'GET'}), pattern=re.compile('^path.example.com/path$'), parameters=[], name='hostpath', uri='path.example.com/path')",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "host": {
+                    "value": "'path.example.com'",
+                    "shape": "16",
+                    "omitted": false
+                },
+                "out": {
+                    "value": "'/path'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "matched_params": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "anchor": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "external": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "scheme": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "query_string": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "view_name": {
+                    "value": "'hostindex'",
+                    "shape": "9",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{'_external': True}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "self.config": {
+                    "value": "{'REQUEST_MAX_SIZE': 100000000, ... , 'LOGO': '\\n\\n                 Sanic\\n         Build Fast. Run Fast.\\n\\n'}",
+                    "shape": "17",
+                    "omitted": true
+                }
+            },
+            {
+                "kw": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "uri": {
+                    "value": "'/'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "route": {
+                    "value": "Route(handler=<function test_routes_with_host.<locals>.index at 0x7f15a5f29af0>, methods=frozenset({'GET'}), pattern=re.compile('^example.com/$'), parameters=[], name='hostindex', uri='example.com/')",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "host": {
+                    "value": "'example.com'",
+                    "shape": "11",
+                    "omitted": false
+                },
+                "out": {
+                    "value": "'http://example.com/'",
+                    "shape": "19",
+                    "omitted": false
+                },
+                "matched_params": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "anchor": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "external": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "scheme": {
+                    "value": "'http'",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "netloc": {
+                    "value": "'example.com'",
+                    "shape": "11",
+                    "omitted": false
+                },
+                "query_string": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "view_name": {
+                    "value": "'hostpath'",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{'_external': True}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "self.config": {
+                    "value": "{'REQUEST_MAX_SIZE': 100000000, ... , 'LOGO': '\\n\\n                 Sanic\\n         Build Fast. Run Fast.\\n\\n'}",
+                    "shape": "17",
+                    "omitted": true
+                }
+            },
+            {
+                "kw": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "uri": {
+                    "value": "'/path'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "route": {
+                    "value": "Route(handler=<function test_routes_with_host.<locals>.index at 0x7f15a5f29af0>, methods=frozenset({'GET'}), pattern=re.compile('^path.example.com/path$'), parameters=[], name='hostpath', uri='path.example.com/path')",
+                    "shape": "6",
+                    "omitted": false
+                },
+                "host": {
+                    "value": "'path.example.com'",
+                    "shape": "16",
+                    "omitted": false
+                },
+                "out": {
+                    "value": "'http://path.example.com/path'",
+                    "shape": "28",
+                    "omitted": false
+                },
+                "matched_params": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "anchor": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "external": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "scheme": {
+                    "value": "'http'",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "netloc": {
+                    "value": "'path.example.com'",
+                    "shape": "16",
+                    "omitted": false
+                },
+                "query_string": {
+                    "value": "''",
+                    "shape": "0",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "view_name": "str",
+                "kwargs": "dict",
+                "self.config": "Config"
+            },
+            {
+                "kw": "dict",
+                "uri": "str",
+                "route": "Route",
+                "out": "str",
+                "matched_params": "list",
+                "anchor": "str",
+                "external": "bool",
+                "scheme": "str",
+                "query_string": "str"
+            }
+        ],
+        [
+            {
+                "view_name": "str",
+                "kwargs": "dict",
+                "self.config": "Config"
+            },
+            {
+                "kw": "dict",
+                "uri": "str",
+                "route": "Route",
+                "host": "str",
+                "out": "str",
+                "matched_params": "list",
+                "anchor": "str",
+                "external": "bool",
+                "scheme": "str",
+                "query_string": "str"
+            }
+        ],
+        [
+            {
+                "view_name": "str",
+                "kwargs": "dict",
+                "self.config": "Config"
+            },
+            {
+                "kw": "dict",
+                "uri": "str",
+                "route": "Route",
+                "host": "str",
+                "out": "str",
+                "matched_params": "list",
+                "anchor": "str",
+                "external": "bool",
+                "scheme": "str",
+                "query_string": "str"
+            }
+        ],
+        [
+            {
+                "view_name": "str",
+                "kwargs": "dict",
+                "self.config": "Config"
+            },
+            {
+                "kw": "dict",
+                "kwargs": "dict",
+                "uri": "str",
+                "route": "Route",
+                "host": "str",
+                "out": "str",
+                "matched_params": "list",
+                "anchor": "str",
+                "external": "bool",
+                "scheme": "str",
+                "netloc": "str",
+                "query_string": "str"
+            }
+        ],
+        [
+            {
+                "view_name": "str",
+                "kwargs": "dict",
+                "self.config": "Config"
+            },
+            {
+                "kw": "dict",
+                "kwargs": "dict",
+                "uri": "str",
+                "route": "Route",
+                "host": "str",
+                "out": "str",
+                "matched_params": "list",
+                "anchor": "str",
+                "external": "bool",
+                "scheme": "str",
+                "netloc": "str",
+                "query_string": "str"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "url_for() doesn't return a working URI for a blueprint route with host\n"
+    ],
+    "3.1.2": [
+        "Describe the bug\nWhen i use blueprints with host argument and try to get url with url_for i get an incorrect url - blueprint's host is used as a path, and not as a hostname\n\nCode snippet\n\nfrom sanic import Sanic, Blueprint\nfrom sanic.response import text\n\nbp = Blueprint('bp_app', host='bp.example.com')\n\n\n@bp.route('/', name='index')\nasync def bp_index(request):\n    url = request.app.url_for('bp_app.index')\n    return text(url)\n\n\n@bp.route('/internal', name='internal')\nasync def bp_index(request):\n    url = request.app.url_for('bp_app.internal')\n    return text(url)\n\n\n@bp.route('/external', name='external')\nasync def bp_index(request):\n    url = request.app.url_for('bp_app.external', _external=True)\n    return text(url)\n\n\napp = Sanic('app_name')\napp.blueprint(bp)\n\n\nif __name__ == '__main__':\n    app.run(port=8000)\nOutput\n\n# 1\n$ curl -H \"Host:bp.example.com\" http://127.0.0.1:8000/\nbp.example.com\n\n# 2\n$ curl -H \"Host:bp.example.com\" http://127.0.0.1:8000/internal\nbp.example.com/internal\n\n# 3\n$ curl -H \"Host:bp.example.com\" http://127.0.0.1:8000/external\nhttp:///bp.example.com/external\n1 example returns hostname by like a path\n2 example returns hostname and path but it's like a path\n3 example return full url, but with no hostname (3 slashes)\n\nExpected behavior\nI'm expecting correct urls.\nFor internal urls - only path returned as stated in route.\nFor external urls - fully qualified domain name with full path\n\n1 example - /\n2 example - /internal\n3 example - http://bp.example.com/external\n\nEnvironment (please complete the following information):\n\nOS: macOS\nVersion: 19.12.2\nAdditional context\nCan't get correct place, but found some places, where it can be\napp.py#L829-L832,\napp.py#L848 (perhaps, blueprint's host should be used, and config's server name as default)\n"
+    ]
+}

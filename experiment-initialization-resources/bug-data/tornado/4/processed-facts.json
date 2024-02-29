@@ -1,0 +1,339 @@
+{
+    "1.1.1": "async def get(self, path: str, include_body: bool = True) -> None:\n    # Set up our path instance variables.\n    self.path = self.parse_url_path(path)\n    del path  # make sure we don't refer to path instead of self.path again\n    absolute_path = self.get_absolute_path(self.root, self.path)\n    self.absolute_path = self.validate_absolute_path(self.root, absolute_path)\n    if self.absolute_path is None:\n        return\n\n    self.modified = self.get_modified_time()\n    self.set_headers()\n\n    if self.should_return_304():\n        self.set_status(304)\n        return\n\n    request_range = None\n    range_header = self.request.headers.get(\"Range\")\n    if range_header:\n        # As per RFC 2616 14.16, if an invalid Range header is specified,\n        # the request will be treated as if the header didn't exist.\n        request_range = httputil._parse_request_range(range_header)\n\n    size = self.get_content_size()\n    if request_range:\n        start, end = request_range\n        if (start is not None and start >= size) or end == 0:\n            # As per RFC 2616 14.35.1, a range is not satisfiable only: if\n            # the first requested byte is equal to or greater than the\n            # content, or when a suffix with length 0 is specified\n            self.set_status(416)  # Range Not Satisfiable\n            self.set_header(\"Content-Type\", \"text/plain\")\n            self.set_header(\"Content-Range\", \"bytes */%s\" % (size,))\n            return\n        if start is not None and start < 0:\n            start += size\n        if end is not None and end > size:\n            # Clients sometimes blindly use a large range to limit their\n            # download size; cap the endpoint at the actual file size.\n            end = size\n        # Note: only return HTTP 206 if less than the entire range has been\n        # requested. Not only is this semantically correct, but Chrome\n        # refuses to play audio if it gets an HTTP 206 in response to\n        # ``Range: bytes=0-``.\n        if size != (end or size) - (start or 0):\n            self.set_status(206)  # Partial Content\n            self.set_header(\n                \"Content-Range\", httputil._get_content_range(start, end, size)\n            )\n    else:\n        start = end = None\n\n    if start is not None and end is not None:\n        content_length = end - start\n    elif end is not None:\n        content_length = end\n    elif start is not None:\n        content_length = size - start\n    else:\n        content_length = size\n    self.set_header(\"Content-Length\", content_length)\n\n    if include_body:\n        content = self.get_content(self.absolute_path, start, end)\n        if isinstance(content, bytes):\n            content = [content]\n        for chunk in content:\n            try:\n                self.write(chunk)\n                await self.flush()\n            except iostream.StreamClosedError:\n                return\n    else:\n        assert self.request.method == \"HEAD\"\n",
+    "1.1.2": null,
+    "1.2.1": "tornado/web.py",
+    "1.2.2": "from tornado import httputil\nfrom tornado import iostream",
+    "1.3.1": "class StaticFileHandler(RequestHandler)",
+    "1.3.2": "A simple handler that can serve static content from a directory.\n\nA `StaticFileHandler` is configured automatically if you pass the\n``static_path`` keyword argument to `Application`.  This handler\ncan be customized with the ``static_url_prefix``, ``static_handler_class``,\nand ``static_handler_args`` settings.\n\nTo map an additional path to this handler for a static data directory\nyou would add a line to your application like::\n\n    application = web.Application([\n        (r\"/content/(.*)\", web.StaticFileHandler, {\"path\": \"/var/www\"}),\n    ])\n\nThe handler constructor requires a ``path`` argument, which specifies the\nlocal root directory of the content to be served.\n\nNote that a capture group in the regex is required to parse the value for\nthe ``path`` argument to the get() method (different than the constructor\nargument above); see `URLSpec` for details.\n\nTo serve a file like ``index.html`` automatically when a directory is\nrequested, set ``static_handler_args=dict(default_filename=\"index.html\")``\nin your application settings, or add ``default_filename`` as an initializer\nargument for your ``StaticFileHandler``.\n\nTo maximize the effectiveness of browser caching, this class supports\nversioned urls (by default using the argument ``?v=``).  If a version\nis given, we instruct the browser to cache this file indefinitely.\n`make_static_url` (also available as `RequestHandler.static_url`) can\nbe used to construct a versioned url.\n\nThis handler is intended primarily for use in development and light-duty\nfile serving; for heavy traffic it will be more efficient to use\na dedicated static file server (such as nginx or Apache).  We support\nthe HTTP ``Accept-Ranges`` mechanism to return partial content (because\nsome browsers require this functionality to be present to seek in\nHTML5 audio or video).\n\n**Subclassing notes**\n\nThis class is designed to be extensible by subclassing, but because\nof the way static urls are generated with class methods rather than\ninstance methods, the inheritance patterns are somewhat unusual.\nBe sure to use the ``@classmethod`` decorator when overriding a\nclass method.  Instance methods may use the attributes ``self.path``\n``self.absolute_path``, and ``self.modified``.\n\nSubclasses should only override methods discussed in this section;\noverriding other methods is error-prone.  Overriding\n``StaticFileHandler.get`` is particularly problematic due to the\ntight coupling with ``compute_etag`` and other methods.\n\nTo change the way static urls are generated (e.g. to match the behavior\nof another server or CDN), override `make_static_url`, `parse_url_path`,\n`get_cache_time`, and/or `get_version`.\n\nTo replace all interaction with the filesystem (e.g. to serve\nstatic content from a database), override `get_content`,\n`get_content_size`, `get_modified_time`, `get_absolute_path`, and\n`validate_absolute_path`.\n\n.. versionchanged:: 3.1\n   Many of the methods for subclasses were added in Tornado 3.1.",
+    "1.4.1": [
+        "set_headers(self) -> None",
+        "should_return_304(self) -> bool",
+        "get_absolute_path(cls, root: str, path: str) -> str",
+        "validate_absolute_path(self, root: str, absolute_path: str) -> Optional[str]",
+        "get_content(cls, abspath: str, start: int=None, end: int=None) -> Generator[bytes, None, None]",
+        "get_content_size(self) -> int",
+        "get_modified_time(self) -> Optional[datetime.datetime]",
+        "parse_url_path(self, url_path: str) -> str"
+    ],
+    "1.4.2": [
+        "set_status(self, status_code: int, reason: str=None) -> None",
+        "set_header(self, name: str, value: _HeaderTypes) -> None",
+        "write(self, chunk: Union[str, bytes, dict]) -> None",
+        "flush(self, include_footers: bool=False) -> 'Future[None]'",
+        "get(self, *args: Any) -> None",
+        "set_headers(self) -> None",
+        "should_return_304(self) -> bool",
+        "get_absolute_path(cls, root: str, path: str) -> str",
+        "validate_absolute_path(self, root: str, absolute_path: str) -> Optional[str]",
+        "get_content(cls, abspath: str, start: int=None, end: int=None) -> Generator[bytes, None, None]",
+        "get_content_size(self) -> int",
+        "get_modified_time(self) -> Optional[datetime.datetime]",
+        "parse_url_path(self, url_path: str) -> str"
+    ],
+    "1.5.1": [
+        "    def test_static_unsatisfiable_range_end_less_than_start(self):\n        response = self.get_and_head(\n            \"/static/robots.txt\", headers={\"Range\": \"bytes=10-3\"}\n        )\n        self.assertEqual(response.code, 416)\n        self.assertEqual(response.headers.get(\"Content-Range\"), \"bytes */26\")"
+    ],
+    "1.5.2": [
+        "tornado/test/web_test.py"
+    ],
+    "2.1.1": [
+        [
+            "E   AssertionError: '-6' != '93'\nE   - -6\nE   + 93\nE    : Content-Length differs between GET (-6) and HEAD (93)"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <tornado.test.web_test.StaticFileTest testMethod=test_static_unsatisfiable_range_end_less_than_start>\n\n    def test_static_unsatisfiable_range_end_less_than_start(self):\n        response = self.get_and_head(\n>           \"/static/robots.txt\", headers={\"Range\": \"bytes=10-3\"}\n        )\n\ntornado/test/web_test.py:1314: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntornado/test/web_test.py:1154: in get_and_head\n    % (h, head_response.headers.get(h), get_response.headers.get(h)),"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "path": {
+                    "value": "'robots.txt'",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "self.root": {
+                    "value": "'/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_4/tornado/test/static'",
+                    "shape": "71",
+                    "omitted": false
+                },
+                "self.request": {
+                    "value": "HTTPServerRequest(protocol='http', host='127.0.0.1:34699', method='HEAD', uri='/static/robots.txt', version='HTTP/1.1', remote_ip='127.0.0.1')",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_body": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "self.path": {
+                    "value": "'robots.txt'",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "absolute_path": {
+                    "value": "'/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_4/tornado/test/static/robots.txt'",
+                    "shape": "82",
+                    "omitted": false
+                },
+                "self.absolute_path": {
+                    "value": "'/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_4/tornado/test/static/robots.txt'",
+                    "shape": "82",
+                    "omitted": false
+                },
+                "self.modified": {
+                    "value": "datetime.datetime(2023, 12, 13, 14, 31, 22)",
+                    "shape": null,
+                    "omitted": false
+                },
+                "request_range": {
+                    "value": "(10, 4)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "range_header": {
+                    "value": "'bytes=10-3'",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "size": {
+                    "value": "26",
+                    "shape": null,
+                    "omitted": false
+                },
+                "start": {
+                    "value": "10",
+                    "shape": null,
+                    "omitted": false
+                },
+                "end": {
+                    "value": "4",
+                    "shape": null,
+                    "omitted": false
+                },
+                "content_length": {
+                    "value": "-6",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "path": "str",
+                "self.root": "str",
+                "self.request": "HTTPServerRequest",
+                "include_body": "bool"
+            },
+            {
+                "self.path": "str",
+                "absolute_path": "str",
+                "self.absolute_path": "str",
+                "self.modified": "datetime",
+                "request_range": "tuple",
+                "range_header": "str",
+                "size": "int",
+                "start": "int",
+                "end": "int",
+                "content_length": "int"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "path": {
+                    "value": "'robots.txt'",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "self.root": {
+                    "value": "'/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_4/tornado/test/static'",
+                    "shape": "71",
+                    "omitted": false
+                },
+                "self.request": {
+                    "value": "HTTPServerRequest(protocol='http', host='127.0.0.1:41697', method='HEAD', uri='/static/robots.txt', version='HTTP/1.1', remote_ip='127.0.0.1')",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_body": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "self.path": {
+                    "value": "'robots.txt'",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "absolute_path": {
+                    "value": "'/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_4/tornado/test/static/robots.txt'",
+                    "shape": "82",
+                    "omitted": false
+                },
+                "self.absolute_path": {
+                    "value": "'/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_4/tornado/test/static/robots.txt'",
+                    "shape": "82",
+                    "omitted": false
+                },
+                "self.modified": {
+                    "value": "datetime.datetime(2023, 12, 13, 14, 31, 22)",
+                    "shape": null,
+                    "omitted": false
+                },
+                "request_range": {
+                    "value": "(10, 4)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "range_header": {
+                    "value": "'bytes=10-3'",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "size": {
+                    "value": "26",
+                    "shape": null,
+                    "omitted": false
+                },
+                "start": {
+                    "value": "10",
+                    "shape": null,
+                    "omitted": false
+                },
+                "end": {
+                    "value": "4",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "path": {
+                    "value": "'robots.txt'",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "self.root": {
+                    "value": "'/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_4/tornado/test/static'",
+                    "shape": "71",
+                    "omitted": false
+                },
+                "self.request": {
+                    "value": "HTTPServerRequest(protocol='http', host='127.0.0.1:41697', method='GET', uri='/static/robots.txt', version='HTTP/1.1', remote_ip='127.0.0.1')",
+                    "shape": null,
+                    "omitted": false
+                },
+                "include_body": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "self.path": {
+                    "value": "'robots.txt'",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "absolute_path": {
+                    "value": "'/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_4/tornado/test/static/robots.txt'",
+                    "shape": "82",
+                    "omitted": false
+                },
+                "self.absolute_path": {
+                    "value": "'/home/ubuntu/Desktop/bgp_envs_local/repos/tornado_4/tornado/test/static/robots.txt'",
+                    "shape": "82",
+                    "omitted": false
+                },
+                "self.modified": {
+                    "value": "datetime.datetime(2023, 12, 13, 14, 31, 22)",
+                    "shape": null,
+                    "omitted": false
+                },
+                "request_range": {
+                    "value": "(10, 4)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "range_header": {
+                    "value": "'bytes=10-3'",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "size": {
+                    "value": "26",
+                    "shape": null,
+                    "omitted": false
+                },
+                "start": {
+                    "value": "10",
+                    "shape": null,
+                    "omitted": false
+                },
+                "end": {
+                    "value": "4",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "path": "str",
+                "self.root": "str",
+                "self.request": "HTTPServerRequest",
+                "include_body": "bool"
+            },
+            {
+                "self.path": "str",
+                "absolute_path": "str",
+                "self.absolute_path": "str",
+                "self.modified": "datetime",
+                "request_range": "tuple",
+                "range_header": "str",
+                "size": "int",
+                "start": "int",
+                "end": "int"
+            }
+        ],
+        [
+            {
+                "path": "str",
+                "self.root": "str",
+                "self.request": "HTTPServerRequest",
+                "include_body": "bool"
+            },
+            {
+                "self.path": "str",
+                "absolute_path": "str",
+                "self.absolute_path": "str",
+                "self.modified": "datetime",
+                "request_range": "tuple",
+                "range_header": "str",
+                "size": "int",
+                "start": "int",
+                "end": "int"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "StaticFileHandler breaks with negative range\n"
+    ],
+    "3.1.2": [
+        "When passing a negative range (example: bytes=-30720) in the Range header, but the requested file is smaller than the range requested, StaticFileHandler will try to seek to a negative position in the file and get an error from the operating system (linux in my case).\n\nTraceback (most recent call last):\n  File \"/home/venzano/venvs/zoe-2018.08/lib/python3.5/site-packages/tornado/web.py\", line 1592, in _execute\n    result = yield result\n  File \"/home/venzano/venvs/zoe-2018.08/lib/python3.5/site-packages/tornado/gen.py\", line 1133, in run\n    value = future.result()\n  File \"/usr/lib/python3.5/asyncio/futures.py\", line 274, in result\n    raise self._exception\n  File \"/home/venzano/venvs/zoe-2018.08/lib/python3.5/site-packages/tornado/gen.py\", line 326, in wrapper\n    yielded = next(result)\n  File \"/home/venzano/venvs/zoe-2018.08/lib/python3.5/site-packages/tornado/web.py\", line 2525, in get\n    for chunk in content:\n  File \"/home/venzano/venvs/zoe-2018.08/lib/python3.5/site-packages/tornado/web.py\", line 2680, in get_content\n    file.seek(start)\nOSError: [Errno 22] Invalid argument\nThe code (file web.py around line 2494 in Tornado 5.1.1):\n\n            if start is not None and start < 0:\n                start += size\nis not sufficient, it should check if size is smaller than start and in that case just set start=size.\n"
+    ]
+}

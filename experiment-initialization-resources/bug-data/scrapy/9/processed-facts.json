@@ -1,0 +1,121 @@
+{
+    "1.1.1": "def send(self, to, subject, body, cc=None, attachs=(), mimetype='text/plain', charset=None, _callback=None):\n    if attachs:\n        msg = MIMEMultipart()\n    else:\n        msg = MIMENonMultipart(*mimetype.split('/', 1))\n    msg['From'] = self.mailfrom\n    msg['To'] = COMMASPACE.join(to)\n    msg['Date'] = formatdate(localtime=True)\n    msg['Subject'] = subject\n    rcpts = to[:]\n    if cc:\n        rcpts.extend(cc)\n        msg['Cc'] = COMMASPACE.join(cc)\n\n    if charset:\n        msg.set_charset(charset)\n\n    if attachs:\n        msg.attach(MIMEText(body, 'plain', charset or 'us-ascii'))\n        for attach_name, mimetype, f in attachs:\n            part = MIMEBase(*mimetype.split('/'))\n            part.set_payload(f.read())\n            Encoders.encode_base64(part)\n            part.add_header('Content-Disposition', 'attachment; filename=\"%s\"' \\\n                % attach_name)\n            msg.attach(part)\n    else:\n        msg.set_payload(body)\n\n    if _callback:\n        _callback(to=to, subject=subject, body=body, cc=cc, attach=attachs, msg=msg)\n\n    if self.debug:\n        logger.debug('Debug mail sent OK: To=%(mailto)s Cc=%(mailcc)s '\n                     'Subject=\"%(mailsubject)s\" Attachs=%(mailattachs)d',\n                     {'mailto': to, 'mailcc': cc, 'mailsubject': subject,\n                      'mailattachs': len(attachs)})\n        return\n\n    dfd = self._sendmail(rcpts, msg.as_string())\n    dfd.addCallbacks(self._sent_ok, self._sent_failed,\n        callbackArgs=[to, cc, subject, len(attachs)],\n        errbackArgs=[to, cc, subject, len(attachs)])\n    reactor.addSystemEventTrigger('before', 'shutdown', lambda: dfd)\n    return dfd\n",
+    "1.1.2": null,
+    "1.2.1": "scrapy/mail.py",
+    "1.2.2": "from email.utils import COMMASPACE, formatdate\nfrom six.moves.email_mime_multipart import MIMEMultipart\nfrom six.moves.email_mime_text import MIMEText\nfrom six.moves.email_mime_base import MIMEBase\nfrom twisted.internet import defer, reactor, ssl\nfrom email.mime.nonmultipart import MIMENonMultipart\nfrom email import encoders as Encoders",
+    "1.3.1": "class MailSender(object)",
+    "1.3.2": null,
+    "1.4.1": [
+        "_sent_ok(self, result, to, cc, subject, nattachs)",
+        "_sent_failed(self, failure, to, cc, subject, nattachs)",
+        "_sendmail(self, to_addrs, msg)"
+    ],
+    "1.4.2": [
+        "_sent_ok(self, result, to, cc, subject, nattachs)",
+        "_sent_failed(self, failure, to, cc, subject, nattachs)",
+        "_sendmail(self, to_addrs, msg)"
+    ],
+    "1.5.1": [
+        "    def test_send_single_values_to_and_cc(self):\n        mailsender = MailSender(debug=True)\n        mailsender.send(to='test@scrapy.org', subject='subject', body='body',\n                        cc='test@scrapy.org', _callback=self._catch_mail_sent)"
+    ],
+    "1.5.2": [
+        "tests/test_mail.py"
+    ],
+    "2.1.1": [
+        [
+            "E           AttributeError: 'str' object has no attribute 'extend'"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <tests.test_mail.MailSenderTest testMethod=test_send_single_values_to_and_cc>\n\n    def test_send_single_values_to_and_cc(self):\n        mailsender = MailSender(debug=True)\n>       mailsender.send(to='test@scrapy.org', subject='subject', body='body',\n                        cc='test@scrapy.org', _callback=self._catch_mail_sent)\n\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_9/tests/test_mail.py:30: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <scrapy.mail.MailSender object at 0x7f810c2a7e80>, to = 'test@scrapy.org'\nsubject = 'subject', body = 'body', cc = 'test@scrapy.org', attachs = ()\nmimetype = 'text/plain', charset = None\n_callback = <bound method MailSenderTest._catch_mail_sent of <tests.test_mail.MailSenderTest testMethod=test_send_single_values_to_and_cc>>\n\n    def send(self, to, subject, body, cc=None, attachs=(), mimetype='text/plain', charset=None, _callback=None):\n        if attachs:\n            msg = MIMEMultipart()\n        else:\n            msg = MIMENonMultipart(*mimetype.split('/', 1))\n        msg['From'] = self.mailfrom\n        msg['To'] = COMMASPACE.join(to)\n        msg['Date'] = formatdate(localtime=True)\n        msg['Subject'] = subject\n        rcpts = to[:]\n        if cc:\n>           rcpts.extend(cc)",
+            "\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_9/scrapy/mail.py:57: AttributeError"
+        ]
+    ],
+    "2.2.1": null,
+    "2.2.2": null,
+    "2.3.1": [
+        [
+            {
+                "attachs": {
+                    "value": "()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "mimetype": {
+                    "value": "'text/plain'",
+                    "shape": "10",
+                    "omitted": false
+                },
+                "to": {
+                    "value": "'test@scrapy.org'",
+                    "shape": "15",
+                    "omitted": false
+                },
+                "cc": {
+                    "value": "'test@scrapy.org'",
+                    "shape": "15",
+                    "omitted": false
+                },
+                "self.mailfrom": {
+                    "value": "'scrapy@localhost'",
+                    "shape": "16",
+                    "omitted": false
+                },
+                "subject": {
+                    "value": "'subject'",
+                    "shape": "7",
+                    "omitted": false
+                },
+                "body": {
+                    "value": "'body'",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "self.debug": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "to": {
+                    "value": "['test@scrapy.org']",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "cc": {
+                    "value": "['test@scrapy.org']",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "rcpts": {
+                    "value": "['test@scrapy.org', 'test@scrapy.org']",
+                    "shape": "2",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "attachs": "tuple",
+                "mimetype": "str",
+                "to": "str",
+                "cc": "str",
+                "self.mailfrom": "str",
+                "subject": "str",
+                "body": "str",
+                "self.debug": "bool"
+            },
+            {
+                "to": "list",
+                "cc": "list",
+                "rcpts": "list"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

@@ -543,13 +543,11 @@ class Facts:
         if write_markdown_files:
             self._write_markdown_files()
 
-        if os.path.exists(os.path.join(bwd, "f3-1-1.md")):
-            with open(os.path.join(bwd, "f3-1-1.md"), "r") as f:
-                self.facts["3.1.1"] = Facts._extract_code_blocks_from_markdown(f.read())
-
-        if os.path.exists(os.path.join(bwd, "f3-1-2.md")):
-            with open(os.path.join(bwd, "f3-1-2.md"), "r") as f:
-                self.facts["3.1.2"] = Facts._extract_code_blocks_from_markdown(f.read())
+        if os.path.exists(os.path.join(bwd, "external-facts.json")):
+            with open(os.path.join(bwd, "external-facts.json"), "r") as f:
+                json_file_content = json.load(f)
+                self.facts["3.1.1"] = json_file_content[bugid]["github_issue_title"]
+                self.facts["3.1.2"] = json_file_content[bugid]["github_issue_description"]
 
         if write_facts_json:
             # write facts.json file

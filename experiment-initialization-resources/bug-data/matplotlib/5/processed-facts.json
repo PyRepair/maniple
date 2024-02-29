@@ -1,0 +1,881 @@
+{
+    "1.1.1": "    @_preprocess_data(replace_names=[\"x\", \"y\", \"s\", \"linewidths\",\n                                     \"edgecolors\", \"c\", \"facecolor\",\n                                     \"facecolors\", \"color\"],\n                      label_namer=\"y\")\n    @cbook._delete_parameter(\"3.2\", \"verts\")\n    def scatter(self, x, y, s=None, c=None, marker=None, cmap=None, norm=None,\n                vmin=None, vmax=None, alpha=None, linewidths=None,\n                verts=None, edgecolors=None, *, plotnonfinite=False,\n                **kwargs):\n        \n        # Process **kwargs to handle aliases, conflicts with explicit kwargs:\n\n        self._process_unit_info(xdata=x, ydata=y, kwargs=kwargs)\n        x = self.convert_xunits(x)\n        y = self.convert_yunits(y)\n\n        # np.ma.ravel yields an ndarray, not a masked array,\n        # unless its argument is a masked array.\n        x = np.ma.ravel(x)\n        y = np.ma.ravel(y)\n        if x.size != y.size:\n            raise ValueError(\"x and y must be the same size\")\n\n        if s is None:\n            s = (20 if rcParams['_internal.classic_mode'] else\n                 rcParams['lines.markersize'] ** 2.0)\n        s = np.ma.ravel(s)\n        if len(s) not in (1, x.size):\n            raise ValueError(\"s must be a scalar, or the same size as x and y\")\n\n        c, colors, edgecolors = \\\n            self._parse_scatter_color_args(\n                c, edgecolors, kwargs, x.size,\n                get_next_color_func=self._get_patches_for_fill.get_next_color)\n\n        if plotnonfinite and colors is None:\n            c = np.ma.masked_invalid(c)\n            x, y, s, edgecolors, linewidths = \\\n                cbook._combine_masks(x, y, s, edgecolors, linewidths)\n        else:\n            x, y, s, c, colors, edgecolors, linewidths = \\\n                cbook._combine_masks(\n                    x, y, s, c, colors, edgecolors, linewidths)\n\n        scales = s   # Renamed for readability below.\n\n        # load default marker from rcParams\n        if marker is None:\n            marker = rcParams['scatter.marker']\n\n        if isinstance(marker, mmarkers.MarkerStyle):\n            marker_obj = marker\n        else:\n            marker_obj = mmarkers.MarkerStyle(marker)\n\n        path = marker_obj.get_path().transformed(\n            marker_obj.get_transform())\n        if not marker_obj.is_filled():\n            edgecolors = 'face'\n            linewidths = rcParams['lines.linewidth']\n\n        offsets = np.ma.column_stack([x, y])\n\n        collection = mcoll.PathCollection(\n                (path,), scales,\n                facecolors=colors,\n                edgecolors=edgecolors,\n                linewidths=linewidths,\n                offsets=offsets,\n                transOffset=kwargs.pop('transform', self.transData),\n                alpha=alpha\n                )\n        collection.set_transform(mtransforms.IdentityTransform())\n        collection.update(kwargs)\n\n        if colors is None:\n            collection.set_array(c)\n            collection.set_cmap(cmap)\n            collection.set_norm(norm)\n            collection._scale_norm(norm, vmin, vmax)\n\n        # Classic mode only:\n        # ensure there are margins to allow for the\n        # finite size of the symbols.  In v2.x, margins\n        # are present by default, so we disable this\n        # scatter-specific override.\n        if rcParams['_internal.classic_mode']:\n            if self._xmargin < 0.05 and x.size > 0:\n                self.set_xmargin(0.05)\n            if self._ymargin < 0.05 and x.size > 0:\n                self.set_ymargin(0.05)\n\n        self.add_collection(collection)\n        self._request_autoscale_view()\n\n        return collection\n",
+    "1.1.2": "A scatter plot of *y* vs. *x* with varying marker size and/or color.\n\nParameters\n----------\nx, y : float or array-like, shape (n, )\n    The data positions.\n\ns : float or array-like, shape (n, ), optional\n    The marker size in points**2.\n    Default is ``rcParams['lines.markersize'] ** 2``.\n\nc : array-like or list of colors or color, optional\n    The marker colors. Possible values:\n\n    - A scalar or sequence of n numbers to be mapped to colors using\n      *cmap* and *norm*.\n    - A 2-D array in which the rows are RGB or RGBA.\n    - A sequence of colors of length n.\n    - A single color format string.\n\n    Note that *c* should not be a single numeric RGB or RGBA sequence\n    because that is indistinguishable from an array of values to be\n    colormapped. If you want to specify the same RGB or RGBA value for\n    all points, use a 2-D array with a single row.  Otherwise, value-\n    matching will have precedence in case of a size matching with *x*\n    and *y*.\n\n    If you wish to specify a single color for all points\n    prefer the *color* keyword argument.\n\n    Defaults to `None`. In that case the marker color is determined\n    by the value of *color*, *facecolor* or *facecolors*. In case\n    those are not specified or `None`, the marker color is determined\n    by the next color of the ``Axes``' current \"shape and fill\" color\n    cycle. This cycle defaults to :rc:`axes.prop_cycle`.\n\nmarker : `~.markers.MarkerStyle`, default: :rc:`scatter.marker`\n    The marker style. *marker* can be either an instance of the class\n    or the text shorthand for a particular marker.\n    See :mod:`matplotlib.markers` for more information about marker\n    styles.\n\ncmap : str or `~matplotlib.colors.Colormap`, default: :rc:`image.cmap`\n    A `.Colormap` instance or registered colormap name. *cmap* is only\n    used if *c* is an array of floats.\n\nnorm : `~matplotlib.colors.Normalize`, default: None\n    If *c* is an array of floats, *norm* is used to scale the color\n    data, *c*, in the range 0 to 1, in order to map into the colormap\n    *cmap*.\n    If *None*, use the default `.colors.Normalize`.\n\nvmin, vmax : float, default: None\n    *vmin* and *vmax* are used in conjunction with the default norm to\n    map the color array *c* to the colormap *cmap*. If None, the\n    respective min and max of the color array is used.\n    It is deprecated to use *vmin*/*vmax* when *norm* is given.\n\nalpha : float, default: None\n    The alpha blending value, between 0 (transparent) and 1 (opaque).\n\nlinewidths : float or array-like, default: :rc:`lines.linewidth`\n    The linewidth of the marker edges. Note: The default *edgecolors*\n    is 'face'. You may want to change this as well.\n\nedgecolors : {'face', 'none', *None*} or color or sequence of color, default: :rc:`scatter.edgecolors`\n    The edge color of the marker. Possible values:\n\n    - 'face': The edge color will always be the same as the face color.\n    - 'none': No patch boundary will be drawn.\n    - A color or sequence of colors.\n\n    For non-filled markers, the *edgecolors* kwarg is ignored and\n    forced to 'face' internally.\n\nplotnonfinite : bool, default: False\n    Set to plot points with nonfinite *c*, in conjunction with\n    `~matplotlib.colors.Colormap.set_bad`.\n\nReturns\n-------\n`~matplotlib.collections.PathCollection`\n\nOther Parameters\n----------------\n**kwargs : `~matplotlib.collections.Collection` properties\n\nSee Also\n--------\nplot : To plot scatter plots when markers are identical in size and\n    color.\n\nNotes\n-----\n* The `.plot` function will be faster for scatterplots where markers\n  don't vary in size or color.\n\n* Any or all of *x*, *y*, *s*, and *c* may be masked arrays, in which\n  case all masks will be combined and only unmasked points will be\n  plotted.\n\n* Fundamentally, scatter works with 1-D arrays; *x*, *y*, *s*, and *c*\n  may be input as N-D arrays, but within scatter they will be\n  flattened. The exception is *c*, which will be flattened only if its\n  size matches the size of *x* and *y*.",
+    "1.2.1": "lib/matplotlib/axes/_axes.py",
+    "1.2.2": null,
+    "1.3.1": "class Axes(_AxesBase)",
+    "1.3.2": "The `Axes` contains most of the figure elements: `~.axis.Axis`,\n`~.axis.Tick`, `~.lines.Line2D`, `~.text.Text`, `~.patches.Polygon`, etc.,\nand sets the coordinate system.\n\nThe `Axes` instance supports callbacks through a callbacks attribute which\nis a `~.cbook.CallbackRegistry` instance.  The events you can connect to\nare 'xlim_changed' and 'ylim_changed' and the callback will be called with\nfunc(*ax*) where *ax* is the `Axes` instance.\n\nAttributes\n----------\ndataLim : `.Bbox`\n    The bounding box enclosing all data displayed in the Axes.\nviewLim : `.Bbox`\n    The view limits in data coordinates.",
+    "1.4.1": [
+        "_parse_scatter_color_args(c, edgecolors, kwargs, xsize, get_next_color_func)",
+        "get_next_color()"
+    ],
+    "1.4.2": [
+        "_parse_scatter_color_args(c, edgecolors, kwargs, xsize, get_next_color_func)",
+        "get_next_color()"
+    ],
+    "1.5.1": [
+        "    def test_scatter_linewidths(self):\n        x = np.arange(5)\n\n        fig, ax = plt.subplots()\n        for i in range(3):\n            pc = ax.scatter(x, np.full(5, i), c=f'C{i}', marker='x', s=100,\n                            linewidths=i + 1)\n            assert pc.get_linewidths() == i + 1\n\n        pc = ax.scatter(x, np.full(5, 3), c='C3', marker='x', s=100,\n                        linewidths=[*range(1, 5), None])\n        assert_array_equal(pc.get_linewidths(),\n                           [*range(1, 5), mpl.rcParams['lines.linewidth']])"
+    ],
+    "1.5.2": [
+        "lib/matplotlib/tests/test_axes.py"
+    ],
+    "2.1.1": [
+        [
+            "E           assert array([1.]) == (1 + 1)\nE            +  where array([1.]) = <bound method Collection.get_linewidth of <matplotlib.collections.PathCollection object at 0x7fbb17fcd250>>()\nE            +    where <bound method Collection.get_linewidth of <matplotlib.collections.PathCollection object at 0x7fbb17fcd250>> = <matplotlib.collections.PathCollection object at 0x7fbb17fcd250>.get_linewidths"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <matplotlib.tests.test_axes.TestScatter object at 0x7fbb180bba00>\n\n    def test_scatter_linewidths(self):\n        x = np.arange(5)\n    \n        fig, ax = plt.subplots()\n        for i in range(3):\n            pc = ax.scatter(x, np.full(5, i), c=f'C{i}', marker='x', s=100,\n                            linewidths=i + 1)\n>           assert pc.get_linewidths() == i + 1",
+            "\nlib/matplotlib/tests/test_axes.py:1994: AssertionError"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "x": {
+                    "value": "array([0, 1, 2, 3, 4])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "y": {
+                    "value": "array([0, 0, 0, 0, 0])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "y.size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "s": {
+                    "value": "100",
+                    "shape": null,
+                    "omitted": false
+                },
+                "c": {
+                    "value": "'C0'",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "plotnonfinite": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "linewidths": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "marker": {
+                    "value": "'x'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "self._xmargin": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._ymargin": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "x": {
+                    "value": "masked_array(data=[0, 1, 2, 3, 4],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "y": {
+                    "value": "masked_array(data=[0, 0, 0, 0, 0],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "s": {
+                    "value": "masked_array(data=[100],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "colors": {
+                    "value": "array([[0., 0., 1., 1.]])",
+                    "shape": "(1, 4)",
+                    "omitted": false
+                },
+                "edgecolors": {
+                    "value": "'face'",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "linewidths": {
+                    "value": "1.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "scales": {
+                    "value": "masked_array(data=[100],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "path": {
+                    "value": "Path(array([[-0.5, -0.5],\n       [ 0.5,  0.5],\n       [-0.5,  0.5],\n       [ 0.5, -0.5]]), array([1, 2, 1, 2], dtype=uint8))",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offsets": {
+                    "value": "masked_array(\n  data=[[0, 0],\n        [1, 0],\n        [2, 0],\n        [3, 0],\n        [4, 0]],\n  mask=[[False, False],\n        [False, False],\n        [False, False],\n        [False, False],\n        [False, False]],\n  fill_value=999999)",
+                    "shape": "(5, 2)",
+                    "omitted": false
+                },
+                "self._xmargin": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._ymargin": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "array([0, 1, 2, 3, 4])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "y": {
+                    "value": "array([1, 1, 1, 1, 1])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "y.size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "s": {
+                    "value": "100",
+                    "shape": null,
+                    "omitted": false
+                },
+                "c": {
+                    "value": "'C1'",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "plotnonfinite": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "linewidths": {
+                    "value": "2",
+                    "shape": null,
+                    "omitted": false
+                },
+                "marker": {
+                    "value": "'x'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "self._xmargin": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._ymargin": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "x": {
+                    "value": "masked_array(data=[0, 1, 2, 3, 4],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "y": {
+                    "value": "masked_array(data=[1, 1, 1, 1, 1],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "s": {
+                    "value": "masked_array(data=[100],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "colors": {
+                    "value": "array([[0. , 0.5, 0. , 1. ]])",
+                    "shape": "(1, 4)",
+                    "omitted": false
+                },
+                "edgecolors": {
+                    "value": "'face'",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "linewidths": {
+                    "value": "1.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "scales": {
+                    "value": "masked_array(data=[100],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "path": {
+                    "value": "Path(array([[-0.5, -0.5],\n       [ 0.5,  0.5],\n       [-0.5,  0.5],\n       [ 0.5, -0.5]]), array([1, 2, 1, 2], dtype=uint8))",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offsets": {
+                    "value": "masked_array(\n  data=[[0, 1],\n        [1, 1],\n        [2, 1],\n        [3, 1],\n        [4, 1]],\n  mask=[[False, False],\n        [False, False],\n        [False, False],\n        [False, False],\n        [False, False]],\n  fill_value=999999)",
+                    "shape": "(5, 2)",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "x": "ndarray",
+                "y": "ndarray",
+                "kwargs": "dict",
+                "x.size": "int",
+                "y.size": "int",
+                "s": "int",
+                "c": "str",
+                "plotnonfinite": "bool",
+                "linewidths": "int",
+                "marker": "str",
+                "self._xmargin": "float",
+                "self._ymargin": "float"
+            },
+            {
+                "x": "MaskedArray",
+                "y": "MaskedArray",
+                "s": "MaskedArray",
+                "colors": "ndarray",
+                "edgecolors": "str",
+                "linewidths": "float",
+                "scales": "MaskedArray",
+                "path": "Path",
+                "offsets": "MaskedArray",
+                "self._xmargin": "float",
+                "self._ymargin": "float"
+            }
+        ],
+        [
+            {
+                "x": "ndarray",
+                "y": "ndarray",
+                "kwargs": "dict",
+                "x.size": "int",
+                "y.size": "int",
+                "s": "int",
+                "c": "str",
+                "plotnonfinite": "bool",
+                "linewidths": "int",
+                "marker": "str",
+                "self._xmargin": "float",
+                "self._ymargin": "float"
+            },
+            {
+                "x": "MaskedArray",
+                "y": "MaskedArray",
+                "s": "MaskedArray",
+                "colors": "ndarray",
+                "edgecolors": "str",
+                "linewidths": "float",
+                "scales": "MaskedArray",
+                "path": "Path",
+                "offsets": "MaskedArray"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "x": {
+                    "value": "array([0, 1, 2, 3, 4])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "y": {
+                    "value": "array([0, 0, 0, 0, 0])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "y.size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "s": {
+                    "value": "100",
+                    "shape": null,
+                    "omitted": false
+                },
+                "c": {
+                    "value": "'C0'",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "plotnonfinite": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "linewidths": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "marker": {
+                    "value": "'x'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "self._xmargin": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._ymargin": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "x": {
+                    "value": "masked_array(data=[0, 1, 2, 3, 4],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "y": {
+                    "value": "masked_array(data=[0, 0, 0, 0, 0],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "s": {
+                    "value": "masked_array(data=[100],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "colors": {
+                    "value": "array([[0., 0., 1., 1.]])",
+                    "shape": "(1, 4)",
+                    "omitted": false
+                },
+                "edgecolors": {
+                    "value": "'face'",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "scales": {
+                    "value": "masked_array(data=[100],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "path": {
+                    "value": "Path(array([[-0.5, -0.5],\n       [ 0.5,  0.5],\n       [-0.5,  0.5],\n       [ 0.5, -0.5]]), array([1, 2, 1, 2], dtype=uint8))",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offsets": {
+                    "value": "masked_array(\n  data=[[0, 0],\n        [1, 0],\n        [2, 0],\n        [3, 0],\n        [4, 0]],\n  mask=[[False, False],\n        [False, False],\n        [False, False],\n        [False, False],\n        [False, False]],\n  fill_value=999999)",
+                    "shape": "(5, 2)",
+                    "omitted": false
+                },
+                "self._xmargin": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._ymargin": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "array([0, 1, 2, 3, 4])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "y": {
+                    "value": "array([1, 1, 1, 1, 1])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "y.size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "s": {
+                    "value": "100",
+                    "shape": null,
+                    "omitted": false
+                },
+                "c": {
+                    "value": "'C1'",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "plotnonfinite": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "linewidths": {
+                    "value": "2",
+                    "shape": null,
+                    "omitted": false
+                },
+                "marker": {
+                    "value": "'x'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "self._xmargin": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._ymargin": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "x": {
+                    "value": "masked_array(data=[0, 1, 2, 3, 4],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "y": {
+                    "value": "masked_array(data=[1, 1, 1, 1, 1],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "s": {
+                    "value": "masked_array(data=[100],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "colors": {
+                    "value": "array([[0. , 0.5, 0. , 1. ]])",
+                    "shape": "(1, 4)",
+                    "omitted": false
+                },
+                "edgecolors": {
+                    "value": "'face'",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "scales": {
+                    "value": "masked_array(data=[100],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "path": {
+                    "value": "Path(array([[-0.5, -0.5],\n       [ 0.5,  0.5],\n       [-0.5,  0.5],\n       [ 0.5, -0.5]]), array([1, 2, 1, 2], dtype=uint8))",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offsets": {
+                    "value": "masked_array(\n  data=[[0, 1],\n        [1, 1],\n        [2, 1],\n        [3, 1],\n        [4, 1]],\n  mask=[[False, False],\n        [False, False],\n        [False, False],\n        [False, False],\n        [False, False]],\n  fill_value=999999)",
+                    "shape": "(5, 2)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "array([0, 1, 2, 3, 4])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "y": {
+                    "value": "array([2, 2, 2, 2, 2])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "y.size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "s": {
+                    "value": "100",
+                    "shape": null,
+                    "omitted": false
+                },
+                "c": {
+                    "value": "'C2'",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "plotnonfinite": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "linewidths": {
+                    "value": "3",
+                    "shape": null,
+                    "omitted": false
+                },
+                "marker": {
+                    "value": "'x'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "self._xmargin": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._ymargin": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "x": {
+                    "value": "masked_array(data=[0, 1, 2, 3, 4],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "y": {
+                    "value": "masked_array(data=[2, 2, 2, 2, 2],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "s": {
+                    "value": "masked_array(data=[100],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "colors": {
+                    "value": "array([[1., 0., 0., 1.]])",
+                    "shape": "(1, 4)",
+                    "omitted": false
+                },
+                "edgecolors": {
+                    "value": "'face'",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "scales": {
+                    "value": "masked_array(data=[100],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "path": {
+                    "value": "Path(array([[-0.5, -0.5],\n       [ 0.5,  0.5],\n       [-0.5,  0.5],\n       [ 0.5, -0.5]]), array([1, 2, 1, 2], dtype=uint8))",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offsets": {
+                    "value": "masked_array(\n  data=[[0, 2],\n        [1, 2],\n        [2, 2],\n        [3, 2],\n        [4, 2]],\n  mask=[[False, False],\n        [False, False],\n        [False, False],\n        [False, False],\n        [False, False]],\n  fill_value=999999)",
+                    "shape": "(5, 2)",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "x": {
+                    "value": "array([0, 1, 2, 3, 4])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "y": {
+                    "value": "array([3, 3, 3, 3, 3])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "x.size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "y.size": {
+                    "value": "5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "s": {
+                    "value": "100",
+                    "shape": null,
+                    "omitted": false
+                },
+                "c": {
+                    "value": "'C3'",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "plotnonfinite": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "linewidths": {
+                    "value": "[1, 2, 3, 4, None]",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "marker": {
+                    "value": "'x'",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "self._xmargin": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._ymargin": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "x": {
+                    "value": "masked_array(data=[0, 1, 2, 3, 4],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "y": {
+                    "value": "masked_array(data=[3, 3, 3, 3, 3],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "s": {
+                    "value": "masked_array(data=[100],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "colors": {
+                    "value": "array([[0.  , 0.75, 0.75, 1.  ]])",
+                    "shape": "(1, 4)",
+                    "omitted": false
+                },
+                "edgecolors": {
+                    "value": "'face'",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "linewidths": {
+                    "value": "[1, 2, 3, 4, 1.0]",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "scales": {
+                    "value": "masked_array(data=[100],\n             mask=False,\n       fill_value=999999)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "path": {
+                    "value": "Path(array([[-0.5, -0.5],\n       [ 0.5,  0.5],\n       [-0.5,  0.5],\n       [ 0.5, -0.5]]), array([1, 2, 1, 2], dtype=uint8))",
+                    "shape": null,
+                    "omitted": false
+                },
+                "offsets": {
+                    "value": "masked_array(\n  data=[[0, 3],\n        [1, 3],\n        [2, 3],\n        [3, 3],\n        [4, 3]],\n  mask=[[False, False],\n        [False, False],\n        [False, False],\n        [False, False],\n        [False, False]],\n  fill_value=999999)",
+                    "shape": "(5, 2)",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "x": "ndarray",
+                "y": "ndarray",
+                "kwargs": "dict",
+                "x.size": "int",
+                "y.size": "int",
+                "s": "int",
+                "c": "str",
+                "plotnonfinite": "bool",
+                "linewidths": "int",
+                "marker": "str",
+                "self._xmargin": "float",
+                "self._ymargin": "float"
+            },
+            {
+                "x": "MaskedArray",
+                "y": "MaskedArray",
+                "s": "MaskedArray",
+                "colors": "ndarray",
+                "edgecolors": "str",
+                "scales": "MaskedArray",
+                "path": "Path",
+                "offsets": "MaskedArray",
+                "self._xmargin": "float",
+                "self._ymargin": "float"
+            }
+        ],
+        [
+            {
+                "x": "ndarray",
+                "y": "ndarray",
+                "kwargs": "dict",
+                "x.size": "int",
+                "y.size": "int",
+                "s": "int",
+                "c": "str",
+                "plotnonfinite": "bool",
+                "linewidths": "int",
+                "marker": "str",
+                "self._xmargin": "float",
+                "self._ymargin": "float"
+            },
+            {
+                "x": "MaskedArray",
+                "y": "MaskedArray",
+                "s": "MaskedArray",
+                "colors": "ndarray",
+                "edgecolors": "str",
+                "scales": "MaskedArray",
+                "path": "Path",
+                "offsets": "MaskedArray"
+            }
+        ],
+        [
+            {
+                "x": "ndarray",
+                "y": "ndarray",
+                "kwargs": "dict",
+                "x.size": "int",
+                "y.size": "int",
+                "s": "int",
+                "c": "str",
+                "plotnonfinite": "bool",
+                "linewidths": "int",
+                "marker": "str",
+                "self._xmargin": "float",
+                "self._ymargin": "float"
+            },
+            {
+                "x": "MaskedArray",
+                "y": "MaskedArray",
+                "s": "MaskedArray",
+                "colors": "ndarray",
+                "edgecolors": "str",
+                "scales": "MaskedArray",
+                "path": "Path",
+                "offsets": "MaskedArray"
+            }
+        ],
+        [
+            {
+                "x": "ndarray",
+                "y": "ndarray",
+                "kwargs": "dict",
+                "x.size": "int",
+                "y.size": "int",
+                "s": "int",
+                "c": "str",
+                "plotnonfinite": "bool",
+                "linewidths": "list",
+                "marker": "str",
+                "self._xmargin": "float",
+                "self._ymargin": "float"
+            },
+            {
+                "x": "MaskedArray",
+                "y": "MaskedArray",
+                "s": "MaskedArray",
+                "colors": "ndarray",
+                "edgecolors": "str",
+                "linewidths": "list",
+                "scales": "MaskedArray",
+                "path": "Path",
+                "offsets": "MaskedArray"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "How to change the thickness of the marker \"x\" when using scatter?\n"
+    ],
+    "3.1.2": [
+        "I'm trying to change the thickness of the marker \"x\" when using scatter, but I found the \"linewidths\" parameter doesn't work for Matplotlib version 3.1.0.\nBut when I switch to Matplotlib version 1.3.1, \"linewidths\" parameter works well. Why? Is there something changed in newer version?\nThis is my code.\n\nimport matplotlib.pyplot as plt\nimport numpy as np\nimport matplotlib\nprint(matplotlib.__version__)\nx = y = np.arange(5)\n\nfig,ax = plt.subplots(1)\n\nax.scatter(x,y,  s=100,marker='x',color='b',linewidths=1)\nax.scatter(x,y+1,s=100,marker='x',color='r',linewidths=2)\nax.scatter(x,y+2,s=100,marker='x',color='g',linewidths=3)\n\nplt.show()\n"
+    ]
+}

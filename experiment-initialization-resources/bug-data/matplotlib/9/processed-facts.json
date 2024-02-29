@@ -1,0 +1,241 @@
+{
+    "1.1.1": "@cbook._delete_parameter(\"3.3\", \"args\")\n@cbook._delete_parameter(\"3.3\", \"kwargs\")\ndef draw(self, renderer, *args, **kwargs):\n    thetamin, thetamax = np.rad2deg(self._realViewLim.intervalx)\n    if thetamin > thetamax:\n        thetamin, thetamax = thetamax, thetamin\n    rmin, rmax = ((self._realViewLim.intervaly - self.get_rorigin()) *\n                  self.get_rsign())\n    if isinstance(self.patch, mpatches.Wedge):\n        # Backwards-compatibility: Any subclassed Axes might override the\n        # patch to not be the Wedge that PolarAxes uses.\n        center = self.transWedge.transform((0.5, 0.5))\n        self.patch.set_center(center)\n        self.patch.set_theta1(thetamin)\n        self.patch.set_theta2(thetamax)\n\n        edge, _ = self.transWedge.transform((1, 0))\n        radius = edge - center[0]\n        width = min(radius * (rmax - rmin) / rmax, radius)\n        self.patch.set_radius(radius)\n        self.patch.set_width(width)\n\n        inner_width = radius - width\n        inner = self.spines.get('inner', None)\n        if inner:\n            inner.set_visible(inner_width != 0.0)\n\n    visible = not _is_full_circle_deg(thetamin, thetamax)\n    # For backwards compatibility, any subclassed Axes might override the\n    # spines to not include start/end that PolarAxes uses.\n    start = self.spines.get('start', None)\n    end = self.spines.get('end', None)\n    if start:\n        start.set_visible(visible)\n    if end:\n        end.set_visible(visible)\n    if visible:\n        yaxis_text_transform = self._yaxis_transform\n    else:\n        yaxis_text_transform = self._r_label_position + self.transData\n    if self._yaxis_text_transform != yaxis_text_transform:\n        self._yaxis_text_transform.set(yaxis_text_transform)\n        self.yaxis.reset_ticks()\n        self.yaxis.set_clip_path(self.patch)\n\n    Axes.draw(self, renderer, *args, **kwargs)\n",
+    "1.1.2": null,
+    "1.2.1": "lib/matplotlib/projections/polar.py",
+    "1.2.2": "import numpy as np\nfrom matplotlib import cbook, rcParams\nfrom matplotlib.axes import Axes\nimport matplotlib.patches as mpatches",
+    "1.3.1": "class PolarAxes(Axes)",
+    "1.3.2": "A polar graph projection, where the input dimensions are *theta*, *r*.\n\nTheta starts pointing east and goes anti-clockwise.",
+    "1.4.1": [
+        "draw(self, renderer, *args, **kwargs)",
+        "get_rorigin(self)",
+        "get_rsign(self)"
+    ],
+    "1.4.2": [
+        "_is_full_circle_deg(thetamin, thetamax)",
+        "draw(self, renderer, *args, **kwargs)",
+        "get_rorigin(self)",
+        "get_rsign(self)"
+    ],
+    "1.5.1": [
+        "@image_comparison(['polar_invertedylim_rorigin.png'], style='default')\ndef test_polar_invertedylim_rorigin():\n    fig = plt.figure()\n    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], polar=True)\n    ax.yaxis.set_inverted(True)\n    # Set the rlims to inverted (2, 0) without calling set_rlim, to check that\n    # viewlims are correctly unstaled before draw()ing.\n    ax.plot([0, 0], [0, 2], c=\"none\")\n    ax.margins(0)\n    ax.set_rorigin(3)"
+    ],
+    "1.5.2": [
+        "lib/matplotlib/tests/test_polar.py"
+    ],
+    "2.1.1": [
+        [
+            "E   matplotlib.testing.exceptions.ImageComparisonFailure: images not close (RMS 6.526):"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "    \tresult_images/test_polar/polar_invertedylim_rorigin.png\n    \tresult_images/test_polar/polar_invertedylim_rorigin-expected.png\nAll traceback entries are hidden. Pass `--full-trace` to see hidden and internal frames."
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "self.spines": {
+                    "value": "OrderedDict([('polar', <matplotlib.spines.Spine object at 0x7f04bcf6beb0>), ('start', <matplotlib.spines.Spine object at 0x7f04bcf6bfd0>), ('end', <matplotlib.spines.Spine object at 0x7f04bcf1d100>), ('inner', <matplotlib.spines.Spine object at 0x7f04bcf1d1f0>)])",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "args": {
+                    "value": "()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "thetamin": {
+                    "value": "0.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "thetamax": {
+                    "value": "360.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "rmin": {
+                    "value": "2.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "rmax": {
+                    "value": "3.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "center": {
+                    "value": "array([0.5, 0.5])",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "edge": {
+                    "value": "1.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "_": {
+                    "value": "0.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "radius": {
+                    "value": "0.5",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "width": {
+                    "value": "0.16666666666666666",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "inner_width": {
+                    "value": "0.33333333333333337",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "visible": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "self.spines": "OrderedDict",
+                "args": "tuple",
+                "kwargs": "dict"
+            },
+            {
+                "thetamin": "float64",
+                "thetamax": "float64",
+                "rmin": "float64",
+                "rmax": "float64",
+                "center": "ndarray",
+                "edge": "float64",
+                "_": "float64",
+                "radius": "float64",
+                "width": "float64",
+                "inner_width": "float64",
+                "visible": "bool"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "self.spines": {
+                    "value": "OrderedDict([('polar', <matplotlib.spines.Spine object at 0x7f820e0df340>), ('start', <matplotlib.spines.Spine object at 0x7f820e0df460>), ('end', <matplotlib.spines.Spine object at 0x7f820e0df550>), ('inner', <matplotlib.spines.Spine object at 0x7f820e0df640>)])",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "args": {
+                    "value": "()",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "kwargs": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                }
+            },
+            {
+                "thetamin": {
+                    "value": "0.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "thetamax": {
+                    "value": "360.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "rmin": {
+                    "value": "1.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "rmax": {
+                    "value": "3.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "center": {
+                    "value": "array([0.5, 0.5])",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "edge": {
+                    "value": "1.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "_": {
+                    "value": "0.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "radius": {
+                    "value": "0.5",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "width": {
+                    "value": "0.3333333333333333",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "inner_width": {
+                    "value": "0.16666666666666669",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "visible": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "self.spines": "OrderedDict",
+                "args": "tuple",
+                "kwargs": "dict"
+            },
+            {
+                "thetamin": "float64",
+                "thetamax": "float64",
+                "rmin": "float64",
+                "rmax": "float64",
+                "center": "ndarray",
+                "edge": "float64",
+                "_": "float64",
+                "radius": "float64",
+                "width": "float64",
+                "inner_width": "float64",
+                "visible": "bool"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "Issue rendering polar plot (agg backend?) with rorigin set\n"
+    ],
+    "3.1.2": [
+        "Bug report\nWhen saving a png of a polar plot with the r-origin set \"by hand,\" saving the result as a png plot doesn't work as expected. Saving it as PDF works as expected. Working interactively and saving it with the UI as a png works as expected.\n\nimport matplotlib.pyplot as plt\nimport numpy as np\nfrom matplotlib.gridspec import GridSpec\n\nnbins = 50\ndata = np.random.randint(0, 42, nbins)\n\nfig = plt.figure()\n\nax_g = fig.add_subplot(polar=True, facecolor=\"none\")\ntheta = np.array(\n    [np.pi/2-i*2*np.pi/len(data) for i in range(len(data))])\nlines = ax_g.plot(theta, data)\n\nax_g.set_rorigin(-78)  # Replacing this with ax_g.set_rmin works as expected, so the problem comes from this line.\n\nfig.savefig(\"bug.png\")\nfig.savefig(\"bug.pdf\")\n\nMatplotlib version\n\nOperating system: Ubuntu\nMatplotlib version: 3.2.1\nMatplotlib backend (print(matplotlib.get_backend())): TkAgg (tried with Agg, and other backends)\nPython version: 3.8.2\nJupyter version (if applicable): NA\nOther libraries:  NA\n"
+    ]
+}

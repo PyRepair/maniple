@@ -1,0 +1,153 @@
+{
+    "1.1.1": "def build(self, input_shape):\n    for cell in self.cells:\n        if isinstance(cell, Layer):\n            cell.build(input_shape)\n        if hasattr(cell.state_size, '__len__'):\n            output_dim = cell.state_size[0]\n        else:\n            output_dim = cell.state_size\n        input_shape = (input_shape[0], input_shape[1], output_dim)\n    self.built = True\n",
+    "1.1.2": null,
+    "1.2.1": "keras/layers/recurrent.py",
+    "1.2.2": "from ..engine import Layer",
+    "1.3.1": "class StackedRNNCells(Layer)",
+    "1.3.2": "Wrapper allowing a stack of RNN cells to behave as a single cell.\n\nUsed to implement efficient stacked RNNs.\n\n# Arguments\n    cells: List of RNN cell instances.\n\n# Examples\n\n```python\n    cells = [\n        keras.layers.LSTMCell(output_dim),\n        keras.layers.LSTMCell(output_dim),\n        keras.layers.LSTMCell(output_dim),\n    ]\n\n    inputs = keras.Input((timesteps, input_dim))\n    x = keras.layers.RNN(cells)(inputs)\n```",
+    "1.4.1": [
+        "state_size(self)",
+        "build(self, input_shape)"
+    ],
+    "1.4.2": [
+        "state_size(self)",
+        "build(self, input_shape)",
+        "build(self, input_shape)",
+        "build(self, input_shape)",
+        "build(self, input_shape)",
+        "build(self, input_shape)"
+    ],
+    "1.5.1": [
+        "@keras_test\ndef test_minimal_rnn_cell_layer():\n\n    class MinimalRNNCell(keras.layers.Layer):\n\n        def __init__(self, units, **kwargs):\n            self.units = units\n            self.state_size = units\n            super(MinimalRNNCell, self).__init__(**kwargs)\n\n        def build(self, input_shape):\n            # no time axis in the input shape passed to RNN cells\n            assert len(input_shape) == 2\n\n            self.kernel = self.add_weight(shape=(input_shape[-1], self.units),\n                                          initializer='uniform',\n                                          name='kernel')\n            self.recurrent_kernel = self.add_weight(\n                shape=(self.units, self.units),\n                initializer='uniform',\n                name='recurrent_kernel')\n            self.built = True\n\n        def call(self, inputs, states):\n            prev_output = states[0]\n            h = keras.backend.dot(inputs, self.kernel)\n            output = h + keras.backend.dot(prev_output, self.recurrent_kernel)\n            return output, [output]\n\n        def get_config(self):\n            config = {'units': self.units}\n            base_config = super(MinimalRNNCell, self).get_config()\n            return dict(list(base_config.items()) + list(config.items()))\n\n    # Test basic case.\n    x = keras.Input((None, 5))\n    cell = MinimalRNNCell(32)\n    layer = recurrent.RNN(cell)\n    y = layer(x)\n    model = keras.models.Model(x, y)\n    model.compile(optimizer='rmsprop', loss='mse')\n    model.train_on_batch(np.zeros((6, 5, 5)), np.zeros((6, 32)))\n\n    # Test basic case serialization.\n    x_np = np.random.random((6, 5, 5))\n    y_np = model.predict(x_np)\n    weights = model.get_weights()\n    config = layer.get_config()\n    with keras.utils.CustomObjectScope({'MinimalRNNCell': MinimalRNNCell}):\n        layer = recurrent.RNN.from_config(config)\n    y = layer(x)\n    model = keras.models.Model(x, y)\n    model.set_weights(weights)\n    y_np_2 = model.predict(x_np)\n    assert_allclose(y_np, y_np_2, atol=1e-4)\n\n    # Test stacking.\n    cells = [MinimalRNNCell(8),\n             MinimalRNNCell(12),\n             MinimalRNNCell(32)]\n    layer = recurrent.RNN(cells)\n    y = layer(x)\n    model = keras.models.Model(x, y)\n    model.compile(optimizer='rmsprop', loss='mse')\n    model.train_on_batch(np.zeros((6, 5, 5)), np.zeros((6, 32)))\n\n    # Test stacked RNN serialization.\n    x_np = np.random.random((6, 5, 5))\n    y_np = model.predict(x_np)\n    weights = model.get_weights()\n    config = layer.get_config()\n    with keras.utils.CustomObjectScope({'MinimalRNNCell': MinimalRNNCell}):\n        layer = recurrent.RNN.from_config(config)\n    y = layer(x)\n    model = keras.models.Model(x, y)\n    model.set_weights(weights)\n    y_np_2 = model.predict(x_np)\n    assert_allclose(y_np, y_np_2, atol=1e-4)"
+    ],
+    "1.5.2": [
+        "tests/keras/layers/recurrent_test.py"
+    ],
+    "2.1.1": [
+        [
+            "E       assert 3 == 2\nE         +3\nE         -2"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "@keras_test\n    def test_minimal_rnn_cell_layer():\n    \n        class MinimalRNNCell(keras.layers.Layer):\n    \n            def __init__(self, units, **kwargs):\n                self.units = units\n                self.state_size = units\n                super(MinimalRNNCell, self).__init__(**kwargs)\n    \n            def build(self, input_shape):\n                # no time axis in the input shape passed to RNN cells\n                assert len(input_shape) == 2\n    \n                self.kernel = self.add_weight(shape=(input_shape[-1], self.units),\n                                              initializer='uniform',\n                                              name='kernel')\n                self.recurrent_kernel = self.add_weight(\n                    shape=(self.units, self.units),\n                    initializer='uniform',\n                    name='recurrent_kernel')\n                self.built = True\n    \n            def call(self, inputs, states):\n                prev_output = states[0]\n                h = keras.backend.dot(inputs, self.kernel)\n                output = h + keras.backend.dot(prev_output, self.recurrent_kernel)\n                return output, [output]\n    \n            def get_config(self):\n                config = {'units': self.units}\n                base_config = super(MinimalRNNCell, self).get_config()\n                return dict(list(base_config.items()) + list(config.items()))\n    \n        # Test basic case.\n        x = keras.Input((None, 5))\n        cell = MinimalRNNCell(32)\n        layer = recurrent.RNN(cell)\n        y = layer(x)\n        model = keras.models.Model(x, y)\n        model.compile(optimizer='rmsprop', loss='mse')\n        model.train_on_batch(np.zeros((6, 5, 5)), np.zeros((6, 32)))\n    \n        # Test basic case serialization.\n        x_np = np.random.random((6, 5, 5))\n        y_np = model.predict(x_np)\n        weights = model.get_weights()\n        config = layer.get_config()\n        with keras.utils.CustomObjectScope({'MinimalRNNCell': MinimalRNNCell}):\n            layer = recurrent.RNN.from_config(config)\n        y = layer(x)\n        model = keras.models.Model(x, y)\n        model.set_weights(weights)\n        y_np_2 = model.predict(x_np)\n        assert_allclose(y_np, y_np_2, atol=1e-4)\n    \n        # Test stacking.\n        cells = [MinimalRNNCell(8),\n                 MinimalRNNCell(12),\n                 MinimalRNNCell(32)]\n        layer = recurrent.RNN(cells)\n>       y = layer(x)\n\ntests/keras/layers/recurrent_test.py:570: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nkeras/layers/recurrent.py:488: in __call__\n    return super(RNN, self).__call__(inputs, **kwargs)\nkeras/engine/topology.py:590: in __call__\n    self.build(input_shapes[0])\nkeras/layers/recurrent.py:450: in build\n    self.cell.build(step_input_shape)\nkeras/layers/recurrent.py:104: in build\n    cell.build(input_shape)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <recurrent_test.test_minimal_rnn_cell_layer.<locals>.MinimalRNNCell object at 0x7f8276643c10>\ninput_shape = (None, 5, 8)\n\n    def build(self, input_shape):\n        # no time axis in the input shape passed to RNN cells\n>       assert len(input_shape) == 2",
+            "\ntests/keras/layers/recurrent_test.py:521: AssertionError"
+        ]
+    ],
+    "2.2.1": null,
+    "2.2.2": null,
+    "2.3.1": [
+        [
+            {
+                "self.cells": {
+                    "value": "[<recurrent_test.test_minimal_rnn_cell_layer.<locals>.MinimalRNNCell object at 0x7f4c09b4fc50>, <recurrent_test.test_minimal_rnn_cell_layer.<locals>.MinimalRNNCell object at 0x7f4c09b33d10>, <recurrent_test.test_minimal_rnn_cell_layer.<locals>.MinimalRNNCell object at 0x7f4c09b57890>]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "input_shape": {
+                    "value": "(None, 5)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.built": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "input_shape": {
+                    "value": "(None, 32)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "cell.state_size": {
+                    "value": "32",
+                    "shape": null,
+                    "omitted": false
+                },
+                "output_dim": {
+                    "value": "32",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.built": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "self.cells": {
+                    "value": "[<recurrent_test.test_minimal_rnn_cell_layer.<locals>.MinimalRNNCell object at 0x7f4c0973ee50>, <recurrent_test.test_minimal_rnn_cell_layer.<locals>.MinimalRNNCell object at 0x7f4c0973e610>, <recurrent_test.test_minimal_rnn_cell_layer.<locals>.MinimalRNNCell object at 0x7f4c0973ef10>]",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "input_shape": {
+                    "value": "(None, 5)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.built": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "input_shape": {
+                    "value": "(None, 32)",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "cell.state_size": {
+                    "value": "32",
+                    "shape": null,
+                    "omitted": false
+                },
+                "output_dim": {
+                    "value": "32",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.built": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "self.cells": "list",
+                "input_shape": "tuple",
+                "self.built": "bool"
+            },
+            {
+                "input_shape": "tuple",
+                "cell.state_size": "int",
+                "output_dim": "int",
+                "self.built": "bool"
+            }
+        ],
+        [
+            {
+                "self.cells": "list",
+                "input_shape": "tuple",
+                "self.built": "bool"
+            },
+            {
+                "input_shape": "tuple",
+                "cell.state_size": "int",
+                "output_dim": "int",
+                "self.built": "bool"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

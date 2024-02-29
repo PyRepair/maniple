@@ -1,0 +1,754 @@
+{
+    "1.1.1": "def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):\n    \n\n    if (not np.isfinite(vmin)) or (not np.isfinite(vmax)):\n        return -expander, expander\n\n    swapped = False\n    if vmax < vmin:\n        vmin, vmax = vmax, vmin\n        swapped = True\n\n    maxabsvalue = max(abs(vmin), abs(vmax))\n    if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:\n        vmin = -expander\n        vmax = expander\n\n    elif vmax - vmin <= maxabsvalue * tiny:\n        if vmax == 0 and vmin == 0:\n            vmin = -expander\n            vmax = expander\n        else:\n            vmin -= expander*abs(vmin)\n            vmax += expander*abs(vmax)\n\n    if swapped and not increasing:\n        vmin, vmax = vmax, vmin\n    return vmin, vmax\n",
+    "1.1.2": "Modify the endpoints of a range as needed to avoid singularities.\n\nParameters\n----------\nvmin, vmax : float\n    The initial endpoints.\nexpander : float, optional, default: 0.001\n    Fractional amount by which *vmin* and *vmax* are expanded if\n    the original interval is too small, based on *tiny*.\ntiny : float, optional, default: 1e-15\n    Threshold for the ratio of the interval to the maximum absolute\n    value of its endpoints.  If the interval is smaller than\n    this, it will be expanded.  This value should be around\n    1e-15 or larger; otherwise the interval will be approaching\n    the double precision resolution limit.\nincreasing : bool, optional, default: True\n    If True, swap *vmin*, *vmax* if *vmin* > *vmax*.\n\nReturns\n-------\nvmin, vmax : float\n    Endpoints, expanded and/or swapped if necessary.\n    If either input is inf or NaN, or if both inputs are 0 or very\n    close to zero, it returns -*expander*, *expander*.",
+    "1.2.1": "lib/matplotlib/transforms.py",
+    "1.2.2": "import numpy as np",
+    "1.3.1": null,
+    "1.3.2": null,
+    "1.4.1": null,
+    "1.4.2": null,
+    "1.5.1": [
+        "@pytest.mark.parametrize(\"clim\", [(-20000, 20000), (-32768, 0)])\ndef test_colorbar_int(clim):\n    # Check that we cast to float early enough to not\n    # overflow ``int16(20000) - int16(-20000)`` or\n    # run into ``abs(int16(-32768)) == -32768``.\n    fig, ax = plt.subplots()\n    im = ax.imshow([[*map(np.int16, clim)]])\n    fig.colorbar(im)\n    assert (im.norm.vmin, im.norm.vmax) == clim",
+        "@pytest.mark.parametrize(\"clim\", [(-20000, 20000), (-32768, 0)])\ndef test_colorbar_int(clim):\n    # Check that we cast to float early enough to not\n    # overflow ``int16(20000) - int16(-20000)`` or\n    # run into ``abs(int16(-32768)) == -32768``.\n    fig, ax = plt.subplots()\n    im = ax.imshow([[*map(np.int16, clim)]])\n    fig.colorbar(im)\n    assert (im.norm.vmin, im.norm.vmax) == clim"
+    ],
+    "1.5.2": [
+        "lib/matplotlib/tests/test_colorbar.py",
+        "lib/matplotlib/tests/test_colorbar.py"
+    ],
+    "2.1.1": [
+        [
+            "E       RuntimeWarning: overflow encountered in scalar subtract"
+        ],
+        [
+            "E       RuntimeWarning: overflow encountered in scalar absolute"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "clim = (-20000, 20000)\n\n    @pytest.mark.parametrize(\"clim\", [(-20000, 20000), (-32768, 0)])\n    def test_colorbar_int(clim):\n        # Check that we cast to float early enough to not\n        # overflow ``int16(20000) - int16(-20000)`` or\n        # run into ``abs(int16(-32768)) == -32768``.\n        fig, ax = plt.subplots()\n        im = ax.imshow([[*map(np.int16, clim)]])\n>       fig.colorbar(im)\n\nlib/matplotlib/tests/test_colorbar.py:592: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nlib/matplotlib/figure.py:2238: in colorbar\n    cb = cbar.colorbar_factory(cax, mappable, **cb_kw)\nlib/matplotlib/colorbar.py:1681: in colorbar_factory\n    cb = Colorbar(cax, mappable, **kwargs)\nlib/matplotlib/colorbar.py:1226: in __init__\n    ColorbarBase.__init__(self, ax, **kw)\nlib/matplotlib/colorbar.py:505: in __init__\n    self.draw_all()\nlib/matplotlib/colorbar.py:528: in draw_all\n    self._process_values()\nlib/matplotlib/colorbar.py:965: in _process_values\n    self.norm.vmin, self.norm.vmax = mtransforms.nonsingular(\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nvmin = -20000, vmax = 20000, expander = 0.1, tiny = 1e-15, increasing = True\n\n    def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):\n        \"\"\"\n        Modify the endpoints of a range as needed to avoid singularities.\n    \n        Parameters\n        ----------\n        vmin, vmax : float\n            The initial endpoints.\n        expander : float, optional, default: 0.001\n            Fractional amount by which *vmin* and *vmax* are expanded if\n            the original interval is too small, based on *tiny*.\n        tiny : float, optional, default: 1e-15\n            Threshold for the ratio of the interval to the maximum absolute\n            value of its endpoints.  If the interval is smaller than\n            this, it will be expanded.  This value should be around\n            1e-15 or larger; otherwise the interval will be approaching\n            the double precision resolution limit.\n        increasing : bool, optional, default: True\n            If True, swap *vmin*, *vmax* if *vmin* > *vmax*.\n    \n        Returns\n        -------\n        vmin, vmax : float\n            Endpoints, expanded and/or swapped if necessary.\n            If either input is inf or NaN, or if both inputs are 0 or very\n            close to zero, it returns -*expander*, *expander*.\n        \"\"\"\n    \n        if (not np.isfinite(vmin)) or (not np.isfinite(vmax)):\n            return -expander, expander\n    \n        swapped = False\n        if vmax < vmin:\n            vmin, vmax = vmax, vmin\n            swapped = True\n    \n        maxabsvalue = max(abs(vmin), abs(vmax))\n        if maxabsvalue < (1e6 / tiny) * np.finfo(float).tiny:\n            vmin = -expander\n            vmax = expander\n    \n>       elif vmax - vmin <= maxabsvalue * tiny:",
+            "\nlib/matplotlib/transforms.py:2820: RuntimeWarning"
+        ],
+        [
+            "clim = (-32768, 0)\n\n    @pytest.mark.parametrize(\"clim\", [(-20000, 20000), (-32768, 0)])\n    def test_colorbar_int(clim):\n        # Check that we cast to float early enough to not\n        # overflow ``int16(20000) - int16(-20000)`` or\n        # run into ``abs(int16(-32768)) == -32768``.\n        fig, ax = plt.subplots()\n        im = ax.imshow([[*map(np.int16, clim)]])\n>       fig.colorbar(im)\n\nlib/matplotlib/tests/test_colorbar.py:592: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nlib/matplotlib/figure.py:2238: in colorbar\n    cb = cbar.colorbar_factory(cax, mappable, **cb_kw)\nlib/matplotlib/colorbar.py:1681: in colorbar_factory\n    cb = Colorbar(cax, mappable, **kwargs)\nlib/matplotlib/colorbar.py:1226: in __init__\n    ColorbarBase.__init__(self, ax, **kw)\nlib/matplotlib/colorbar.py:505: in __init__\n    self.draw_all()\nlib/matplotlib/colorbar.py:528: in draw_all\n    self._process_values()\nlib/matplotlib/colorbar.py:965: in _process_values\n    self.norm.vmin, self.norm.vmax = mtransforms.nonsingular(\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nvmin = -32768, vmax = 0, expander = 0.1, tiny = 1e-15, increasing = True\n\n    def nonsingular(vmin, vmax, expander=0.001, tiny=1e-15, increasing=True):\n        \"\"\"\n        Modify the endpoints of a range as needed to avoid singularities.\n    \n        Parameters\n        ----------\n        vmin, vmax : float\n            The initial endpoints.\n        expander : float, optional, default: 0.001\n            Fractional amount by which *vmin* and *vmax* are expanded if\n            the original interval is too small, based on *tiny*.\n        tiny : float, optional, default: 1e-15\n            Threshold for the ratio of the interval to the maximum absolute\n            value of its endpoints.  If the interval is smaller than\n            this, it will be expanded.  This value should be around\n            1e-15 or larger; otherwise the interval will be approaching\n            the double precision resolution limit.\n        increasing : bool, optional, default: True\n            If True, swap *vmin*, *vmax* if *vmin* > *vmax*.\n    \n        Returns\n        -------\n        vmin, vmax : float\n            Endpoints, expanded and/or swapped if necessary.\n            If either input is inf or NaN, or if both inputs are 0 or very\n            close to zero, it returns -*expander*, *expander*.\n        \"\"\"\n    \n        if (not np.isfinite(vmin)) or (not np.isfinite(vmax)):\n            return -expander, expander\n    \n        swapped = False\n        if vmax < vmin:\n            vmin, vmax = vmax, vmin\n            swapped = True\n    \n>       maxabsvalue = max(abs(vmin), abs(vmax))",
+            "\nlib/matplotlib/transforms.py:2815: RuntimeWarning"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "vmin": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "expander": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "tiny": {
+                    "value": "1e-15",
+                    "shape": null,
+                    "omitted": false
+                },
+                "increasing": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "swapped": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "maxabsvalue": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "vmin": {
+                    "value": "-0.5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "1.5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "expander": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "tiny": {
+                    "value": "1e-15",
+                    "shape": null,
+                    "omitted": false
+                },
+                "increasing": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "swapped": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "maxabsvalue": {
+                    "value": "1.5",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "vmin": {
+                    "value": "0.5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "-0.5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "expander": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "tiny": {
+                    "value": "1e-15",
+                    "shape": null,
+                    "omitted": false
+                },
+                "increasing": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "vmin": {
+                    "value": "-0.5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "0.5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "swapped": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "maxabsvalue": {
+                    "value": "0.5",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "vmin": {
+                    "value": "-inf",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "inf",
+                    "shape": null,
+                    "omitted": false
+                },
+                "expander": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "tiny": {
+                    "value": "1e-15",
+                    "shape": null,
+                    "omitted": false
+                },
+                "increasing": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "vmin": "int",
+                "vmax": "int",
+                "expander": "float",
+                "tiny": "float",
+                "increasing": "bool"
+            },
+            {
+                "swapped": "bool",
+                "maxabsvalue": "int"
+            }
+        ],
+        [
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "expander": "float",
+                "tiny": "float",
+                "increasing": "bool"
+            },
+            {
+                "swapped": "bool",
+                "maxabsvalue": "float"
+            }
+        ],
+        [
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "expander": "float",
+                "tiny": "float",
+                "increasing": "bool"
+            },
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "swapped": "bool",
+                "maxabsvalue": "float"
+            }
+        ],
+        [
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "expander": "float",
+                "tiny": "float",
+                "increasing": "bool"
+            },
+            {}
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "vmin": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "expander": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "tiny": {
+                    "value": "1e-15",
+                    "shape": null,
+                    "omitted": false
+                },
+                "increasing": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "vmin": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "1.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "swapped": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "maxabsvalue": {
+                    "value": "1.0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "vmin": {
+                    "value": "-0.5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "1.5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "expander": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "tiny": {
+                    "value": "1e-15",
+                    "shape": null,
+                    "omitted": false
+                },
+                "increasing": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "swapped": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "maxabsvalue": {
+                    "value": "1.5",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "vmin": {
+                    "value": "0.5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "-0.5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "expander": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "tiny": {
+                    "value": "1e-15",
+                    "shape": null,
+                    "omitted": false
+                },
+                "increasing": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "vmin": {
+                    "value": "-0.5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "0.5",
+                    "shape": null,
+                    "omitted": false
+                },
+                "swapped": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "maxabsvalue": {
+                    "value": "0.5",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "vmin": {
+                    "value": "-inf",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "inf",
+                    "shape": null,
+                    "omitted": false
+                },
+                "expander": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "tiny": {
+                    "value": "1e-15",
+                    "shape": null,
+                    "omitted": false
+                },
+                "increasing": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "vmin": {
+                    "value": "-20000",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "20000",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "expander": {
+                    "value": "0.1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "tiny": {
+                    "value": "1e-15",
+                    "shape": null,
+                    "omitted": false
+                },
+                "increasing": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "vmin": {
+                    "value": "-20000.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "20000.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "swapped": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "maxabsvalue": {
+                    "value": "20000.0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "vmin": {
+                    "value": "-20000.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "20000.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "expander": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "tiny": {
+                    "value": "1e-15",
+                    "shape": null,
+                    "omitted": false
+                },
+                "increasing": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "vmin": {
+                    "value": "-20000.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "20000.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "swapped": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "maxabsvalue": {
+                    "value": "20000.0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "vmin": {
+                    "value": "-32768",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "expander": {
+                    "value": "0.1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "tiny": {
+                    "value": "1e-15",
+                    "shape": null,
+                    "omitted": false
+                },
+                "increasing": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "vmin": {
+                    "value": "-32768.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "swapped": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "maxabsvalue": {
+                    "value": "32768.0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "vmin": {
+                    "value": "-32768.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "0.0",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "expander": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "tiny": {
+                    "value": "1e-15",
+                    "shape": null,
+                    "omitted": false
+                },
+                "increasing": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "vmin": {
+                    "value": "-32768.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "vmax": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "swapped": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "maxabsvalue": {
+                    "value": "32768.0",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "vmin": "int",
+                "vmax": "int",
+                "expander": "float",
+                "tiny": "float",
+                "increasing": "bool"
+            },
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "swapped": "bool",
+                "maxabsvalue": "float"
+            }
+        ],
+        [
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "expander": "float",
+                "tiny": "float",
+                "increasing": "bool"
+            },
+            {
+                "swapped": "bool",
+                "maxabsvalue": "float"
+            }
+        ],
+        [
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "expander": "float",
+                "tiny": "float",
+                "increasing": "bool"
+            },
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "swapped": "bool",
+                "maxabsvalue": "float"
+            }
+        ],
+        [
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "expander": "float",
+                "tiny": "float",
+                "increasing": "bool"
+            },
+            {}
+        ],
+        [
+            {
+                "vmin": "int16",
+                "vmax": "int16",
+                "expander": "float",
+                "tiny": "float",
+                "increasing": "bool"
+            },
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "swapped": "bool",
+                "maxabsvalue": "float"
+            }
+        ],
+        [
+            {
+                "vmin": "float64",
+                "vmax": "float64",
+                "expander": "float",
+                "tiny": "float",
+                "increasing": "bool"
+            },
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "swapped": "bool",
+                "maxabsvalue": "float"
+            }
+        ],
+        [
+            {
+                "vmin": "int16",
+                "vmax": "int16",
+                "expander": "float",
+                "tiny": "float",
+                "increasing": "bool"
+            },
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "swapped": "bool",
+                "maxabsvalue": "float"
+            }
+        ],
+        [
+            {
+                "vmin": "float64",
+                "vmax": "float64",
+                "expander": "float",
+                "tiny": "float",
+                "increasing": "bool"
+            },
+            {
+                "vmin": "float",
+                "vmax": "float",
+                "swapped": "bool",
+                "maxabsvalue": "float"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "Cast vmin/vmax to floats before nonsingular-expanding them.\n"
+    ],
+    "3.1.2": [
+        "Nonsingular-expansion is fundamentally about adding small floats to\nseparate vmin/vmax so casting to float is normal;\n"
+    ]
+}

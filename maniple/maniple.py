@@ -233,8 +233,7 @@ def start_batch_task(args):
         return
     
     print(f"Bugids: {bugids}, total: {len(bugids)}")
-    for bugid in bugids:
-        start_multithread_task(args, bugids)
+    start_multithread_task(args, bugids)
 
 
 def main():

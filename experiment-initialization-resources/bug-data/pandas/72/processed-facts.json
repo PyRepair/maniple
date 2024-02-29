@@ -1,0 +1,193 @@
+{
+    "1.1.1": "def setitem(self, indexer, value):\n    \n    transpose = self.ndim == 2\n\n    # coerce None values, if appropriate\n    if value is None:\n        if self.is_numeric:\n            value = np.nan\n\n    # coerce if block dtype can store value\n    values = self.values\n    if self._can_hold_element(value):\n        # We only get here for non-Extension Blocks, so _try_coerce_args\n        #  is only relevant for DatetimeBlock and TimedeltaBlock\n        if lib.is_scalar(value):\n            value = convert_scalar(values, value)\n\n    else:\n        # current dtype cannot store value, coerce to common dtype\n        find_dtype = False\n\n        if hasattr(value, \"dtype\"):\n            dtype = value.dtype\n            find_dtype = True\n\n        elif lib.is_scalar(value) and not isna(value):\n            dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)\n            find_dtype = True\n\n        if find_dtype:\n            dtype = find_common_type([values.dtype, dtype])\n            if not is_dtype_equal(self.dtype, dtype):\n                b = self.astype(dtype)\n                return b.setitem(indexer, value)\n\n    # value must be storeable at this moment\n    if is_extension_array_dtype(getattr(value, \"dtype\", None)):\n        # We need to be careful not to allow through strings that\n        #  can be parsed to EADtypes\n        arr_value = value\n    else:\n        arr_value = np.array(value)\n\n    # cast the values to a type that can hold nan (if necessary)\n    if not self._can_hold_element(value):\n        dtype, _ = maybe_promote(arr_value.dtype)\n        values = values.astype(dtype)\n\n    if transpose:\n        values = values.T\n\n    # length checking\n    check_setitem_lengths(indexer, value, values)\n\n    if is_empty_indexer(indexer, arr_value):\n        # GH#8669 empty indexers\n        pass\n\n    elif is_scalar_indexer(indexer, arr_value):\n        # setting a single element for each dim and with a rhs that could\n        #  be e.g. a list; see GH#6043\n        values[indexer] = value\n\n    # if we are an exact match (ex-broadcasting),\n    # then use the resultant dtype\n    elif (\n        len(arr_value.shape)\n        and arr_value.shape[0] == values.shape[0]\n        and arr_value.size == values.size\n    ):\n        values[indexer] = value\n        try:\n            values = values.astype(arr_value.dtype)\n        except ValueError:\n            pass\n\n    # set\n    else:\n        values[indexer] = value\n\n    if transpose:\n        values = values.T\n    block = self.make_block(values)\n    return block\n",
+    "1.1.2": "Set the value inplace, returning a a maybe different typed block.\n\nParameters\n----------\nindexer : tuple, list-like, array-like, slice\n    The subset of self.values to set\nvalue : object\n    The value being set\n\nReturns\n-------\nBlock\n\nNotes\n-----\n`indexer` is a direct slice/positional indexer. `value` must\nbe a compatible shape.",
+    "1.2.1": "pandas/core/internals/blocks.py",
+    "1.2.2": "import numpy as np\nfrom pandas._libs import NaT, algos as libalgos, lib, tslib, writers\nfrom pandas._libs.index import convert_scalar\nfrom pandas.core.dtypes.cast import astype_nansafe, find_common_type, infer_dtype_from, infer_dtype_from_scalar, maybe_downcast_numeric, maybe_downcast_to_dtype, maybe_infer_dtype_type, maybe_promote, maybe_upcast, soft_convert_objects\nfrom pandas.core.dtypes.common import _NS_DTYPE, _TD_DTYPE, ensure_platform_int, is_bool_dtype, is_categorical, is_categorical_dtype, is_datetime64_dtype, is_datetime64tz_dtype, is_dtype_equal, is_extension_array_dtype, is_float_dtype, is_integer, is_integer_dtype, is_interval_dtype, is_list_like, is_object_dtype, is_period_dtype, is_re, is_re_compilable, is_sparse, is_timedelta64_dtype, pandas_dtype\nfrom pandas.core.dtypes.missing import _isna_compat, array_equivalent, is_valid_nat_for_dtype, isna\nfrom pandas.core.indexers import check_setitem_lengths, is_empty_indexer, is_scalar_indexer",
+    "1.3.1": "class Block(PandasObject)",
+    "1.3.2": "Canonical n-dimensional unit of homogeneous dtype contained in a pandas\ndata structure\n\nIndex-ignorant; let the container take care of that",
+    "1.4.1": [
+        "make_block(self, values, placement=None) -> 'Block'",
+        "shape(self)",
+        "dtype(self)",
+        "astype(self, dtype, copy: bool=False, errors: str='raise')",
+        "_can_hold_element(self, element: Any) -> bool",
+        "setitem(self, indexer, value)"
+    ],
+    "1.4.2": [
+        "make_block(values, placement, klass=None, ndim=None, dtype=None)",
+        "make_block(self, values, placement=None) -> 'Block'",
+        "shape(self)",
+        "dtype(self)",
+        "astype(self, dtype, copy: bool=False, errors: str='raise')",
+        "_can_hold_element(self, element: Any) -> bool",
+        "setitem(self, indexer, value)",
+        "shape(self)",
+        "is_numeric(self)",
+        "setitem(self, indexer, value)",
+        "_can_hold_element(self, element: Any) -> bool",
+        "_can_hold_element(self, element: Any) -> bool",
+        "_can_hold_element(self, element: Any) -> bool",
+        "_can_hold_element(self, element: Any) -> bool",
+        "astype(self, dtype, copy: bool=False, errors: str='raise')",
+        "_can_hold_element(self, element: Any) -> bool",
+        "setitem(self, indexer, value)",
+        "_can_hold_element(self, element: Any) -> bool",
+        "_can_hold_element(self, element: Any) -> bool",
+        "_can_hold_element(self, element: Any) -> bool"
+    ],
+    "1.5.1": [
+        "    def test_setitem_single_row_categorical(self):\n        # GH 25495\n        df = DataFrame({\"Alpha\": [\"a\"], \"Numeric\": [0]})\n        categories = pd.Categorical(df[\"Alpha\"], categories=[\"a\", \"b\", \"c\"])\n        df.loc[:, \"Alpha\"] = categories\n\n        result = df[\"Alpha\"]\n        expected = Series(categories, index=df.index, name=\"Alpha\")\n        tm.assert_series_equal(result, expected)"
+    ],
+    "1.5.2": [
+        "pandas/tests/frame/indexing/test_categorical.py"
+    ],
+    "2.1.1": [
+        [
+            "E               TypeError: data type not understood"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <test_categorical.TestDataFrameIndexingCategorical object at 0x7fd84d409910>\n\n    def test_setitem_single_row_categorical(self):\n        # GH 25495\n        df = DataFrame({\"Alpha\": [\"a\"], \"Numeric\": [0]})\n        categories = pd.Categorical(df[\"Alpha\"], categories=[\"a\", \"b\", \"c\"])\n>       df.loc[:, \"Alpha\"] = categories\n\npandas/tests/frame/indexing/test_categorical.py:361: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/indexing.py:637: in __setitem__\n    self._setitem_with_indexer(indexer, value)\npandas/core/indexing.py:977: in _setitem_with_indexer\n    setter(labels[0], value)\npandas/core/indexing.py:927: in setter\n    s._data = s._data.setitem(indexer=pi, value=v)\npandas/core/internals/managers.py:540: in setitem\n    return self.apply(\"setitem\", **kwargs)\npandas/core/internals/managers.py:419: in apply\n    applied = getattr(b, f)(**kwargs)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = ObjectBlock: 1 dtype: object, indexer = slice(None, None, None)\nvalue = [a]\nCategories (3, object): [a, b, c]\n\n    def setitem(self, indexer, value):\n        \"\"\"\n        Set the value inplace, returning a a maybe different typed block.\n    \n        Parameters\n        ----------\n        indexer : tuple, list-like, array-like, slice\n            The subset of self.values to set\n        value : object\n            The value being set\n    \n        Returns\n        -------\n        Block\n    \n        Notes\n        -----\n        `indexer` is a direct slice/positional indexer. `value` must\n        be a compatible shape.\n        \"\"\"\n        transpose = self.ndim == 2\n    \n        # coerce None values, if appropriate\n        if value is None:\n            if self.is_numeric:\n                value = np.nan\n    \n        # coerce if block dtype can store value\n        values = self.values\n        if self._can_hold_element(value):\n            # We only get here for non-Extension Blocks, so _try_coerce_args\n            #  is only relevant for DatetimeBlock and TimedeltaBlock\n            if lib.is_scalar(value):\n                value = convert_scalar(values, value)\n    \n        else:\n            # current dtype cannot store value, coerce to common dtype\n            find_dtype = False\n    \n            if hasattr(value, \"dtype\"):\n                dtype = value.dtype\n                find_dtype = True\n    \n            elif lib.is_scalar(value) and not isna(value):\n                dtype, _ = infer_dtype_from_scalar(value, pandas_dtype=True)\n                find_dtype = True\n    \n            if find_dtype:\n                dtype = find_common_type([values.dtype, dtype])\n                if not is_dtype_equal(self.dtype, dtype):\n                    b = self.astype(dtype)\n                    return b.setitem(indexer, value)\n    \n        # value must be storeable at this moment\n        if is_extension_array_dtype(getattr(value, \"dtype\", None)):\n            # We need to be careful not to allow through strings that\n            #  can be parsed to EADtypes\n            arr_value = value\n        else:\n            arr_value = np.array(value)\n    \n        # cast the values to a type that can hold nan (if necessary)\n        if not self._can_hold_element(value):\n            dtype, _ = maybe_promote(arr_value.dtype)\n            values = values.astype(dtype)\n    \n        if transpose:\n            values = values.T\n    \n        # length checking\n        check_setitem_lengths(indexer, value, values)\n    \n        if is_empty_indexer(indexer, arr_value):\n            # GH#8669 empty indexers\n            pass\n    \n        elif is_scalar_indexer(indexer, arr_value):\n            # setting a single element for each dim and with a rhs that could\n            #  be e.g. a list; see GH#6043\n            values[indexer] = value\n    \n        # if we are an exact match (ex-broadcasting),\n        # then use the resultant dtype\n        elif (\n            len(arr_value.shape)\n            and arr_value.shape[0] == values.shape[0]\n            and arr_value.size == values.size\n        ):\n            values[indexer] = value\n            try:\n>               values = values.astype(arr_value.dtype)",
+            "\npandas/core/internals/blocks.py:898: TypeError"
+        ]
+    ],
+    "2.2.1": null,
+    "2.2.2": null,
+    "2.3.1": [
+        [
+            {
+                "self.ndim": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self": {
+                    "value": "ObjectBlock: 1 dtype: object",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "value": {
+                    "value": "[a]\nCategories (3, object): [a, b, c]",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "self.is_numeric": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.values": {
+                    "value": "array(['a'], dtype=object)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "value.dtype": {
+                    "value": "CategoricalDtype(categories=['a', 'b', 'c'], ordered=False)",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "self.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "indexer": {
+                    "value": "slice(None, None, None)",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "transpose": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "values": {
+                    "value": "array(['a'], dtype=object)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "values.dtype": {
+                    "value": "dtype('O')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "arr_value": {
+                    "value": "[a]\nCategories (3, object): [a, b, c]",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "arr_value.dtype": {
+                    "value": "CategoricalDtype(categories=['a', 'b', 'c'], ordered=False)",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "values.T": {
+                    "value": "array(['a'], dtype=object)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "exact_match": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                },
+                "arr_value.shape": {
+                    "value": "(1,)",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "values.shape": {
+                    "value": "(1,)",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "arr_value.size": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "values.size": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "self.ndim": "int",
+                "self": "ObjectBlock",
+                "value": "Categorical",
+                "self.is_numeric": "bool",
+                "self.values": "ndarray",
+                "value.dtype": "CategoricalDtype",
+                "self.dtype": "dtype",
+                "indexer": "slice"
+            },
+            {
+                "transpose": "bool",
+                "values": "ndarray",
+                "values.dtype": "dtype",
+                "arr_value": "Categorical",
+                "arr_value.dtype": "CategoricalDtype",
+                "values.T": "ndarray",
+                "exact_match": "bool",
+                "arr_value.shape": "tuple",
+                "values.shape": "tuple",
+                "arr_value.size": "int",
+                "values.size": "int"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "Unexpected dtype when using .loc to set Categorical value for column in 1-row DataFrame\n"
+    ],
+    "3.1.2": [
+        "Code Sample, a copy-pastable example if possible\nIn [1]: import pandas as pd\n\nIn [2]: df = pd.DataFrame({'Alpha': [u'a'], 'Numeric': [0]})\n\nIn [3]: df.loc[:,'Alpha']\nOut[3]: \n0    a\nName: Alpha, dtype: object\n\nIn [4]: codes = pd.Categorical(df['Alpha'], categories = [u'a',u'b',u'c'])\n\nIn [5]: codes\nOut[5]: \n[a]\nCategories (3, object): [a, b, c]\n\nIn [6]: df.loc[:,'Alpha'] = codes\n\nIn [7]: df.loc[:,'Alpha']\nOut[7]: \n0    a\nName: Alpha, dtype: object\nProblem description\nWhen I try to set the column of a one-row DataFrame to a pandas.core.arrays.categorical.Categorical, it is returned as a pandas.core.series.Series of dtype('O') rather than a pandas.core.series.Series of CategoricalDtype(categories=[u'a', u'b', u'c'], ordered=False). I get the latter return value when I set the column using df['Alpha'] = codes or df.Alpha = codes. I can't replicate this inconsistency with DataFrames containing more than one row.\n\nExpected Output\nOut[7]: \n0    a\nName: Alpha, dtype: category\nCategories (3, object): [a, b, c]\n"
+    ]
+}

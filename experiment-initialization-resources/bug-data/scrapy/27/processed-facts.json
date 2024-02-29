@@ -1,0 +1,146 @@
+{
+    "1.1.1": "def process_response(self, request, response, spider):\n    if (request.meta.get('dont_redirect', False) or\n           response.status in getattr(spider, 'handle_httpstatus_list', [])):\n        return response\n\n    if request.method == 'HEAD':\n        if response.status in [301, 302, 303, 307] and 'Location' in response.headers:\n            redirected_url = urljoin(request.url, response.headers['location'])\n            redirected = request.replace(url=redirected_url)\n            return self._redirect(redirected, request, spider, response.status)\n        else:\n            return response\n\n    if response.status in [302, 303] and 'Location' in response.headers:\n        redirected_url = urljoin(request.url, response.headers['location'])\n        redirected = self._redirect_request_using_get(request, redirected_url)\n        return self._redirect(redirected, request, spider, response.status)\n\n    if response.status in [301, 307] and 'Location' in response.headers:\n        redirected_url = urljoin(request.url, response.headers['location'])\n        redirected = request.replace(url=redirected_url)\n        return self._redirect(redirected, request, spider, response.status)\n\n    return response\n",
+    "1.1.2": null,
+    "1.2.1": "scrapy/downloadermiddlewares/redirect.py",
+    "1.2.2": "from six.moves.urllib.parse import urljoin",
+    "1.3.1": "class RedirectMiddleware(BaseRedirectMiddleware)",
+    "1.3.2": "Handle redirection of requests based on response status and meta-refresh html tag",
+    "1.4.1": null,
+    "1.4.2": [
+        "_redirect(self, redirected, request, spider, reason)",
+        "_redirect_request_using_get(self, request, redirect_url)"
+    ],
+    "1.5.1": [
+        "    def test_request_meta_handling(self):\n        url = 'http://www.example.com/301'\n        url2 = 'http://www.example.com/redirected'\n        def _test_passthrough(req):\n            rsp = Response(url, headers={'Location': url2}, status=301, request=req)\n            r = self.mw.process_response(req, rsp, self.spider)\n            self.assertIs(r, rsp)\n        _test_passthrough(Request(url, meta={'handle_httpstatus_list':\n                                                           [404, 301, 302]}))\n        _test_passthrough(Request(url, meta={'handle_httpstatus_all': True}))"
+    ],
+    "1.5.2": [
+        "tests/test_downloadermiddleware_redirect.py"
+    ],
+    "2.1.1": [
+        [
+            "E               TypeError: Cannot mix str and non-str arguments"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <tests.test_downloadermiddleware_redirect.RedirectMiddlewareTest testMethod=test_request_meta_handling>\n\n    def test_request_meta_handling(self):\n        url = 'http://www.example.com/301'\n        url2 = 'http://www.example.com/redirected'\n        def _test_passthrough(req):\n            rsp = Response(url, headers={'Location': url2}, status=301, request=req)\n            r = self.mw.process_response(req, rsp, self.spider)\n            self.assertIs(r, rsp)\n>       _test_passthrough(Request(url, meta={'handle_httpstatus_list':\n                                                           [404, 301, 302]}))\n\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_27/tests/test_downloadermiddleware_redirect.py:149: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_27/tests/test_downloadermiddleware_redirect.py:147: in _test_passthrough\n    r = self.mw.process_response(req, rsp, self.spider)\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_27/scrapy/downloadermiddlewares/redirect.py:75: in process_response\n    redirected_url = urljoin(request.url, response.headers['location'])\n/usr/local/lib/python3.8/urllib/parse.py:522: in urljoin\n    base, url, _coerce_result = _coerce_args(base, url)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nargs = ('http://www.example.com/301', b'http://www.example.com/redirected')\nstr_input = True, arg = b'http://www.example.com/redirected'\n\n    def _coerce_args(*args):\n        # Invokes decode if necessary to create str args\n        # and returns the coerced inputs along with\n        # an appropriate result coercion function\n        #   - noop for str inputs\n        #   - encoding function otherwise\n        str_input = isinstance(args[0], str)\n        for arg in args[1:]:\n            # We special-case the empty string to support the\n            # \"scheme=''\" default argument to some functions\n            if arg and isinstance(arg, str) != str_input:\n>               raise TypeError(\"Cannot mix str and non-str arguments\")",
+            "\n/usr/local/lib/python3.8/urllib/parse.py:124: TypeError"
+        ]
+    ],
+    "2.2.1": null,
+    "2.2.2": null,
+    "2.3.1": [
+        [
+            {
+                "request.meta": {
+                    "value": "{'handle_httpstatus_list': [404, 301, 302]}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "request": {
+                    "value": "<GET http://www.example.com/301>",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response.status": {
+                    "value": "301",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response": {
+                    "value": "<301 http://www.example.com/301>",
+                    "shape": null,
+                    "omitted": false
+                },
+                "request.method": {
+                    "value": "'GET'",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "response.headers": {
+                    "value": "{b'Location': [b'http://www.example.com/redirected']}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "request.url": {
+                    "value": "'http://www.example.com/301'",
+                    "shape": "26",
+                    "omitted": false
+                }
+            },
+            {}
+        ],
+        [
+            {
+                "request.meta": {
+                    "value": "{'handle_httpstatus_all': True}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "request": {
+                    "value": "<GET http://www.example.com/301>",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response.status": {
+                    "value": "301",
+                    "shape": null,
+                    "omitted": false
+                },
+                "response": {
+                    "value": "<301 http://www.example.com/301>",
+                    "shape": null,
+                    "omitted": false
+                },
+                "request.method": {
+                    "value": "'GET'",
+                    "shape": "3",
+                    "omitted": false
+                },
+                "response.headers": {
+                    "value": "{b'Location': [b'http://www.example.com/redirected']}",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "request.url": {
+                    "value": "'http://www.example.com/301'",
+                    "shape": "26",
+                    "omitted": false
+                }
+            },
+            {}
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "request.meta": "dict",
+                "request": "Request",
+                "response.status": "int",
+                "response": "Response",
+                "request.method": "str",
+                "response.headers": "Headers",
+                "request.url": "str"
+            },
+            {}
+        ],
+        [
+            {
+                "request.meta": "dict",
+                "request": "Request",
+                "response.status": "int",
+                "response": "Response",
+                "request.method": "str",
+                "response.headers": "Headers",
+                "request.url": "str"
+            },
+            {}
+        ]
+    ],
+    "3.1.1": [
+        "Make RedirectMiddleware respect Spider.handle_httpstatus_list\n"
+    ],
+    "3.1.2": [
+        "Inspired by #1334\n\nI have decided not to include the HTTPERROR_ALLOWED_CODES setting, as, unlike the handle_httpstatus_list Spider attribute, the name of that setting implies that it is directly tied to the HttpErrorMiddleware.\n"
+    ]
+}

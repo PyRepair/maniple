@@ -1,0 +1,1213 @@
+{
+    "1.1.1": "def update(self, current, values=None, force=False):\n    \n    values = values or []\n    for k, v in values:\n        if k not in self.sum_values:\n            self.sum_values[k] = [v * (current - self.seen_so_far),\n                                  current - self.seen_so_far]\n            self.unique_values.append(k)\n        else:\n            self.sum_values[k][0] += v * (current - self.seen_so_far)\n            self.sum_values[k][1] += (current - self.seen_so_far)\n    self.seen_so_far = current\n\n    now = time.time()\n    info = ' - %.0fs' % (now - self.start)\n    if self.verbose == 1:\n        if (not force and (now - self.last_update) < self.interval and\n                current < self.target):\n            return\n\n        prev_total_width = self.total_width\n        if self._dynamic_display:\n            sys.stdout.write('\\b' * prev_total_width)\n            sys.stdout.write('\\r')\n        else:\n            sys.stdout.write('\\n')\n\n        if self.target is not None:\n            numdigits = int(np.floor(np.log10(self.target))) + 1\n            barstr = '%%%dd/%d [' % (numdigits, self.target)\n            bar = barstr % current\n            prog = float(current) / self.target\n            prog_width = int(self.width * prog)\n            if prog_width > 0:\n                bar += ('=' * (prog_width - 1))\n                if current < self.target:\n                    bar += '>'\n                else:\n                    bar += '='\n            bar += ('.' * (self.width - prog_width))\n            bar += ']'\n        else:\n            bar = '%7d/Unknown' % current\n\n        self.total_width = len(bar)\n        sys.stdout.write(bar)\n\n        if current:\n            time_per_unit = (now - self.start) / current\n        else:\n            time_per_unit = 0\n        if self.target is not None and current < self.target:\n            eta = time_per_unit * (self.target - current)\n            if eta > 3600:\n                eta_format = '%d:%02d:%02d' % (eta // 3600, (eta % 3600) // 60, eta % 60)\n            elif eta > 60:\n                eta_format = '%d:%02d' % (eta // 60, eta % 60)\n            else:\n                eta_format = '%ds' % eta\n\n            info = ' - ETA: %s' % eta_format\n        else:\n            if time_per_unit >= 1:\n                info += ' %.0fs/step' % time_per_unit\n            elif time_per_unit >= 1e-3:\n                info += ' %.0fms/step' % (time_per_unit * 1e3)\n            else:\n                info += ' %.0fus/step' % (time_per_unit * 1e6)\n\n        for k in self.unique_values:\n            info += ' - %s:' % k\n            if isinstance(self.sum_values[k], list):\n                avg = np.mean(\n                    self.sum_values[k][0] / max(1, self.sum_values[k][1]))\n                if abs(avg) > 1e-3:\n                    info += ' %.4f' % avg\n                else:\n                    info += ' %.4e' % avg\n            else:\n                info += ' %s' % self.sum_values[k]\n\n        self.total_width += len(info)\n        if prev_total_width > self.total_width:\n            info += (' ' * (prev_total_width - self.total_width))\n\n        if self.target is not None and current >= self.target:\n            info += '\\n'\n\n        sys.stdout.write(info)\n        sys.stdout.flush()\n\n    elif self.verbose == 2:\n        if self.target is None or current >= self.target:\n            for k in self.unique_values:\n                info += ' - %s:' % k\n                avg = np.mean(\n                    self.sum_values[k][0] / max(1, self.sum_values[k][1]))\n                if avg > 1e-3:\n                    info += ' %.4f' % avg\n                else:\n                    info += ' %.4e' % avg\n            info += '\\n'\n\n            sys.stdout.write(info)\n            sys.stdout.flush()\n\n    self.last_update = now\n",
+    "1.1.2": "Updates the progress bar.\n\n# Arguments\n    current: Index of current step.\n    values: List of tuples (name, value_for_last_step).\n        The progress bar will display averages for these values.\n    force: Whether to force visual progress update.",
+    "1.2.1": "keras/utils/generic_utils.py",
+    "1.2.2": "import numpy as np\nimport time\nimport sys",
+    "1.3.1": "class Progbar(object)",
+    "1.3.2": "Displays a progress bar.\n\n# Arguments\n    target: Total number of steps expected, None if unknown.\n    interval: Minimum visual progress update interval (in seconds).",
+    "1.4.1": null,
+    "1.4.2": null,
+    "1.5.1": [
+        "@keras_test\ndef test_progbar():\n    n = 2\n    input_arr = np.random.random((n, n, n))\n\n    bar = Progbar(n)\n    for i, arr in enumerate(input_arr):\n        bar.update(i, list(arr))\n\n    bar = Progbar(None)\n    for i, arr in enumerate(input_arr):\n        bar.update(i, list(arr))"
+    ],
+    "1.5.2": [
+        "tests/keras/utils/generic_utils_test.py"
+    ],
+    "2.1.1": [
+        [
+            "E                   TypeError: '<' not supported between instances of 'int' and 'NoneType'"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "@keras_test\n    def test_progbar():\n        n = 2\n        input_arr = np.random.random((n, n, n))\n    \n        bar = Progbar(n)\n        for i, arr in enumerate(input_arr):\n            bar.update(i, list(arr))\n    \n        bar = Progbar(None)\n        for i, arr in enumerate(input_arr):\n>           bar.update(i, list(arr))\n\ntests/keras/utils/generic_utils_test.py:26: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <keras.utils.generic_utils.Progbar object at 0x7f926b44ad50>, current = 1\nvalues = [array([0.63705921, 0.47014731]), array([0.74275286, 0.93248616])]\nforce = False\n\n    def update(self, current, values=None, force=False):\n        \"\"\"Updates the progress bar.\n    \n        # Arguments\n            current: Index of current step.\n            values: List of tuples (name, value_for_last_step).\n                The progress bar will display averages for these values.\n            force: Whether to force visual progress update.\n        \"\"\"\n        values = values or []\n        for k, v in values:\n            if k not in self.sum_values:\n                self.sum_values[k] = [v * (current - self.seen_so_far),\n                                      current - self.seen_so_far]\n                self.unique_values.append(k)\n            else:\n                self.sum_values[k][0] += v * (current - self.seen_so_far)\n                self.sum_values[k][1] += (current - self.seen_so_far)\n        self.seen_so_far = current\n    \n        now = time.time()\n        info = ' - %.0fs' % (now - self.start)\n        if self.verbose == 1:\n            if (not force and (now - self.last_update) < self.interval and\n>                   current < self.target):",
+            "\nkeras/utils/generic_utils.py:330: TypeError"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "values": {
+                    "value": "[array([0.72986777, 0.04606687]), array([0.40486629, 0.35801981])]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "current": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.seen_so_far": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.start": {
+                    "value": "1706547900.8166926",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.verbose": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "force": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.last_update": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.interval": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.target": {
+                    "value": "2",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.total_width": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._dynamic_display": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.width": {
+                    "value": "30",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "k": {
+                    "value": "0.4048662885228965",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "v": {
+                    "value": "0.3580198087186912",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{0.7298677676867007: [0.0, 0], 0.4048662885228965: [0.0, 0]}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[0.7298677676867007, 0.4048662885228965]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "now": {
+                    "value": "1706547900.8173509",
+                    "shape": null,
+                    "omitted": false
+                },
+                "info": {
+                    "value": "' - ETA: 0s - 0.7298677676867007: 0.0000e+00 - 0.4048662885228965: 0.0000e+00'",
+                    "shape": "76",
+                    "omitted": false
+                },
+                "self.last_update": {
+                    "value": "1706547900.8173509",
+                    "shape": null,
+                    "omitted": false
+                },
+                "prev_total_width": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.total_width": {
+                    "value": "112",
+                    "shape": null,
+                    "omitted": false
+                },
+                "numdigits": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "barstr": {
+                    "value": "'%1d/2 ['",
+                    "shape": "7",
+                    "omitted": false
+                },
+                "bar": {
+                    "value": "'0/2 [..............................]'",
+                    "shape": "36",
+                    "omitted": false
+                },
+                "prog": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "prog_width": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "time_per_unit": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "eta": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "eta_format": {
+                    "value": "'0s'",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "avg": {
+                    "value": "0.0",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "values": {
+                    "value": "[array([0.35345862, 0.22507527]), array([0.67937033, 0.09372196])]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{0.7298677676867007: [0.0, 0], 0.4048662885228965: [0.0, 0]}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "current": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.seen_so_far": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[0.7298677676867007, 0.4048662885228965]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.start": {
+                    "value": "1706547900.8166926",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.verbose": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "force": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.last_update": {
+                    "value": "1706547900.8173509",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.interval": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.target": {
+                    "value": "2",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.total_width": {
+                    "value": "112",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._dynamic_display": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.width": {
+                    "value": "30",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "k": {
+                    "value": "0.6793703287163503",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "v": {
+                    "value": "0.09372196124656751",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{0.7298677676867007: [0.0, 0], 0.4048662885228965: [0.0, 0], 0.3534586166739022: [0.22507526569898628, 1], 0.6793703287163503: [0.09372196124656751, 1]}",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "self.seen_so_far": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[0.7298677676867007, 0.4048662885228965, 0.3534586166739022, 0.6793703287163503]",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "now": {
+                    "value": "1706547900.8187566",
+                    "shape": null,
+                    "omitted": false
+                },
+                "info": {
+                    "value": "' - 0s'",
+                    "shape": "5",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "values": {
+                    "value": "[array([0.72986777, 0.04606687]), array([0.40486629, 0.35801981])]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "current": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.seen_so_far": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.start": {
+                    "value": "1706547900.819484",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.verbose": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "force": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.last_update": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.interval": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.total_width": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._dynamic_display": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.width": {
+                    "value": "30",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "k": {
+                    "value": "0.4048662885228965",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "v": {
+                    "value": "0.3580198087186912",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{0.7298677676867007: [0.0, 0], 0.4048662885228965: [0.0, 0]}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[0.7298677676867007, 0.4048662885228965]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "now": {
+                    "value": "1706547900.820131",
+                    "shape": null,
+                    "omitted": false
+                },
+                "info": {
+                    "value": "' - 0s 0us/step - 0.7298677676867007: 0.0000e+00 - 0.4048662885228965: 0.0000e+00'",
+                    "shape": "80",
+                    "omitted": false
+                },
+                "self.last_update": {
+                    "value": "1706547900.820131",
+                    "shape": null,
+                    "omitted": false
+                },
+                "prev_total_width": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.total_width": {
+                    "value": "95",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bar": {
+                    "value": "'      0/Unknown'",
+                    "shape": "15",
+                    "omitted": false
+                },
+                "time_per_unit": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "avg": {
+                    "value": "0.0",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "values": "list",
+                "self.sum_values": "dict",
+                "current": "int",
+                "self.seen_so_far": "int",
+                "self.unique_values": "list",
+                "self.start": "float",
+                "self.verbose": "int",
+                "force": "bool",
+                "self.last_update": "int",
+                "self.interval": "float",
+                "self.target": "int",
+                "self.total_width": "int",
+                "self._dynamic_display": "bool",
+                "self.width": "int"
+            },
+            {
+                "k": "float64",
+                "v": "float64",
+                "self.sum_values": "dict",
+                "self.unique_values": "list",
+                "now": "float",
+                "info": "str",
+                "self.last_update": "float",
+                "prev_total_width": "int",
+                "self.total_width": "int",
+                "numdigits": "int",
+                "barstr": "str",
+                "bar": "str",
+                "prog": "float",
+                "prog_width": "int",
+                "time_per_unit": "int",
+                "eta": "int",
+                "eta_format": "str",
+                "avg": "float64"
+            }
+        ],
+        [
+            {
+                "values": "list",
+                "self.sum_values": "dict",
+                "current": "int",
+                "self.seen_so_far": "int",
+                "self.unique_values": "list",
+                "self.start": "float",
+                "self.verbose": "int",
+                "force": "bool",
+                "self.last_update": "float",
+                "self.interval": "float",
+                "self.target": "int",
+                "self.total_width": "int",
+                "self._dynamic_display": "bool",
+                "self.width": "int"
+            },
+            {
+                "k": "float64",
+                "v": "float64",
+                "self.sum_values": "dict",
+                "self.seen_so_far": "int",
+                "self.unique_values": "list",
+                "now": "float",
+                "info": "str"
+            }
+        ],
+        [
+            {
+                "values": "list",
+                "self.sum_values": "dict",
+                "current": "int",
+                "self.seen_so_far": "int",
+                "self.unique_values": "list",
+                "self.start": "float",
+                "self.verbose": "int",
+                "force": "bool",
+                "self.last_update": "int",
+                "self.interval": "float",
+                "self.total_width": "int",
+                "self._dynamic_display": "bool",
+                "self.width": "int"
+            },
+            {
+                "k": "float64",
+                "v": "float64",
+                "self.sum_values": "dict",
+                "self.unique_values": "list",
+                "now": "float",
+                "info": "str",
+                "self.last_update": "float",
+                "prev_total_width": "int",
+                "self.total_width": "int",
+                "bar": "str",
+                "time_per_unit": "int",
+                "avg": "float64"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "values": {
+                    "value": "[array([0.1075106 , 0.73803222]), array([0.27134425, 0.82295024])]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "current": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.seen_so_far": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.start": {
+                    "value": "1706547903.7234848",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.verbose": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "force": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.last_update": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.interval": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.target": {
+                    "value": "2",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.total_width": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._dynamic_display": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.width": {
+                    "value": "30",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "k": {
+                    "value": "0.2713442468364289",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "v": {
+                    "value": "0.8229502365592092",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{0.10751060220644382: [0.0, 0], 0.2713442468364289: [0.0, 0]}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[0.10751060220644382, 0.2713442468364289]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "now": {
+                    "value": "1706547903.7241695",
+                    "shape": null,
+                    "omitted": false
+                },
+                "info": {
+                    "value": "' - ETA: 0s - 0.10751060220644382: 0.0000e+00 - 0.2713442468364289: 0.0000e+00'",
+                    "shape": "77",
+                    "omitted": false
+                },
+                "self.last_update": {
+                    "value": "1706547903.7241695",
+                    "shape": null,
+                    "omitted": false
+                },
+                "prev_total_width": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.total_width": {
+                    "value": "113",
+                    "shape": null,
+                    "omitted": false
+                },
+                "numdigits": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "barstr": {
+                    "value": "'%1d/2 ['",
+                    "shape": "7",
+                    "omitted": false
+                },
+                "bar": {
+                    "value": "'0/2 [..............................]'",
+                    "shape": "36",
+                    "omitted": false
+                },
+                "prog": {
+                    "value": "0.0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "prog_width": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "time_per_unit": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "eta": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "eta_format": {
+                    "value": "'0s'",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "avg": {
+                    "value": "0.0",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "values": {
+                    "value": "[array([0.23368531, 0.07625796]), array([0.19046361, 0.14077135])]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{0.10751060220644382: [0.0, 0], 0.2713442468364289: [0.0, 0]}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "current": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.seen_so_far": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[0.10751060220644382, 0.2713442468364289]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.start": {
+                    "value": "1706547903.7234848",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.verbose": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "force": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.last_update": {
+                    "value": "1706547903.7241695",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.interval": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.target": {
+                    "value": "2",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.total_width": {
+                    "value": "113",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._dynamic_display": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.width": {
+                    "value": "30",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "k": {
+                    "value": "0.1904636104006634",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "v": {
+                    "value": "0.1407713513015837",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{0.10751060220644382: [0.0, 0], 0.2713442468364289: [0.0, 0], 0.23368530566859747: [0.07625796291315312, 1], 0.1904636104006634: [0.1407713513015837, 1]}",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "self.seen_so_far": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[0.10751060220644382, 0.2713442468364289, 0.23368530566859747, 0.1904636104006634]",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "now": {
+                    "value": "1706547903.7255592",
+                    "shape": null,
+                    "omitted": false
+                },
+                "info": {
+                    "value": "' - 0s'",
+                    "shape": "5",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "values": {
+                    "value": "[array([0.1075106 , 0.73803222]), array([0.27134425, 0.82295024])]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{}",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "current": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.seen_so_far": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[]",
+                    "shape": "0",
+                    "omitted": false
+                },
+                "self.start": {
+                    "value": "1706547903.7262952",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.verbose": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "force": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.last_update": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.interval": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.total_width": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._dynamic_display": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.width": {
+                    "value": "30",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "k": {
+                    "value": "0.2713442468364289",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "v": {
+                    "value": "0.8229502365592092",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{0.10751060220644382: [0.0, 0], 0.2713442468364289: [0.0, 0]}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[0.10751060220644382, 0.2713442468364289]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "now": {
+                    "value": "1706547903.72695",
+                    "shape": null,
+                    "omitted": false
+                },
+                "info": {
+                    "value": "' - 0s 0us/step - 0.10751060220644382: 0.0000e+00 - 0.2713442468364289: 0.0000e+00'",
+                    "shape": "81",
+                    "omitted": false
+                },
+                "self.last_update": {
+                    "value": "1706547903.72695",
+                    "shape": null,
+                    "omitted": false
+                },
+                "prev_total_width": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.total_width": {
+                    "value": "96",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bar": {
+                    "value": "'      0/Unknown'",
+                    "shape": "15",
+                    "omitted": false
+                },
+                "time_per_unit": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "avg": {
+                    "value": "0.0",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "values": {
+                    "value": "[array([0.23368531, 0.07625796]), array([0.19046361, 0.14077135])]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{0.10751060220644382: [0.0, 0], 0.2713442468364289: [0.0, 0]}",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "current": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.seen_so_far": {
+                    "value": "0",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[0.10751060220644382, 0.2713442468364289]",
+                    "shape": "2",
+                    "omitted": false
+                },
+                "self.start": {
+                    "value": "1706547903.7262952",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.verbose": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "force": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.last_update": {
+                    "value": "1706547903.72695",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.interval": {
+                    "value": "0.05",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.total_width": {
+                    "value": "96",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self._dynamic_display": {
+                    "value": "False",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.width": {
+                    "value": "30",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {
+                "k": {
+                    "value": "0.1904636104006634",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "v": {
+                    "value": "0.1407713513015837",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "self.sum_values": {
+                    "value": "{0.10751060220644382: [0.0, 0], 0.2713442468364289: [0.0, 0], 0.23368530566859747: [0.07625796291315312, 1], 0.1904636104006634: [0.1407713513015837, 1]}",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "self.seen_so_far": {
+                    "value": "1",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.unique_values": {
+                    "value": "[0.10751060220644382, 0.2713442468364289, 0.23368530566859747, 0.1904636104006634]",
+                    "shape": "4",
+                    "omitted": false
+                },
+                "now": {
+                    "value": "1706547903.7287524",
+                    "shape": null,
+                    "omitted": false
+                },
+                "info": {
+                    "value": "' - 0s 2ms/step - 0.10751060220644382: 0.0000e+00 - 0.2713442468364289: 0.0000e+00 - 0.23368530566859747: 0.0763 - 0.1904636104006634: 0.1408'",
+                    "shape": "140",
+                    "omitted": false
+                },
+                "self.last_update": {
+                    "value": "1706547903.7287524",
+                    "shape": null,
+                    "omitted": false
+                },
+                "prev_total_width": {
+                    "value": "96",
+                    "shape": null,
+                    "omitted": false
+                },
+                "self.total_width": {
+                    "value": "155",
+                    "shape": null,
+                    "omitted": false
+                },
+                "bar": {
+                    "value": "'      1/Unknown'",
+                    "shape": "15",
+                    "omitted": false
+                },
+                "time_per_unit": {
+                    "value": "0.002457141876220703",
+                    "shape": null,
+                    "omitted": false
+                },
+                "avg": {
+                    "value": "0.1407713513015837",
+                    "shape": "()",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "values": "list",
+                "self.sum_values": "dict",
+                "current": "int",
+                "self.seen_so_far": "int",
+                "self.unique_values": "list",
+                "self.start": "float",
+                "self.verbose": "int",
+                "force": "bool",
+                "self.last_update": "int",
+                "self.interval": "float",
+                "self.target": "int",
+                "self.total_width": "int",
+                "self._dynamic_display": "bool",
+                "self.width": "int"
+            },
+            {
+                "k": "float64",
+                "v": "float64",
+                "self.sum_values": "dict",
+                "self.unique_values": "list",
+                "now": "float",
+                "info": "str",
+                "self.last_update": "float",
+                "prev_total_width": "int",
+                "self.total_width": "int",
+                "numdigits": "int",
+                "barstr": "str",
+                "bar": "str",
+                "prog": "float",
+                "prog_width": "int",
+                "time_per_unit": "int",
+                "eta": "int",
+                "eta_format": "str",
+                "avg": "float64"
+            }
+        ],
+        [
+            {
+                "values": "list",
+                "self.sum_values": "dict",
+                "current": "int",
+                "self.seen_so_far": "int",
+                "self.unique_values": "list",
+                "self.start": "float",
+                "self.verbose": "int",
+                "force": "bool",
+                "self.last_update": "float",
+                "self.interval": "float",
+                "self.target": "int",
+                "self.total_width": "int",
+                "self._dynamic_display": "bool",
+                "self.width": "int"
+            },
+            {
+                "k": "float64",
+                "v": "float64",
+                "self.sum_values": "dict",
+                "self.seen_so_far": "int",
+                "self.unique_values": "list",
+                "now": "float",
+                "info": "str"
+            }
+        ],
+        [
+            {
+                "values": "list",
+                "self.sum_values": "dict",
+                "current": "int",
+                "self.seen_so_far": "int",
+                "self.unique_values": "list",
+                "self.start": "float",
+                "self.verbose": "int",
+                "force": "bool",
+                "self.last_update": "int",
+                "self.interval": "float",
+                "self.total_width": "int",
+                "self._dynamic_display": "bool",
+                "self.width": "int"
+            },
+            {
+                "k": "float64",
+                "v": "float64",
+                "self.sum_values": "dict",
+                "self.unique_values": "list",
+                "now": "float",
+                "info": "str",
+                "self.last_update": "float",
+                "prev_total_width": "int",
+                "self.total_width": "int",
+                "bar": "str",
+                "time_per_unit": "int",
+                "avg": "float64"
+            }
+        ],
+        [
+            {
+                "values": "list",
+                "self.sum_values": "dict",
+                "current": "int",
+                "self.seen_so_far": "int",
+                "self.unique_values": "list",
+                "self.start": "float",
+                "self.verbose": "int",
+                "force": "bool",
+                "self.last_update": "float",
+                "self.interval": "float",
+                "self.total_width": "int",
+                "self._dynamic_display": "bool",
+                "self.width": "int"
+            },
+            {
+                "k": "float64",
+                "v": "float64",
+                "self.sum_values": "dict",
+                "self.seen_so_far": "int",
+                "self.unique_values": "list",
+                "now": "float",
+                "info": "str",
+                "self.last_update": "float",
+                "prev_total_width": "int",
+                "self.total_width": "int",
+                "bar": "str",
+                "time_per_unit": "float",
+                "avg": "float64"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

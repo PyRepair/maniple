@@ -1,0 +1,91 @@
+{
+    "1.1.1": "def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:\n    \n    if values is None:\n        values = getattr(self._selected_obj, \"values\", self._selected_obj)\n\n    # GH #12373 : rolling functions error on float32 data\n    # make sure the data is coerced to float64\n    if is_float_dtype(values.dtype):\n        values = ensure_float64(values)\n    elif is_integer_dtype(values.dtype):\n        values = ensure_float64(values)\n    elif needs_i8_conversion(values.dtype):\n        raise NotImplementedError(\n            \"ops for {action} for this \"\n            \"dtype {dtype} are not \"\n            \"implemented\".format(action=self._window_type, dtype=values.dtype)\n        )\n    else:\n        try:\n            values = ensure_float64(values)\n        except (ValueError, TypeError):\n            raise TypeError(\"cannot handle this type -> {0}\".format(values.dtype))\n\n    # Always convert inf to nan\n    values[np.isinf(values)] = np.NaN\n\n    return values\n",
+    "1.1.2": "Convert input to numpy arrays for Cython routines",
+    "1.2.1": "pandas/core/window.py",
+    "1.2.2": "from typing import Callable, List, Optional, Set, Union\nimport numpy as np\nfrom pandas.core.dtypes.common import ensure_float64, is_bool, is_float_dtype, is_integer, is_integer_dtype, is_list_like, is_scalar, is_timedelta64_dtype, needs_i8_conversion",
+    "1.3.1": "class _Window(PandasObject, SelectionMixin)",
+    "1.3.2": null,
+    "1.4.1": [
+        "_window_type(self) -> str"
+    ],
+    "1.4.2": [
+        "_window_type(self) -> str"
+    ],
+    "1.5.1": [
+        "    def test_readonly_array(self):\n        # GH-27766\n        arr = np.array([1, 3, np.nan, 3, 5])\n        arr.setflags(write=False)\n        result = pd.Series(arr).rolling(2).mean()\n        expected = pd.Series([np.nan, 2, np.nan, np.nan, 4])\n        tm.assert_series_equal(result, expected)"
+    ],
+    "1.5.2": [
+        "pandas/tests/window/test_rolling.py"
+    ],
+    "2.1.1": [
+        [
+            "E       ValueError: assignment destination is read-only"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.window.test_rolling.TestRolling object at 0x7f90840d8430>\n\n    def test_readonly_array(self):\n        # GH-27766\n        arr = np.array([1, 3, np.nan, 3, 5])\n        arr.setflags(write=False)\n>       result = pd.Series(arr).rolling(2).mean()\n\npandas/tests/window/test_rolling.py:334: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \npandas/core/window.py:1874: in mean\n    return super().mean(*args, **kwargs)\npandas/core/window.py:1179: in mean\n    return self._apply(\"roll_mean\", \"mean\", **kwargs)\npandas/core/window.py:427: in _apply\n    values = self._prep_values(b.values)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = Rolling [window=2,center=False,axis=0]\nvalues = array([ 1.,  3., nan,  3.,  5.])\n\n    def _prep_values(self, values: Optional[np.ndarray] = None) -> np.ndarray:\n        \"\"\"Convert input to numpy arrays for Cython routines\"\"\"\n        if values is None:\n            values = getattr(self._selected_obj, \"values\", self._selected_obj)\n    \n        # GH #12373 : rolling functions error on float32 data\n        # make sure the data is coerced to float64\n        if is_float_dtype(values.dtype):\n            values = ensure_float64(values)\n        elif is_integer_dtype(values.dtype):\n            values = ensure_float64(values)\n        elif needs_i8_conversion(values.dtype):\n            raise NotImplementedError(\n                \"ops for {action} for this \"\n                \"dtype {dtype} are not \"\n                \"implemented\".format(action=self._window_type, dtype=values.dtype)\n            )\n        else:\n            try:\n                values = ensure_float64(values)\n            except (ValueError, TypeError):\n                raise TypeError(\"cannot handle this type -> {0}\".format(values.dtype))\n    \n        # Always convert inf to nan\n>       values[np.isinf(values)] = np.NaN",
+            "\npandas/core/window.py:250: ValueError"
+        ]
+    ],
+    "2.2.1": null,
+    "2.2.2": null,
+    "2.3.1": [
+        [
+            {
+                "values": {
+                    "value": "array([ 1.,  3., nan,  3.,  5.])",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self._selected_obj": {
+                    "value": "0    1.0\n1    3.0\n2    NaN\n3    3.0\n4    5.0\ndtype: float64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "Rolling [window=2,center=False,axis=0]",
+                    "shape": null,
+                    "omitted": false
+                },
+                "values.dtype": {
+                    "value": "dtype('float64')",
+                    "shape": "()",
+                    "omitted": false
+                },
+                "self._window_type": {
+                    "value": "'Rolling'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            },
+            {
+                "inf": {
+                    "value": "array([False, False, False, False, False])",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "values": "ndarray",
+                "self._selected_obj": "Series",
+                "self": "Rolling",
+                "values.dtype": "dtype",
+                "self._window_type": "str"
+            },
+            {
+                "inf": "ndarray"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "Windowing fails on read-only arrays\n"
+    ],
+    "3.1.2": [
+        "Code Sample, a copy-pastable example if possible\n>>> arr = np.array([1, 3, np.nan, 3, 5])\n>>> arr.setflags(write=False)\n>>> pd.Series(arr).rolling(2).mean().values\n---------------------------------------------------------------------------\nValueError: assignment destination is read-only\nExpected Output\n>>> pd.Series(arr).rolling(2).mean().values\narray([nan,  2., nan, nan,  4.])\nProblem description\n#27391 (comment) missed a copy call before writing into array, which is user's data and which may be read-only.\n\nOutput of pd.show_versions()\npandas 0.25.0\n"
+    ]
+}

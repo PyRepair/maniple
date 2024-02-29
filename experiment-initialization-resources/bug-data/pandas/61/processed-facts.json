@@ -1,0 +1,821 @@
+{
+    "1.1.1": "def _get_with(self, key):\n    # other: fancy integer or otherwise\n    if isinstance(key, slice):\n        return self._slice(key)\n    elif isinstance(key, ABCDataFrame):\n        raise TypeError(\n            \"Indexing a Series with DataFrame is not \"\n            \"supported, use the appropriate DataFrame column\"\n        )\n    elif isinstance(key, tuple):\n        try:\n            return self._get_values_tuple(key)\n        except ValueError:\n            # if we don't have a MultiIndex, we may still be able to handle\n            #  a 1-tuple.  see test_1tuple_without_multiindex\n            if len(key) == 1:\n                key = key[0]\n                if isinstance(key, slice):\n                    return self._get_values(key)\n            raise\n\n    if not isinstance(key, (list, np.ndarray, Series, Index)):\n        key = list(key)\n\n    if isinstance(key, Index):\n        key_type = key.inferred_type\n    else:\n        key_type = lib.infer_dtype(key, skipna=False)\n\n    # Note: The key_type == \"boolean\" case should be caught by the\n    #  com.is_bool_indexer check in __getitem__\n    if key_type == \"integer\":\n        if self.index.is_integer() or self.index.is_floating():\n            return self.loc[key]\n        elif isinstance(self.index, IntervalIndex):\n            indexer = self.index.get_indexer_for(key)\n            return self.iloc[indexer]\n        else:\n            return self._get_values(key)\n\n    if isinstance(key, (list, tuple)):\n        # TODO: de-dup with tuple case handled above?\n        # handle the dup indexing case GH#4246\n        if len(key) == 1 and isinstance(key[0], slice):\n            # [slice(0, 5, None)] will break if you convert to ndarray,\n            # e.g. as requested by np.median\n            # FIXME: hack\n            return self._get_values(key)\n\n        return self.loc[key]\n\n    return self.reindex(key)\n",
+    "1.1.2": null,
+    "1.2.1": "pandas/core/series.py",
+    "1.2.2": "import numpy as np\nfrom pandas._libs import lib, properties, reshape, tslibs\nfrom pandas.core.dtypes.generic import ABCDataFrame, ABCDatetimeIndex, ABCMultiIndex, ABCPeriodIndex, ABCSeries, ABCSparseArray\nfrom pandas.core.indexes.api import Float64Index, Index, IntervalIndex, InvalidIndexError, MultiIndex, ensure_index",
+    "1.3.1": "class Series(base.IndexOpsMixin, generic.NDFrame)",
+    "1.3.2": "One-dimensional ndarray with axis labels (including time series).\n\nLabels need not be unique but must be a hashable type. The object\nsupports both integer- and label-based indexing and provides a host of\nmethods for performing operations involving the index. Statistical\nmethods from ndarray have been overridden to automatically exclude\nmissing data (currently represented as NaN).\n\nOperations between Series (+, -, /, *, **) align values based on their\nassociated index values-- they need not be the same length. The result\nindex will be the sorted union of the two indexes.\n\nParameters\n----------\ndata : array-like, Iterable, dict, or scalar value\n    Contains data stored in Series.\n\n    .. versionchanged:: 0.23.0\n       If data is a dict, argument order is maintained for Python 3.6\n       and later.\n\nindex : array-like or Index (1d)\n    Values must be hashable and have the same length as `data`.\n    Non-unique index values are allowed. Will default to\n    RangeIndex (0, 1, 2, ..., n) if not provided. If both a dict and index\n    sequence are used, the index will override the keys found in the\n    dict.\ndtype : str, numpy.dtype, or ExtensionDtype, optional\n    Data type for the output Series. If not specified, this will be\n    inferred from `data`.\n    See the :ref:`user guide <basics.dtypes>` for more usages.\nname : str, optional\n    The name to give to the Series.\ncopy : bool, default False\n    Copy input data.",
+    "1.4.1": [
+        "_slice(self, slobj: slice, axis: int=0, kind: str='getitem') -> 'Series'",
+        "_get_values_tuple(self, key)",
+        "_get_values(self, indexer)",
+        "reindex(self, index=None, **kwargs)"
+    ],
+    "1.4.2": [
+        "_slice(self, slobj: slice, axis: int=0, kind: str='getitem') -> 'Series'",
+        "_get_values_tuple(self, key)",
+        "_get_values(self, indexer)",
+        "reindex(self, index=None, **kwargs)"
+    ],
+    "1.5.1": [
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]",
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]",
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]",
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]",
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]",
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]",
+        "    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n\n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n\n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n                idxr[nd3]"
+    ],
+    "1.5.2": [
+        "pandas/tests/indexing/test_indexing.py",
+        "pandas/tests/indexing/test_indexing.py",
+        "pandas/tests/indexing/test_indexing.py",
+        "pandas/tests/indexing/test_indexing.py",
+        "pandas/tests/indexing/test_indexing.py",
+        "pandas/tests/indexing/test_indexing.py",
+        "pandas/tests/indexing/test_indexing.py"
+    ],
+    "2.1.1": [
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ],
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ],
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ],
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ],
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ],
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ],
+        [
+            "E               Failed: DID NOT RAISE <class 'ValueError'>"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x7f3582d73b80>\nindex = Index(['x49EAxnB55', '7EmkwYDawd', '7I5Yy12KXe', 'QmKaD7y4DO', 'WQc09lkAkm'], dtype='object')\nobj = x49EAxnB55    0\n7EmkwYDawd    1\n7I5Yy12KXe    2\nQmKaD7y4DO    3\nWQc09lkAkm    4\ndtype: int64\nidxr = x49EAxnB55    0\n7EmkwYDawd    1\n7I5Yy12KXe    2\nQmKaD7y4DO    3\nWQc09lkAkm    4\ndtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x7f3582f43280>\nindex = Index(['\u05e71\u05e2\u05d85\u05db4\u05e6\u05df\u05e5', '\u05e032\u05d81\u05d9\u05e8\u05e611', '\u05e4\u05e6\u05d1710\u05dc\u05e95\u05e0', '9\u05e14\u05e96\u05d96\u05e8\u05e80', '\u05d63\u05e7\u05e4\u05d2\u05e3\u05e41\u05d5\u05e8'], dtype='object')\nobj = \u05e71\u05e2\u05d85\u05db4\u05e6\u05df\u05e5    0\n\u05e032\u05d81\u05d9\u05e8\u05e611    1\n\u05e4\u05e6\u05d1710\u05dc\u05e95\u05e0    2\n9\u05e14\u05e96\u05d96\u05e8\u05e80    3\n\u05d63\u05e7\u05e4\u05d2\u05e3\u05e41\u05d5\u05e8    4\ndtype: int64\nidxr = \u05e71\u05e2\u05d85\u05db4\u05e6\u05df\u05e5    0\n\u05e032\u05d81\u05d9\u05e8\u05e611    1\n\u05e4\u05e6\u05d1710\u05dc\u05e95\u05e0    2\n9\u05e14\u05e96\u05d96\u05e8\u05e80    3\n\u05d63\u05e7\u05e4\u05d2\u05e3\u05e41\u05d5\u05e8    4\ndtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x7f3582d61be0>\nindex = DatetimeIndex(['2000-01-03', '2000-01-04', '2000-01-05', '2000-01-06',\n               '2000-01-07'],\n              dtype='datetime64[ns]', freq='B')\nobj = 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64\nidxr = 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x7f3582f87af0>\nindex = PeriodIndex(['2000-01-03', '2000-01-04', '2000-01-05', '2000-01-06',\n             '2000-01-07'],\n            dtype='period[B]', freq='B')\nobj = 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64\nidxr = 2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x7f3582eccfa0>\nindex = TimedeltaIndex(['1 days', '2 days', '3 days', '4 days', '5 days'], dtype='timedelta64[ns]', freq='D')\nobj = 1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64\nidxr = 1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x7f3582f96610>\nindex = Index([False, True, False, False, False], dtype='object')\nobj = False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64\nidxr = False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ],
+        [
+            "self = <pandas.tests.indexing.test_indexing.TestFancy object at 0x7f3582fac160>\nindex = CategoricalIndex(['ujvC', 'TiKq', 'ZyjZ', 'ujvC', 'TiKq'], categories=['ujvC', 'TiKq', 'ZyjZ'], ordered=False, dtype='category')\nobj = ujvC    0\nTiKq    1\nZyjZ    2\nujvC    3\nTiKq    4\ndtype: int64\nidxr = ujvC    0\nTiKq    1\nZyjZ    2\nujvC    3\nTiKq    4\ndtype: int64\nidxr_id = 'getitem'\n\n    @pytest.mark.parametrize(\n        \"index\", tm.all_index_generator(5), ids=lambda x: type(x).__name__\n    )\n    @pytest.mark.parametrize(\n        \"obj\",\n        [\n            lambda i: Series(np.arange(len(i)), index=i),\n            lambda i: DataFrame(np.random.randn(len(i), len(i)), index=i, columns=i),\n        ],\n        ids=[\"Series\", \"DataFrame\"],\n    )\n    @pytest.mark.parametrize(\n        \"idxr, idxr_id\",\n        [\n            (lambda x: x, \"getitem\"),\n            (lambda x: x.loc, \"loc\"),\n            (lambda x: x.iloc, \"iloc\"),\n        ],\n    )\n    def test_getitem_ndarray_3d(self, index, obj, idxr, idxr_id):\n        # GH 25567\n        obj = obj(index)\n        idxr = idxr(obj)\n        nd3 = np.random.randint(5, size=(2, 2, 2))\n    \n        msg = \"|\".join(\n            [\n                r\"Buffer has wrong number of dimensions \\(expected 1, got 3\\)\",\n                \"Cannot index with multidimensional key\",\n                r\"Wrong number of dimensions. values.ndim != ndim \\[3 != 1\\]\",\n                \"Index data must be 1-dimensional\",\n            ]\n        )\n    \n        with pytest.raises(ValueError, match=msg):\n            with tm.assert_produces_warning(DeprecationWarning, check_stacklevel=False):\n>               idxr[nd3]",
+            "\npandas/tests/indexing/test_indexing.py:94: Failed"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "key": {
+                    "value": "array([[[1, 0],\n        [3, 2]],\n\n       [[4, 0],\n        [0, 2]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "Int64Index([0, 1, 2, 3, 4], dtype='int64')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[3, 4],\n        [0, 0]],\n\n       [[3, 1],\n        [1, 0]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "-8418.322900     0\n 5965.349568     1\n 9997.044665     2\n 17450.768636    3\n 23144.937101    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "Float64Index([-8418.322899505682,  5965.349568243839,  9997.044665080079,\n              17450.768636479384, 23144.937101452935],\n             dtype='float64')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[0, 3],\n        [1, 2]],\n\n       [[0, 3],\n        [1, 2]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "zowjFrXILA    0\n8NIaHVFs85    1\n3HAJYKWLcr    2\nysmGKhCnwU    3\n3mfrYGKYqM    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "Index(['zowjFrXILA', '8NIaHVFs85', '3HAJYKWLcr', 'ysmGKhCnwU', '3mfrYGKYqM'], dtype='object')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[1, 0],\n        [1, 2]],\n\n       [[4, 0],\n        [0, 0]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "\u05de\u05d9\u05d0\u05e0\u05e6\u05d79\u05db8\u05da    0\n\u05d5\u05e0\u05d08\u05d11\u05de\u05e5\u05e62    1\n33\u05da45\u05d8\u05d5\u05e8\u05d5\u05d2    2\n\u05e0\u05d5\u05dc0\u05dd3\u05e50\u05e70    3\n\u05e50\u05e7\u05d13\u05e0\u05d2\u05db\u05d2\u05e4    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "Index(['\u05de\u05d9\u05d0\u05e0\u05e6\u05d79\u05db8\u05da', '\u05d5\u05e0\u05d08\u05d11\u05de\u05e5\u05e62', '33\u05da45\u05d8\u05d5\u05e8\u05d5\u05d2', '\u05e0\u05d5\u05dc0\u05dd3\u05e50\u05e70', '\u05e50\u05e7\u05d13\u05e0\u05d2\u05db\u05d2\u05e4'], dtype='object')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[4, 4],\n        [1, 4]],\n\n       [[4, 2],\n        [1, 2]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "DatetimeIndex(['2000-01-03', '2000-01-04', '2000-01-05', '2000-01-06',\n               '2000-01-07'],\n              dtype='datetime64[ns]', freq='B')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[2, 4],\n        [3, 3]],\n\n       [[0, 2],\n        [3, 2]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "PeriodIndex(['2000-01-03', '2000-01-04', '2000-01-05', '2000-01-06',\n             '2000-01-07'],\n            dtype='period[B]', freq='B')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[0, 2],\n        [4, 0]],\n\n       [[1, 0],\n        [3, 1]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "TimedeltaIndex(['1 days', '2 days', '3 days', '4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[0, 0],\n        [1, 2]],\n\n       [[2, 4],\n        [0, 0]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "Index([False, True, False, False, False], dtype='object')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[0, 0],\n        [3, 2]],\n\n       [[2, 2],\n        [2, 0]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "RangeIndex(start=0, stop=5, step=1)",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[4, 0],\n        [2, 2]],\n\n       [[4, 4],\n        [0, 4]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "tZK1    0\n6zlV    1\nAxGH    2\ntZK1    3\n6zlV    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "CategoricalIndex(['tZK1', '6zlV', 'AxGH', 'tZK1', '6zlV'], categories=['tZK1', '6zlV', 'AxGH'], ordered=False, dtype='category')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "Int64Index"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "Float64Index"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "Index"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "Index"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "DatetimeIndex"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "PeriodIndex"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "TimedeltaIndex"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "Index"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "RangeIndex"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "CategoricalIndex"
+            },
+            {
+                "key_type": "str"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "key": {
+                    "value": "array([[[4, 4],\n        [2, 2]],\n\n       [[0, 0],\n        [4, 0]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "Int64Index([0, 1, 2, 3, 4], dtype='int64')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[1, 1],\n        [3, 3]],\n\n       [[1, 2],\n        [2, 0]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "-7.750853    0\n-6.933293    1\n-4.836180    2\n-1.528772    3\n-0.139869    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "Float64Index([ -7.7508534422900635,   -6.933293023998202,   -4.836179742651691,\n               -1.5287723953880084, -0.13986880348747843],\n             dtype='float64')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[1, 1],\n        [2, 3]],\n\n       [[1, 1],\n        [1, 4]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "FUMMbqv2uT    0\nrNDrVK2mqR    1\nySG12ys4HM    2\ndFu2ZueyhW    3\nA60HumSvx3    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "Index(['FUMMbqv2uT', 'rNDrVK2mqR', 'ySG12ys4HM', 'dFu2ZueyhW', 'A60HumSvx3'], dtype='object')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[0, 1],\n        [0, 2]],\n\n       [[0, 2],\n        [3, 1]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "\u05e16\u05e0\u05d9\u05d1\u05dc\u05d4\u05d0\u05d96    0\n\u05d9\u05d399\u05d78\u05d5\u05e8\u05da\u05e8    1\n\u05d9\u05da\u05db\u05d0\u05e6\u05e2\u05e80\u05d03    2\n\u05e4\u05df\u05d6\u05d9\u05d3\u05e6\u05d0\u05d9\u05e7\u05e0    3\n\u05d74\u05d5\u05dd8\u05d5\u05da\u05dc74    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "Index(['\u05e16\u05e0\u05d9\u05d1\u05dc\u05d4\u05d0\u05d96', '\u05d9\u05d399\u05d78\u05d5\u05e8\u05da\u05e8', '\u05d9\u05da\u05db\u05d0\u05e6\u05e2\u05e80\u05d03', '\u05e4\u05df\u05d6\u05d9\u05d3\u05e6\u05d0\u05d9\u05e7\u05e0', '\u05d74\u05d5\u05dd8\u05d5\u05da\u05dc74'], dtype='object')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[3, 1],\n        [2, 1]],\n\n       [[4, 1],\n        [0, 0]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "DatetimeIndex(['2000-01-03', '2000-01-04', '2000-01-05', '2000-01-06',\n               '2000-01-07'],\n              dtype='datetime64[ns]', freq='B')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[2, 1],\n        [1, 1]],\n\n       [[2, 2],\n        [2, 1]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "2000-01-03    0\n2000-01-04    1\n2000-01-05    2\n2000-01-06    3\n2000-01-07    4\nFreq: B, dtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "PeriodIndex(['2000-01-03', '2000-01-04', '2000-01-05', '2000-01-06',\n             '2000-01-07'],\n            dtype='period[B]', freq='B')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[3, 4],\n        [1, 2]],\n\n       [[4, 2],\n        [4, 0]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "1 days    0\n2 days    1\n3 days    2\n4 days    3\n5 days    4\nFreq: D, dtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "TimedeltaIndex(['1 days', '2 days', '3 days', '4 days', '5 days'], dtype='timedelta64[ns]', freq='D')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[0, 0],\n        [2, 2]],\n\n       [[1, 3],\n        [0, 3]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "False    0\nTrue     1\nFalse    2\nFalse    3\nFalse    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "Index([False, True, False, False, False], dtype='object')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[3, 3],\n        [1, 1]],\n\n       [[1, 3],\n        [0, 4]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "0    0\n1    1\n2    2\n3    3\n4    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "RangeIndex(start=0, stop=5, step=1)",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array([[[1, 2],\n        [3, 2]],\n\n       [[3, 1],\n        [1, 2]]])",
+                    "shape": "(2, 2, 2)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "VsSx    0\nAppb    1\nvbbF    2\nVsSx    3\nAppb    4\ndtype: int64",
+                    "shape": "(5,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "CategoricalIndex(['VsSx', 'Appb', 'vbbF', 'VsSx', 'Appb'], categories=['VsSx', 'Appb', 'vbbF'], ordered=False, dtype='category')",
+                    "shape": "(5,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'integer'",
+                    "shape": "7",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "Int64Index"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "Float64Index"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "Index"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "Index"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "DatetimeIndex"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "PeriodIndex"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "TimedeltaIndex"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "Index"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "RangeIndex"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self": "Series",
+                "self.index": "CategoricalIndex"
+            },
+            {
+                "key_type": "str"
+            }
+        ]
+    ],
+    "3.1.1": null,
+    "3.1.2": null
+}

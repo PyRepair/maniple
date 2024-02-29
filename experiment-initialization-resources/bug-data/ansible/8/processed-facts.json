@@ -1,0 +1,107 @@
+{
+    "1.1.1": "def join_path(self, *args):\n    parts = []\n    for arg in args:\n        arg = self._unquote(arg).replace('/', '\\\\')\n        parts.extend([a for a in arg.split('\\\\') if a])\n    path = '\\\\'.join(parts)\n    if path.startswith('~'):\n        return path\n    return path\n",
+    "1.1.2": null,
+    "1.2.1": "lib/ansible/plugins/shell/powershell.py",
+    "1.2.2": null,
+    "1.3.1": "class ShellModule(ShellBase)",
+    "1.3.2": null,
+    "1.4.1": [
+        "_unquote(self, value)",
+        "replace(m)"
+    ],
+    "1.4.2": [
+        "_unquote(self, value)",
+        "replace(m)"
+    ],
+    "1.5.1": [
+        "def test_join_path_unc():\n    pwsh = ShellModule()\n    unc_path_parts = ['\\\\\\\\host\\\\share\\\\dir1\\\\\\\\dir2\\\\', '\\\\dir3/dir4', 'dir5', 'dir6\\\\']\n    expected = '\\\\\\\\host\\\\share\\\\dir1\\\\dir2\\\\dir3\\\\dir4\\\\dir5\\\\dir6'\n    actual = pwsh.join_path(*unc_path_parts)\n    assert actual == expected"
+    ],
+    "1.5.2": [
+        "test/units/plugins/shell/test_powershell.py"
+    ],
+    "2.1.1": [
+        [
+            "E       AssertionError: assert 'host\\\\share\\\\dir1\\\\dir2\\\\dir3\\\\dir4\\\\dir5\\\\dir6' == '\\\\\\\\host\\\\share\\\\dir1\\\\dir2\\\\dir3\\\\dir4\\\\dir5\\\\dir6'\nE         - \\\\host\\share\\dir1\\dir2\\dir3\\dir4\\dir5\\dir6\nE         ? --\nE         + host\\share\\dir1\\dir2\\dir3\\dir4\\dir5\\dir6"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "def test_join_path_unc():\n        pwsh = ShellModule()\n        unc_path_parts = ['\\\\\\\\host\\\\share\\\\dir1\\\\\\\\dir2\\\\', '\\\\dir3/dir4', 'dir5', 'dir6\\\\']\n        expected = '\\\\\\\\host\\\\share\\\\dir1\\\\dir2\\\\dir3\\\\dir4\\\\dir5\\\\dir6'\n        actual = pwsh.join_path(*unc_path_parts)\n>       assert actual == expected",
+            "\ntest/units/plugins/shell/test_powershell.py:61: AssertionError"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "args": {
+                    "value": "('\\\\\\\\host\\\\share\\\\dir1\\\\\\\\dir2\\\\', '\\\\dir3/dir4', 'dir5', 'dir6\\\\')",
+                    "shape": "4",
+                    "omitted": false
+                }
+            },
+            {
+                "parts": {
+                    "value": "['host', 'share', 'dir1', 'dir2', 'dir3', 'dir4', 'dir5', 'dir6']",
+                    "shape": "8",
+                    "omitted": false
+                },
+                "arg": {
+                    "value": "'dir6\\\\'",
+                    "shape": "5",
+                    "omitted": false
+                },
+                "path": {
+                    "value": "'host\\\\share\\\\dir1\\\\dir2\\\\dir3\\\\dir4\\\\dir5\\\\dir6'",
+                    "shape": "40",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "args": "tuple"
+            },
+            {
+                "parts": "list",
+                "arg": "str",
+                "path": "str"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "args": {
+                    "value": "('\\\\\\\\host\\\\share\\\\dir1\\\\\\\\dir2\\\\', '\\\\dir3/dir4', 'dir5', 'dir6\\\\')",
+                    "shape": "4",
+                    "omitted": false
+                }
+            },
+            {
+                "parts": {
+                    "value": "['\\\\\\\\host\\\\share\\\\dir1\\\\dir2', '\\\\dir3\\\\dir4', 'dir5', 'dir6']",
+                    "shape": "4",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "args": "tuple"
+            },
+            {
+                "parts": "list"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "Add UNC path support to the Fetch action\n"
+    ],
+    "3.1.2": [
+        "SUMMARY\nFetch module fails with path not found error when used with UNC path.\n\nISSUE TYPE\nBug Report\nFeature Idea\nCOMPONENT NAME\nFetch module\n\nANSIBLE VERSION\nansible 2.9.2\n  config file = /etc/ansible/ansible.cfg\n  configured module search path = ['/home/ikanse/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']\n  ansible python module location = /usr/lib/python3.7/site-packages/ansible\n  executable location = /usr/bin/ansible\n  python version = 3.7.5 (default, Oct 17 2019, 12:09:47) [GCC 9.2.1 20190827 (Red Hat 9.2.1-1)]\nCONFIGURATION\nNo changes from the default config\nOS / ENVIRONMENT\nControl node:\nFedora release 30 (Thirty)\nManged node:\nWindows Server 2016 Datacenter\nVersion: 1607\nSTEPS TO REPRODUCE\nCreate a share on the managed Windows node.\n\n- hosts: localhost\n  gather_facts: false\n  tasks:\n    - name: Add hostname supplied by variable to adhoc_group\n      add_host:\n        name: \"HOST\"\n        groups: adhoc_group\n        ansible_user: Administrator\n        ansible_password: 'PASSWORD'\n        ansible_connection: winrm\n        ansible_winrm_transport: basic\n        ansible_winrm_server_cert_validation: ignore\n        ansible_winrm_connection_timeout: 600\n \n- hosts: adhoc_group\n  tasks:\n  - name: win copy\n    win_copy:\n      dest: '\\\\EC2AMAZ-T130RGR\\testshare\\test123.txt'\n      src: testvars.yml\n\n  - name: access file\n    fetch:\n      src: '\\\\EC2AMAZ-T130RGR\\testshare\\test123.txt'\n      dest: /tmp/\n      flat: yes\nEXPECTED RESULTS\nPath is rendered correctly and the file is fetched from the remote server.\n\nACTUAL RESULTS\nThe path is not rendered correctly by fetch module:\n\n\"msg\": \"Path EC2AMAZ-T130RGR\\\\testshare\\\\test123.txt is not found\"\nFrom win_copy module we can see that correct path is used:\n\n\"dest\": \"\\\\\\\\EC2AMAZ-T130RGR\\\\testshare\\\\test123.txt\",\nansible-playbook 2.9.2\n  config file = /etc/ansible/ansible.cfg\n  configured module search path = ['/home/ikanse/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']\n  ansible python module location = /usr/lib/python3.7/site-packages/ansible\n  executable location = /usr/bin/ansible-playbook\n  python version = 3.7.5 (default, Oct 17 2019, 12:09:47) [GCC 9.2.1 20190827 (Red Hat 9.2.1-1)]\nUsing /etc/ansible/ansible.cfg as config file\nhost_list declined parsing /etc/ansible/hosts as it did not pass its verify_file() method\nscript declined parsing /etc/ansible/hosts as it did not pass its verify_file() method\nauto declined parsing /etc/ansible/hosts as it did not pass its verify_file() method\nParsed /etc/ansible/hosts inventory source with ini plugin\n[WARNING]: provided hosts list is empty, only localhost is available. Note that the implicit localhost\ndoes not match 'all'\n\n\nPLAYBOOK: main.yml *************************************************************************************\n2 plays in main.yml\n\nPLAY [localhost] ***************************************************************************************\nMETA: ran handlers\n\nTASK [Add hostname supplied by variable to adhoc_group] ************************************************\ntask path: /home/ikanse/ansible/windows/main.yml:5\ncreating host via 'add_host': hostname=13.235.83.165\nchanged: [localhost] => {\n    \"add_host\": {\n        \"groups\": [\n            \"adhoc_group\"\n        ],\n        \"host_name\": \"13.235.83.165\",\n        \"host_vars\": {\n            \"ansible_connection\": \"winrm\",\n            \"ansible_password\": \"PASSWORD\",\n            \"ansible_user\": \"Administrator\",\n            \"ansible_winrm_connection_timeout\": 600,\n            \"ansible_winrm_server_cert_validation\": \"ignore\",\n            \"ansible_winrm_transport\": \"basic\"\n        }\n    },\n    \"changed\": true\n}\nMETA: ran handlers\nMETA: ran handlers\n\nPLAY [adhoc_group] *************************************************************************************\n\nTASK [Gathering Facts] *********************************************************************************\ntask path: /home/ikanse/ansible/windows/main.yml:16\nUsing module file /usr/lib/python3.7/site-packages/ansible/modules/windows/setup.ps1\nPipelining is enabled.\n<13.235.83.165> ESTABLISH WINRM CONNECTION FOR USER: Administrator on PORT 5986 TO 13.235.83.165\nEXEC (via pipeline wrapper)\nok: [13.235.83.165]\nMETA: ran handlers\n\nTASK [win copy] ****************************************************************************************\ntask path: /home/ikanse/ansible/windows/main.yml:18\nUsing module file /usr/lib/python3.7/site-packages/ansible/modules/windows/win_copy.ps1\nPipelining is enabled.\n<13.235.83.165> ESTABLISH WINRM CONNECTION FOR USER: Administrator on PORT 5986 TO 13.235.83.165\nEXEC (via pipeline wrapper)\nok: [13.235.83.165] => {\n    \"changed\": false,\n    \"checksum\": \"4e8bfbc031942c909e62592f6a3e728af39c156c\",\n    \"dest\": \"\\\\\\\\EC2AMAZ-T130RGR\\\\testshare\\\\test123.txt\",\n    \"operation\": \"file_copy\",\n    \"original_basename\": \"testvars.yml\",\n    \"size\": 15,\n    \"src\": \"testvars.yml\"\n}\n\nTASK [access file] *************************************************************************************\ntask path: /home/ikanse/ansible/windows/main.yml:23\nUsing module file /usr/lib/python3.7/site-packages/ansible/modules/windows/win_stat.ps1\nPipelining is enabled.\n<13.235.83.165> ESTABLISH WINRM CONNECTION FOR USER: Administrator on PORT 5986 TO 13.235.83.165\nEXEC (via pipeline wrapper)\nUsing module file /usr/lib/python3.7/site-packages/ansible/modules/windows/slurp.ps1\nPipelining is enabled.\nEXEC (via pipeline wrapper)\nfatal: [13.235.83.165]: FAILED! => {\n    \"changed\": false,\n    \"msg\": \"Path EC2AMAZ-T130RGR\\\\testshare\\\\test123.txt is not found\"\n}\n\nPLAY RECAP *********************************************************************************************\n13.235.83.165              : ok=2    changed=0    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0   \nlocalhost                  : ok=1    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0  \n"
+    ]
+}

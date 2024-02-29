@@ -1,0 +1,40 @@
+{
+    "1.1.1": "def binary_crossentropy(target, output, from_logits=False):\n    if not from_logits:\n        output = np.clip(output, 1e-7, 1 - 1e-7)\n        output = np.log(output / (1 - output))\n    return (target * -np.log(sigmoid(output)) +\n            (1 - target) * -np.log(1 - sigmoid(output)))\n",
+    "1.1.2": null,
+    "1.2.1": "keras/backend/numpy_backend.py",
+    "1.2.2": "import numpy as np",
+    "1.3.1": null,
+    "1.3.2": null,
+    "1.4.1": null,
+    "1.4.2": [
+        "sigmoid(x)",
+        "clip(x, min_value, max_value)"
+    ],
+    "1.5.1": [
+        "    @pytest.mark.skipif(K.backend() == 'cntk', reason='Bug in CNTK')\n    def test_in_top_k(self):\n        batch_size = 20\n        num_classes = 10\n\n        # Random prediction test case\n        predictions = np.random.random((batch_size, num_classes)).astype('float32')\n        targets = np.random.randint(num_classes, size=batch_size, dtype='int32')\n\n        # (k == 0 or k > num_classes) does not raise an error\n        # but just return an unmeaningful tensor.\n        for k in range(1, num_classes + 1):\n            z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                        b.variable(targets, dtype='int32'), k))\n                      for b in WITH_NP]\n            assert_list_pairwise(z_list)\n\n        # Identical prediction test case:\n        # randomly set half of the predictions to an identical value\n        num_identical = num_classes // 2\n        for i in range(batch_size):\n            idx_identical = np.random.choice(num_classes,\n                                             size=num_identical, replace=False)\n            predictions[i, idx_identical] = predictions[i, 0]\n        targets = np.zeros(batch_size, dtype='int32')\n\n        for k in range(1, num_classes + 1):\n            z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                        b.variable(targets, dtype='int32'), k))\n                      for b in WITH_NP]\n            assert_list_pairwise(z_list)"
+    ],
+    "1.5.2": [
+        "tests/keras/backend/backend_test.py"
+    ],
+    "2.1.1": [
+        [
+            "E   AttributeError: module 'keras.backend.numpy_backend' has no attribute 'in_top_k'"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <backend_test.TestBackend object at 0x7f1f69cb9750>\n\n    @pytest.mark.skipif(K.backend() == 'cntk', reason='Bug in CNTK')\n    def test_in_top_k(self):\n        batch_size = 20\n        num_classes = 10\n    \n        # Random prediction test case\n        predictions = np.random.random((batch_size, num_classes)).astype('float32')\n        targets = np.random.randint(num_classes, size=batch_size, dtype='int32')\n    \n        # (k == 0 or k > num_classes) does not raise an error\n        # but just return an unmeaningful tensor.\n        for k in range(1, num_classes + 1):\n            z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                        b.variable(targets, dtype='int32'), k))\n>                     for b in WITH_NP]\n\ntests/keras/backend/backend_test.py:1173: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n.0 = <list_iterator object at 0x7f1f69cb9c50>\n\n    z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                b.variable(targets, dtype='int32'), k))\n>             for b in WITH_NP]",
+            "\ntests/keras/backend/backend_test.py:1173: AttributeError"
+        ]
+    ],
+    "2.2.1": null,
+    "2.2.2": null,
+    "2.3.1": null,
+    "2.3.2": null,
+    "3.1.1": [
+        "K.in_top_k on CNTK backend is broken\n"
+    ],
+    "3.1.2": [
+        "Reproducible script\n\nimport keras\nfrom keras import backend as K\nimport numpy as np\n\nbatch_size = 20\nnum_classes = 10\npredictions = K.variable(np.random.random((batch_size, num_classes)).astype('float32'))\ntargets = K.variable(np.random.randint(num_classes, size=batch_size, dtype='int32'))\n\nK.eval(K.in_top_k(predictions,targets,3))\nthrows\n\nAbout to throw exception 'Node 'ClassificationError10' (ClassificationError operation): Expected MBLayout in Input 0.'\nValidating --> ClassificationError10 = ClassificationError (OneHotOp6, Parameter4, Constant9) : [10 x 20], [10 x 20], [] -> [] FAILED\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\n  File \"/home/abhai/keras-env/keras/keras/backend/cntk_backend.py\", line 249, in eval\n    return x.eval()\n  File \"/home/abhai/keras-env/lib/python3.6/site-packages/cntk/ops/functions.py\", line 733, in eval\n    _, output_map = self.forward(arguments, outputs, device=device, as_numpy=as_numpy)\n  File \"/home/abhai/keras-env/lib/python3.6/site-packages/cntk/internal/swig_helper.py\", line 69, in wrapper\n    result = f(*args, **kwds)\n  File \"/home/abhai/keras-env/lib/python3.6/site-packages/cntk/ops/functions.py\", line 867, in forward\n    keep_for_backward)\n  File \"/home/abhai/keras-env/lib/python3.6/site-packages/cntk/cntk_py.py\", line 1980, in _forward\n    return _cntk_py.Function__forward(self, *args)\nRuntimeError: Node 'ClassificationError10' (ClassificationError operation): Expected MBLayout in Input 0.\n Check that you are up-to-date with the master branch of Keras. You can update with:\npip install git+git://github.com/keras-team/keras.git --upgrade --no-deps\n\n Check that your version of CNTK is up-to-date.\n\n Provide a link to a GitHub Gist of a Python script that can reproduce your issue (or just copy the script here if it is short).\n"
+    ]
+}
