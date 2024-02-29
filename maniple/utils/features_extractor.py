@@ -113,14 +113,17 @@ class Facts:
         for buggy_function_info in buggy_functions:
             self._resolve_buggy_function(buggy_function_info)
 
-        called_in_scope_functions = []
-        in_scope_functions = file_info["inscope_functions"]
-        in_scope_function_signatures = file_info["inscope_function_signatures"]
-        for idx, fn in enumerate(in_scope_functions):
-            if self._is_this_func_called(fn):
-                called_in_scope_functions.append(in_scope_function_signatures[idx])
-        if len(called_in_scope_functions) > 0:
-            self.facts["1.4.2"] = called_in_scope_functions
+        file_scope_functions = file_info["inscope_functions"]["file_scope_functions"]
+        called_file_scope_functions = []
+        
+        for obj in file_scope_functions:
+            function_code = obj["code"]
+            function_signature = obj["signature"]
+            if self._is_this_func_called(function_code):
+                called_file_scope_functions.append(function_signature)
+        
+        if len(called_file_scope_functions) > 0:
+            self.facts["1.4.2"] = called_file_scope_functions
 
     def _is_this_func_called(self, sig):
         for v in self._variables_in_methods:
