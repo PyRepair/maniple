@@ -15,7 +15,7 @@ class NotSupportedError(Exception):
 
 
 def get_fact_map() -> Dict[str, str]:
-    with open(os.path.join(os.path.dirname(__file__), "fact_strata_table.json")) as f:
+    with open(os.path.join(os.path.dirname(__file__), "..", "strata_based", "fact_strata_table.json")) as f:
         fact_map: dict = json.load(f)
     facts = fact_map["facts"]
     del facts["cot"]
@@ -256,7 +256,7 @@ def get_import_statements(bugid_folder: Path) -> str:
 def clear_features(path: str):
     for root, dirs, files in os.walk(path):
         for file in files:
-            if file.startswith("f") and not file.startswith("f3") and file != "facts.json":
+            if file.startswith("f") and not file.startswith("f3"):
                 os.remove(os.path.join(root, file))
 
 

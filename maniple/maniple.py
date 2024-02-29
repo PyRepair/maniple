@@ -193,6 +193,8 @@ def run_single_partition_bugids(args, bugids: List[str]):
 def start_multithread_task(args, bugids: List[str]):
     bugids_partitions = divide_list(bugids, args.partitions)
 
+    print(f"Start {args.command} task with {args.partitions} partitions")
+
     threads = []
     for bugids_partition in bugids_partitions:
         thread = threading.Thread(

@@ -98,7 +98,7 @@ class Facts:
         return path[idx + len(bugid_label) + 1 :]
 
     def _resolve_file_info(self, filename, file_info):
-        self.facts["1.3.1"] = self._remove_project_root(filename)
+        self.facts["1.2.1"] = self._remove_project_root(filename)
 
         buggy_functions = []
         for bg_fn_info in file_info["buggy_functions"]:
@@ -120,7 +120,7 @@ class Facts:
             if self._is_this_func_called(fn):
                 called_in_scope_functions.append(in_scope_function_signatures[idx])
         if len(called_in_scope_functions) > 0:
-            self.facts["1.3.2"] = called_in_scope_functions
+            self.facts["1.4.2"] = called_in_scope_functions
 
     def _is_this_func_called(self, sig):
         for v in self._variables_in_methods:
@@ -188,9 +188,9 @@ class Facts:
 
     def _resolve_import_statements(self, buggy_imports):
         if len(buggy_imports) > 0:
-            self.facts["used_imports"] = "\n".join(buggy_imports)
+            self.facts["1.2.2"] = "\n".join(buggy_imports)
         else:
-            self.facts["used_imports"] = None
+            self.facts["1.2.2"] = None
 
     def _resolve_buggy_function_code(self, buggy_function):
         if buggy_function is not None:
@@ -343,11 +343,11 @@ class Facts:
             # fix issue where angelic and runtime list is empty
             # where they should be empty
             if len(ioavals) > 0:
-                self.facts["2.1.5"] = ioavals
+                self.facts["2.3.1"] = ioavals # note: ioavals means "input output angelic values"
             else:
                 self._log_stat("angelic_variable_values", (0))
             if len(ioatypes) > 0:
-                self.facts["2.1.6"] = ioatypes
+                self.facts["2.3.2"] = ioatypes
             else:
                 self._log_stat("angelic_variable_types", (0))
 
@@ -364,12 +364,12 @@ class Facts:
             self._resolve_runtime_variable_value(iobvals, iobtypes)
 
             # fix issue same as above
-            if len(iobvals) > 0:
-                self.facts["2.1.3"] = iobvals
+            if len(iobvals) > 0: # note: iobvals means "input output buggy values"
+                self.facts["2.2.1"] = iobvals
             else:
                 self._log_stat("runtime_variable_values", (0))
             if len(iobtypes) > 0:
-                self.facts["2.1.4"] = iobtypes
+                self.facts["2.2.2"] = iobtypes
             else:
                 self._log_stat("runtime_variable_types", (0))
 
@@ -418,11 +418,11 @@ class Facts:
             for decorator in class_decorators[::-1]:
                 class_declearation = "@" + decorator + "\n" + class_declearation
 
-        self.facts["1.2.1"] = class_declearation
+        self.facts["1.3.1"] = class_declearation
 
         class_docstring = buggy_class_info["docstring"]
         if class_docstring is not None:
-            self.facts["1.2.2"] = class_docstring
+            self.facts["1.3.2"] = class_docstring
 
         used_methods = []
         method_signatures = buggy_class_info["function_signatures"]
@@ -431,7 +431,7 @@ class Facts:
             if self._is_this_func_called(method):
                 used_methods.append(method_signatures[idx])
         if len(used_methods) > 0:
-            self.facts["1.2.3"] = used_methods
+            self.facts["1.4.1"] = used_methods
 
     @staticmethod
     def remove_docstring_from_source(function_source):
@@ -504,15 +504,15 @@ class Facts:
 
     def _resolve_test_function_and_test_file_path(self, test_data):
         test_function_code = test_data["test_function_code"]
-        if self.facts["1.4.1"] is None:
-            self.facts["1.4.1"] = [test_function_code]
+        if self.facts["1.5.1"] is None:
+            self.facts["1.5.1"] = [test_function_code]
         else:
-            self.facts["1.4.1"].append(test_function_code)
+            self.facts["1.5.1"].append(test_function_code)
         test_file_name = self._remove_project_root(test_data["test_path"])
-        if self.facts["1.4.2"] is None:
-            self.facts["1.4.2"] = [test_file_name]
+        if self.facts["1.5.2"] is None:
+            self.facts["1.5.2"] = [test_file_name]
         else:
-            self.facts["1.4.2"].append(test_file_name)
+            self.facts["1.5.2"].append(test_file_name)
 
     @staticmethod
     def _extract_code_blocks_from_markdown(md_content):
@@ -553,19 +553,19 @@ class Facts:
 
         if write_facts_json:
             # write facts.json file
-            with open(os.path.join(bwd, "facts.json"), "w") as f:
+            with open(os.path.join(bwd, "processed-facts.json"), "w") as f:
                 json.dump(self.facts, f, indent=4)
 
-        if self.facts["1.2.3"] is None:
+        if self.facts["1.4.1"] is None:
             self._log_stat("method_ref_num_pair", (bugid, 0))
         else:
-            self._log_stat("method_ref_num_pair", (bugid, len(self.facts["1.2.3"])))
+            self._log_stat("method_ref_num_pair", (bugid, len(self.facts["1.4.1"])))
 
-        if self.facts["1.3.2"] is None:
+        if self.facts["1.4.2"] is None:
             self._log_stat("in_scope_func_ref_num_pair", (bugid, 0))
         else:
             self._log_stat(
-                "in_scope_func_ref_num_pair", (bugid, len(self.facts["1.3.2"]))
+                "in_scope_func_ref_num_pair", (bugid, len(self.facts["1.4.2"]))
             )
 
     def _write_markdown_files(self):
@@ -621,7 +621,7 @@ def collect_facts(
             verbose_logging=verbose_logging,
         )
 
-    bug_json_file = os.path.join(bwd, "bug-data.json")
+    bug_json_file = os.path.join(bwd, "static-dynamic-facts.json")
     if not run_extract_features_command(
         bugid,
         bug_json_file,
