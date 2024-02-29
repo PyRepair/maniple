@@ -1,0 +1,10 @@
+{
+    "pandas:133": {
+        "github_issue_title": [
+            "NDFrame.interpolate(): variable 'ax' not assigned when axis='index'\n"
+        ],
+        "github_issue_description": [
+            "The NDFrame.interpolate function fails when passing a string as axis. Example:\n\n>>> import numpy as np\n>>> import pandas as pd\n>>> df = pd.DataFrame(np.zeros((3,2)), columns=['a','b'])\n>>> df.iloc[1] = np.nan\n>>> df\n     a    b\n0  0.0  0.0\n1  NaN  NaN\n2  0.0  0.0\n>>> df.interpolate(axis=0)\n     a    b\n0  0.0  0.0\n1  0.0  0.0\n2  0.0  0.0\n>>> df.interpolate(axis='index')\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\n  File \"/Users/lehanson/anaconda3/envs/plots/lib/python3.7/site-packages/pandas/core/generic.py\", line 7006, in interpolate\n    ax = _maybe_transposed_self._get_axis_number(ax)\nUnboundLocalError: local variable 'ax' referenced before assignment\nFrom the documentation and from the function itself, it looks like df.interpolate(axis='index') was intended to work, but that maybe someone accidentally deleted a line in generic.py? The function seems to work properly if I add ax = axis in the else block here:\npandas/pandas/core/generic.py\n\nLines 6998 to 7006 in 171c716\n\n if axis == 0: \n     ax = self._info_axis_name \n     _maybe_transposed_self = self \n elif axis == 1: \n     _maybe_transposed_self = self.T \n     ax = 1 \n else: \n     _maybe_transposed_self = self \n ax = _maybe_transposed_self._get_axis_number(ax) \nI am using pandas version 0.25.1\n"
+        ]
+    }
+}

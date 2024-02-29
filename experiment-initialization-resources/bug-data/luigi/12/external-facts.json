@@ -1,0 +1,10 @@
+{
+    "luigi:12": {
+        "github_issue_title": [
+            "HdfsTarget commands fail when many targets are instantiated\n"
+        ],
+        "github_issue_description": [
+            "I've recently added an existence check to a large mapreduce task for which some input files may be missing. With a large enough set of inputs, it will fail every time. I've simplified it to the following code:\n\nfrom luigi.contrib.hdfs import HdfsTarget\n\nmany_targets = [HdfsTarget('/') for _ in range(2000)]\nall(target.exists() for target in many_targets)\nThis will break if I use any past 1000 or so. Here the client uses snakebite. For a more direct triggering, we can also do\n\nfrom snakebite.client import AutoConfigClient\n\nclients = [AutoConfigClient() for _ in range(10000)]\nall(client.test('/', exists=True) for client in clients)\nIn either case, the bug goes away if I use a generator expression rather than a list comprehension. The problem is that when I'm dealing with objects coming out of luigi calls like input_hadoop, it's too late for me to decide between lists and iterators. I can code around this by instantiating all of my HdfsTargets with the same client, but I'm not sure this is safe. It could also be fixed in luigi if we had get_autoconfig_client return the same object each time. Is there any reason this wouldn't work?\n"
+        ]
+    }
+}

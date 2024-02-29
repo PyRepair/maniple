@@ -1,0 +1,10 @@
+{
+    "pandas:135": {
+        "github_issue_title": [
+            "BUG: regression on master in groupby agg with ExtensionArray\n"
+        ],
+        "github_issue_description": [
+            "Example that I could make with DecimalArray:\n\nIn [1]: from pandas.tests.extension.decimal import DecimalArray, make_data \n\nIn [2]: df = pd.DataFrame({'id': [0,0,0,1,1], 'decimals': DecimalArray(make_data()[:5])}) \n\nIn [3]: df.groupby('id')['decimals'].agg(lambda x: x.iloc[0]) \nOut[8]: \nid\n0      0.831922765262135044395108707249164581298828125\n1    0.40839445887803604851029604105860926210880279...\ndtype: object\nOn master of a few days ago, the above returned 'decimal' dtype instead of object dtype.\n\nFound this in the geopandas test suite, as there it creates invalid output and then an error in a follow-up operation (https://travis-ci.org/geopandas/geopandas/jobs/600859374)\n\nThis seems to be caused by #29088, and specifically the change in agg_series: https://github.com/pandas-dev/pandas/pull/29088/files#diff-8c0985a9fca770c2028bed688dfc043fR653-R666\nThe self._aggregate_series_fast is giving a \"AttributeError: 'DecimalArray' object has no attribute 'flags'\" error if the series is backed by an EA, and the AttributeError is no longer catched.\n\ncc @jbrockmendel\n"
+        ]
+    }
+}

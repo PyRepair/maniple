@@ -1,0 +1,10 @@
+{
+    "matplotlib:22": {
+        "github_issue_title": [
+            "Type promotion error with datetime bins in hist\n"
+        ],
+        "github_issue_description": [
+            "Bug report\nIt appears that pyplot.hist (and I believe the equivalent axis method) does not allow lists of date or datetime objects to be used as the bin edges, even if the things being binned are dates, so:\n\nfrom datetime import datetime\n\nimport matplotlib as mpl\nfrom matplotlib import pyplot as plt\n\ndates = [\n    datetime(2019, 1, 5), datetime(2019, 1, 11), datetime(2019, 2, 1),\n    datetime(2019, 2, 5), datetime(2019, 2, 18), datetime(2019, 3, 1),\n]\n\ndate_edges = [\n    datetime(2019, 1, 1), datetime(2019, 2, 1), datetime(2019, 3, 1),\n]\n\nplt.hist(dates)   # Works\nplt.hist(dates, bins=mpl.dates.date2num(date_edges))  # Works\nplt.hist(dates, bins=date_edges)   # Fails\nThe first hist call works but doesn't specify the bins, the second one works and does what we want, but it requires actively converting date_edges. The third one should do the same thing as the second one, but instead it fails with:\n\nTypeError: '<' not supported between instances of 'float' and 'datetime.datetime'\n\nFull error message below:\n\n\u8be6\u60c5\nI think this is another manifestation of the same underlying problem we saw in #12863 (see my comments in there for some more details on that), which is that a lot of the datetime stuff converts somewhat eagerly to floats but some of it doesn't.\n\nI think this case is easier than #12863 in the sense that you can almost certainly translate this into an unambiguous point on the number line and eagerly convert the bin edges early on, depending on how matplotlib treats naive datetimes. It's possible that you may want to detect if x and bins are both naive or both aware and throw an error if they aren't, but I don't see that as a major sticking point.\n\nMatplotlib version\n\nOperating system: Linux\nMatplotlib version: 3.1.1\nMatplotlib backend (print(matplotlib.get_backend())): TkAgg\nPython version: 3.7.4\n"
+        ]
+    }
+}

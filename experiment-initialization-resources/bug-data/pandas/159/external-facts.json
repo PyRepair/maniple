@@ -1,0 +1,12 @@
+{
+    "pandas:159": {
+        "github_issue_title": [
+            "RuntimeWarning in DataFrame.div with fill_value=0\n",
+            "Bug in DataFrame.rfloordiv when alignment for different columns and index.\n"
+        ],
+        "github_issue_description": [
+            "Typically we silence these\n\nimport pandas as pd\nimport numpy as np\n\n\na = pd.DataFrame({\"A\": [0, 2], \"B\": [0, 4]})\nb = pd.DataFrame({\"A\": [0, 2], \"C\": [0, 4]}, index=[0, 2])\n\npdf1 = pd.DataFrame({'A': np.arange(10),\n                     'B': [np.nan, 1, 2, 3, 4] * 2,\n                     'C': [np.nan] * 10,\n                     'D': np.arange(10)},\n                    index=list('abcdefghij'), columns=list('ABCD'))\npdf2 = pd.DataFrame(np.random.randn(10, 4),\n                    index=list('abcdefghjk'), columns=list('ABCX'))\npdf1.div(pdf2, fill_value=0)\nouput\n\n/Users/taugspurger/sandbox/pandas/pandas/core/frame.py:5138: RuntimeWarning: divide by zero encountered in true_divide\n  return func(left, right)\n/Users/taugspurger/sandbox/pandas/pandas/core/frame.py:5138: RuntimeWarning: invalid value encountered in true_divide\n  return func(left, right)\nOut[46]:\n           A          B    C    D    X\na  -0.000000   0.000000 -0.0  NaN  0.0\nb  -1.381770  -0.870061  0.0  inf -0.0\nc  -7.686931  -5.446084  0.0  inf  0.0\nd  -5.396100   1.323770 -0.0  inf  0.0\ne   4.114989  -4.120187 -0.0  inf  0.0\nf -15.748104   0.000000  0.0  inf  0.0\ng  -7.147032   0.990337 -0.0  inf  0.0\nh  -3.421108  -3.465087  0.0  inf  0.0\ni        inf        inf  NaN  inf  NaN\nj  27.476268  40.169326 -0.0  inf -0.0\nk  -0.000000   0.000000  0.0  NaN -0.0\n",
+            "I think that .loc[0, 'A'] should be inf.\n\nIn [36]: a = pd.DataFrame({\"A\": [0, 1, 2], 'B': [1.1, None, 1.1]})\n\nIn [37]: b = pd.DataFrame({\"A\": [1.1, 1.2, 1.3]}, index=[0, 2, 3])\n\nIn [38]: a.rfloordiv(b, fill_value=1)\nOut[38]:\n     A    B\n0  NaN  0.0\n1  1.0  NaN\n2  0.0  0.0\n3  1.0  NaN\nto match\n\nIn [49]: a.rfloordiv(1.1, fill_value=1)\nOut[49]:\n     A    B\n0  inf  1.0\n1  1.0  1.0\n2  0.0  1.0\ncc @jbrockmendel\n"
+        ]
+    }
+}

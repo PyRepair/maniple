@@ -1,0 +1,10 @@
+{
+    "pandas:158": {
+        "github_issue_title": [
+            "BUG: Series.rename raises error on values accepted by Series constructor.\n"
+        ],
+        "github_issue_description": [
+            "Sample\nimport pandas as pd\n\nclass MyIndexer:\n    pass\n\ni1 = MyIndexer()\ns = pd.Series([1, 2, 3], name=i1) # allowed\ns.rename(i1) # raises error\nThe error stack trace is the following:\n\nTraceback (most recent call last):\n  File \"test.py\", line 8, in <module>\n    s.rename(i1) # raises error\n  File \"/usr/local/lib/python3.6/dist-packages/pandas/core/series.py\", line 3736, in rename\n    return super(Series, self).rename(index=index, **kwargs)\n  File \"/usr/local/lib/python3.6/dist-packages/pandas/core/generic.py\", line 1091, in rename\n    level=level)\n  File \"/usr/local/lib/python3.6/dist-packages/pandas/core/internals/managers.py\", line 171, in rename_axis\n    obj.set_axis(axis, _transform_index(self.axes[axis], mapper, level))\n  File \"/usr/local/lib/python3.6/dist-packages/pandas/core/internals/managers.py\", line 2004, in _transform_index\n    items = [func(x) for x in index]\n  File \"/usr/local/lib/python3.6/dist-packages/pandas/core/internals/managers.py\", line 2004, in <listcomp>\n    items = [func(x) for x in index]\nTypeError: 'MyIndexer' object is not callable\nDescription\nSeries.rename handle anything that isn't a scalar or list-like as a mapping.\n\nProposed change\nChange the following code (from Series.rename):\n\nnon_mapping = is_scalar(index) or (is_list_like(index) and not is_dict_like(index))\nif non_mapping:\n    return self._set_name(index, inplace=kwargs.get(\"inplace\"))\nreturn super().rename(index=index, **kwargs)\nto\n\nif callable(index) or is_dict_like(index):\n    return super().rename(index=index, **kwargs)\nelse:\n    return self._set_name(index, inplace=kwargs.get(\"inplace\"))\nso anything that isn't a dict or a callable will be treated the same way as a scalar or list-like.\n"
+        ]
+    }
+}

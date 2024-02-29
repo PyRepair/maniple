@@ -1,0 +1,10 @@
+{
+    "pandas:157": {
+        "github_issue_title": [
+            "merge_asof(): cannot use tolerance flag when the index is a TimedeltaIndex\n"
+        ],
+        "github_issue_description": [
+            "Code Sample\nimport pandas as pd \nimport numpy as np\n\nprint(\n    \"\"\"\n    \\nPandas merge_asof() bug:\n    \n    \\tUnimplemented error?\n    \\tcannot use tolerance flag when my index is a timedelta (not a timestamp)\n    \\tjust documenting so I can try to add this functionality\n        \n    \"\"\")\n\nprint(f\"pandas version: {pd.__version__}\")\nprint(f\"numpy version: {np.__version__}\")\n\ndelta_300 = pd.timedelta_range(start='0 minutes', freq='3333334 N', periods=301, name='Time')\ndelta_120 = pd.timedelta_range(start='0 minutes', freq='8333334 N', periods=301, name='Time')\n\ndf_300hz = pd.DataFrame({'my300hz_data': np.arange(301)}, index=delta_300)\ndf_120hz = pd.DataFrame({'my120hz_data': np.arange(301)}, index=delta_120)\n\nprint(df_300hz)\nprint(df_120hz) \n\n### this throws error \"pandas.errors.MergeError: key must be integer, timestamp or float\"\nmerged = pd.merge_asof(df_120hz, df_300hz, on='Time', direction='nearest', tolerance=pd.Timedelta('15 ms'))\n\n### The line below works, but output is not what I want\n# merged = pd.merge_asof(df_120hz, df_300hz, on='Time', direction='nearest')\n\nmerged.set_index('Time', inplace=True)\nprint(merged)\nProblem description\nI need to see NaNs when I merge and there is a gap in my data, without begin able to use the tolerance flag my data gets smoothed.\n\nCurrent work around, convert all my TimedeltaIndex's to a time stamp. Since I do not have a date for this data I am using unix time. This feels bulky since I am going to drop the date when I save the file anyway.\n\nExpected Output\n[301 rows x 1 columns]\nmy120hz_data my300hz_data\nTime\n00:00:00 0 0\n00:00:00.008333 1 2\n00:00:00.016666 2 5\n00:00:00.025000 3 7\n00:00:00.033333 4 10\n... ... ...\n00:00:02.466666 296 NaN\n00:00:02.475000 297 NaN\n00:00:02.483333 298 NaN\n00:00:02.491666 299 NaN\n00:00:02.500000 300 NaN\n"
+        ]
+    }
+}

@@ -1,0 +1,10 @@
+{
+    "sanic:3": {
+        "github_issue_title": [
+            "url_for() doesn't return a working URI for a blueprint route with host\n"
+        ],
+        "github_issue_description": [
+            "Describe the bug\nWhen i use blueprints with host argument and try to get url with url_for i get an incorrect url - blueprint's host is used as a path, and not as a hostname\n\nCode snippet\n\nfrom sanic import Sanic, Blueprint\nfrom sanic.response import text\n\nbp = Blueprint('bp_app', host='bp.example.com')\n\n\n@bp.route('/', name='index')\nasync def bp_index(request):\n    url = request.app.url_for('bp_app.index')\n    return text(url)\n\n\n@bp.route('/internal', name='internal')\nasync def bp_index(request):\n    url = request.app.url_for('bp_app.internal')\n    return text(url)\n\n\n@bp.route('/external', name='external')\nasync def bp_index(request):\n    url = request.app.url_for('bp_app.external', _external=True)\n    return text(url)\n\n\napp = Sanic('app_name')\napp.blueprint(bp)\n\n\nif __name__ == '__main__':\n    app.run(port=8000)\nOutput\n\n# 1\n$ curl -H \"Host:bp.example.com\" http://127.0.0.1:8000/\nbp.example.com\n\n# 2\n$ curl -H \"Host:bp.example.com\" http://127.0.0.1:8000/internal\nbp.example.com/internal\n\n# 3\n$ curl -H \"Host:bp.example.com\" http://127.0.0.1:8000/external\nhttp:///bp.example.com/external\n1 example returns hostname by like a path\n2 example returns hostname and path but it's like a path\n3 example return full url, but with no hostname (3 slashes)\n\nExpected behavior\nI'm expecting correct urls.\nFor internal urls - only path returned as stated in route.\nFor external urls - fully qualified domain name with full path\n\n1 example - /\n2 example - /internal\n3 example - http://bp.example.com/external\n\nEnvironment (please complete the following information):\n\nOS: macOS\nVersion: 19.12.2\nAdditional context\nCan't get correct place, but found some places, where it can be\napp.py#L829-L832,\napp.py#L848 (perhaps, blueprint's host should be used, and config's server name as default)\n"
+        ]
+    }
+}

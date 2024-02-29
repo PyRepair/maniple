@@ -1,0 +1,10 @@
+{
+    "fastapi:9": {
+        "github_issue_title": [
+            "OpenAPI: media_types of Body parameters and requestBody do not match\n"
+        ],
+        "github_issue_description": [
+            "Describe the bug\nThe openapi.json for requestBody definitions uses the FastAPI default media_type instead of the defined one in the Body parameter(s).\n\nTo Reproduce\nCreate a path with request body that has either a single embedded parameter or multiple ones. List media_type that is different than the default application/json is.\n\nfrom fastapi import FastAPI\nfrom starlette import status\nfrom . import schemas\n\napp = FastAPI()\n\n@app.post('/customers',\n         status_code=status.HTTP_201_CREATED,\n         )\ndef customer_create(data: schemas.Customer = Body(..., media_type='application/vnd+json.api', embed=True)):\n    created_customer = {**data.dict(), **{'id': '1'}}\n    return {'data': created_customer}\nThen verify your openapi.json.\n\n# ...\npost:\n  responses:\n    # ...\n  summary: Customer Create\n  operationId: customer_create_api_customers_post\n  requestBody:\n    content:\n      application/json: # this should be different\n        schema:\n          \"$ref\": \"#/components/schemas/Body_customer_create_api_customers_post\"\n    required: true\nExpected behavior\nThe media_type of the requestBody of given path matches the specified one:\n\n# ...\npost:\n  responses:\n    # ...\n  summary: Customer Create\n  operationId: customer_create_api_customers_post\n  requestBody:\n    content:\n      application/vnd+json.api:\n        schema:\n          \"$ref\": \"#/components/schemas/Body_customer_create_api_customers_post\"\n    required: true\nEnvironment:\n\nOS: masOS 10.14.6\nPython: 3.6.5\nFastAPI: 0.35.0\n"
+        ]
+    }
+}

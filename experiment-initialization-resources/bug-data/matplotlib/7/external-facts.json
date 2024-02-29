@@ -1,0 +1,10 @@
+{
+    "matplotlib:7": {
+        "github_issue_title": [
+            "LightSource.shade fails on a masked array\n"
+        ],
+        "github_issue_description": [
+            "Bug report\nBug summary\n\nshade fails on a masked array. The offender seems to be intensity = np.clip(intensity, 0, 1) in shade_normals, as np.clip returns a masked array with attribute mask=False and shade_rgb expects the mask attribute to be 2D.\n\nCode for reproduction\n\nimport numpy as np\nfrom matplotlib.colors import LightSource\nimport matplotlib.cm as cm\n\ndelta = 0.5\nx = np.arange(-3.0, 4.001, delta)\ny = np.arange(-4.0, 3.001, delta)\nX, Y = np.meshgrid(x, y)\nZ1 = np.exp(-X**2 - Y**2)\nZ2 = np.exp(-(X - 1)**2 - (Y - 1)**2)\nZ = Z1 - Z2\n\nmask = np.zeros(Z.shape, dtype = bool)\n\nZ = np.ma.masked_array(Z, mask = mask)\n\nls = LightSource(azdeg = 45., altdeg = 0.)\n\nrgba = ls.shade(Z, cmap = cm.get_cmap())\nActual outcome\n\n  File \"/Users/kpenner/anaconda3/envs/mpl/lib/python3.8/site-packages/matplotlib/colors.py\", line 1869, in shade\n    rgb1 = self.shade_rgb(rgb0, elevation=data, blend_mode=blend_mode,\n  File \"/Users/kpenner/anaconda3/envs/mpl/lib/python3.8/site-packages/matplotlib/colors.py\", line 1943, in shade_rgb\n    mask = intensity.mask[..., 0]\nIndexError: invalid index to scalar variable.\nExpected outcome\n\nMatplotlib version\n\nMatplotlib version: 3.2.1+2358.g9e20541c9\nPython version: 3.8\nnumpy version: 1.18.4\n"
+        ]
+    }
+}

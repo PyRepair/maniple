@@ -1,0 +1,14 @@
+{
+    "tqdm:1": {
+        "github_issue_title": [
+            "Type issue with numpy.ndenumerate\n",
+            "Do we need a tenumerate fucntion?\n",
+            "enumerate mess the tqdm.tqdm output\n"
+        ],
+        "github_issue_description": [
+            "The code:\n\nimport tqdm\nimport numpy as np\nslopes = np.linspace(2.5e8, 3.1e8, 101)\nfor i, s in np.ndenumerate(tqdm.tqdm(slopes)):\n    s/2\nGives me:\n\n---------------------------------------------------------------------------\nTypeError                                 Traceback (most recent call last)\n<ipython-input-14-07dca8068b6c> in <module>()\n      1 slopes = np.linspace(2.5e8, 3.1e8, 101)\n      2 for i,s in np.ndenumerate(tqdm.tqdm(slopes)):\n----> 3     s/2\nTypeError: unsupported operand type(s) for /: 'tqdm' and 'int'\nWhat am I doing wrong?\nThanks.\n",
+            "Hi! We use the tqdm in Catalyst a lot, thank you for this library.\n\nMy frequent case is to use tqdm together with enumerate. I keep forgetting in which order to pass what, according to this:\n\nWrapping enumerated iterables: use enumerate(tqdm(...)) instead of tqdm(enumerate(...)). The same applies to numpy.ndenumerate. This is because enumerate functions tend to hide the length of iterables. tqdm does not.\n\nMy suggestion is very simple, lets add an analog of trange: tenumerate to the standard functions. I can contribute this, the logic is very simple:\n\ndef tenumerate(iterable, **kwargs):\n    _enumerate = np.ndenumerate if isinstance(iterable, np.ndarray) else enumerate\n    return _enumerate(tqdm(iterable, **kwargs))\n I have marked all applicable categories:\n exception-raising bug\n visual output bug\n documentation request (i.e. \"X is missing from the documentation.\" If instead I want to ask \"how to use X?\" I understand StackOverflow#tqdm is more appropriate)\n new feature request\n I have visited the source website, and in particular\nread the known issues\n I have searched through the issue tracker for duplicates\n I have mentioned version numbers, operating system and\nenvironment, where applicable:\nimport tqdm, sys\nprint(tqdm.__version__, sys.version, sys.platform)\n",
+            "Use tqdm.tqdm befor enumerate will mess up the progress bar ouput\n"
+        ]
+    }
+}

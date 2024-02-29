@@ -1,0 +1,10 @@
+{
+    "pandas:139": {
+        "github_issue_title": [
+            "DataFrame groupby with categoricals and aggreggation with pd.DataFrame.sum with skipna leads to wrong column name\n"
+        ],
+        "github_issue_description": [
+            "Problem description\nConsider the following data frame:\n\ndf = pd.DataFrame(data=(('Bob', 2),  ('Greg', None), ('Greg', 6)), columns=['Name', 'Items'])\n   Name  Items\n0   Bob    2.0\n1  Greg    NaN\n2  Greg    6.0\nNow I want to group by Name and sum the Items, but I want the sum to be NaN if there are NaN elements. Due to a bug in pandas (#20824) I cannot simply do\n\ndf.groupby('Name', observed=True).sum(skipna=False).reset_index()\nbecause that results in:\n\n   Name  Items\n0   Bob    2.0\n1  Greg    6.0\nwhich is wrong because it's skipping the NaN for Greg even though it shouldn't (hence the bug). Thus I'm using the following workaround to get the correct result:\n\ndf.groupby('Name', observed=True).agg(pd.DataFrame.sum, skipna=False).reset_index()\nwhich results in the expected:\n\n   Name  Items\n0   Bob    2.0\n1  Greg    NaN\nHowever, if we change the Name column to categorical then the resulting column names are wrong:\n\ndf_cat = df.copy()\ndf_cat['Name'] = df_cat['Name'].astype('category')\ndf_cat.groupby('Name', observed=True).agg(pd.DataFrame.sum, skipna=False).reset_index()\nwhich prints:\n\n  index  Items\n0   Bob    2.0\n1  Greg    NaN\nAs you can see, the column that should be labelled Name is now called index.\n\nExpected Output\nThe same as the non-categorical version, i.e.:\n\n   Name  Items\n0   Bob    2.0\n1  Greg    NaN\n"
+        ]
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "pandas:151": {
+        "github_issue_title": [
+            "PandasArray.__setitem__ fails for strings\n",
+            "API/BUG: PandasArray __setitem__ can change underlying buffer\n"
+        ],
+        "github_issue_description": [
+            "In [3]: t = pd.array(['a', 'b', 'c'])\n\nIn [4]: t[0] = 't'\n---------------------------------------------------------------------------\nTypeError                                 Traceback (most recent call last)\n<ipython-input-4-7d1c8d6d2e6a> in <module>\n----> 1 t[0] = 't'\n\n~/sandbox/pandas/pandas/core/arrays/numpy_.py in __setitem__(self, key, value)\n    237\n    238         values = self._ndarray\n--> 239         t = np.result_type(value, values)\n    240         if t != self._ndarray.dtype:\n    241             values = values.astype(t, casting=\"safe\")\n\n<__array_function__ internals> in result_type(*args, **kwargs)\n\nTypeError: data type \"t\" not understood\n",
+            "Discussed briefly in #28119, the ndarray backing a PandasArray can be swapped out by setitem, which can have surprising behavior for views\n\narr = pd.array([1, 2, 3])\nview1 = arr.view()\nview2 = arr[:]\nview3 = np.asarray(arr)\n\narr[0] = 9\nassert view1[0] == 9\nassert view2[0] == 9 \nassert view3[0] == 9\n\narr[1] = 2.5\nview1[-1] = 5\nassert arr[-1] == 5  # FAIL\n"
+        ]
+    }
+}
