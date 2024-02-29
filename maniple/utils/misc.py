@@ -256,7 +256,7 @@ def get_import_statements(bugid_folder: Path) -> str:
 def clear_features(path: str):
     for root, dirs, files in os.walk(path):
         for file in files:
-            if file.startswith("f") and not file.startswith("f3"):
+            if file.startswith("f") and not file.startswith("f3") and file != "facts.json":
                 os.remove(os.path.join(root, file))
 
 
