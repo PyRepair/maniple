@@ -522,10 +522,10 @@ def run_single_bitvector_partition(partition_bitvectors, start_index, trial_numb
                 if not prompt_generator.exist_null_strata():
                     prompt_generator.write_prompt()
                     print(f"\ngenerate response for {project}:{bid}")
-                    token_usage = prompt_generator.generate_response(start_index, trial_number, "gpt-3.5-turbo-0125")
-
-                    with lock:
-                        total_token_usage = combine_token_usage(total_token_usage, token_usage)
+                    # token_usage = prompt_generator.generate_response(start_index, trial_number, "gpt-3.5-turbo-0125")
+                    #
+                    # with lock:
+                    #     total_token_usage = combine_token_usage(total_token_usage, token_usage)
 
 
 if __name__ == "__main__":
