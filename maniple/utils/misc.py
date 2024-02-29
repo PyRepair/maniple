@@ -84,6 +84,20 @@ def iter_bugid_folders(path: Path):
     return result
 
 
+def iter_bugid_bitvector_folders(path: Path):
+    for project_folder in path.iterdir():
+        if not project_folder.is_dir():
+            continue
+        for bugid_folder in project_folder.iterdir():
+            if not bugid_folder.is_dir():
+                continue
+            bugid = f"{project_folder.name}:{bugid_folder.name}"
+            for bitvector_folder in bugid_folder.iterdir():
+                if not bitvector_folder.is_dir():
+                    continue
+                yield (bugid, project_folder, bugid_folder, bitvector_folder)
+
+
 def remove_comments_and_docstrings(source):
     """
     Remove comments and docstrings from a Python source code string using regex.
