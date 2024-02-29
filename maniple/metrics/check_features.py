@@ -18,7 +18,7 @@ def check_for_facts_data(
     bugids = []
     for root, dirs, files in os.walk(path):
         for file in files:
-            if file == "facts.json":
+            if file == "processed-facts.json":
                 total_files += 1
                 with open(os.path.join(root, file), "r") as f:
                     data = json.load(f)

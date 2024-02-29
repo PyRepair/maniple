@@ -127,7 +127,7 @@ value, value: `{'Prop': 'Value'}`, type: `dict`
 name, value: `'--conf'`, type: `str`
 
 #### Runtime values and types of variables right before the buggy function's return
-command, value: `['--conf', 'Prop=Value']`, type: `list`
+command, value: `['--conf', '"Prop=Value"']`, type: `list`
 
 value, value: `'Value'`, type: `str`
 
@@ -140,7 +140,7 @@ value, value: `{'prop1': 'val1'}`, type: `dict`
 name, value: `'--conf'`, type: `str`
 
 #### Runtime values and types of variables right before the buggy function's return
-command, value: `['--conf', 'prop1=val1']`, type: `list`
+command, value: `['--conf', '"prop1=val1"']`, type: `list`
 
 value, value: `'val1'`, type: `str`
 

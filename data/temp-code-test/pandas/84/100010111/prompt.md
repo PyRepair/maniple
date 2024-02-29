@@ -312,13 +312,331 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-clocs, 
+clocs, expected value: `('A', 'a')`, type: `tuple`
 
-data, 
+data, expected value: `               d  e
+(A, a) (B, b)      
+a      1       1  2
+       2       1  2
+       3       1  2
+b      1       1  2
+       2       1  2
+       3       1  2
+c      1       1  2
+       2       1  2
+       3       1  2`, type: `DataFrame`
 
-data.index, 
+data.index, expected value: `MultiIndex([('a', 1),
+            ('a', 2),
+            ('a', 3),
+            ('b', 1),
+            ('b', 2),
+            ('b', 3),
+            ('c', 1),
+            ('c', 2),
+            ('c', 3)],
+           names=[('A', 'a'), ('B', 'b')])`, type: `MultiIndex`
 
-data.columns, 
+data.columns, expected value: `Index(['d', 'e'], dtype='object')`, type: `Index`
+
+#### Expected values and types of variables right before the buggy function's return
+clocs, expected value: `[0]`, type: `list`
+
+index, expected value: `MultiIndex([('a', 1),
+            ('a', 2),
+            ('a', 3),
+            ('b', 1),
+            ('b', 2),
+            ('b', 3),
+            ('c', 1),
+            ('c', 2),
+            ('c', 3)],
+           names=[('A', 'a'), ('B', 'b')])`, type: `MultiIndex`
+
+index.names, expected value: `FrozenList([('A', 'a'), ('B', 'b')])`, type: `FrozenList`
+
+rlocs, expected value: `[1]`, type: `list`
+
+index.nlevels, expected value: `2`, type: `int`
+
+clevels, expected value: `[Index(['a', 'b', 'c'], dtype='object', name=('A', 'a'))]`, type: `list`
+
+index.levels, expected value: `FrozenList([['a', 'b', 'c'], [1, 2, 3]])`, type: `FrozenList`
+
+ccodes, expected value: `[array([0, 0, 0, 1, 1, 1, 2, 2, 2], dtype=int8)]`, type: `list`
+
+index.codes, expected value: `FrozenList([[0, 0, 0, 1, 1, 1, 2, 2, 2], [0, 1, 2, 0, 1, 2, 0, 1, 2]])`, type: `FrozenList`
+
+cnames, expected value: `[('A', 'a')]`, type: `list`
+
+rlevels, expected value: `[Int64Index([1, 2, 3], dtype='int64', name=('B', 'b'))]`, type: `list`
+
+rcodes, expected value: `[array([0, 1, 2, 0, 1, 2, 0, 1, 2], dtype=int8)]`, type: `list`
+
+rnames, expected value: `[('B', 'b')]`, type: `list`
+
+shape, expected value: `[3]`, type: `list`
+
+group_index, expected value: `array([0, 0, 0, 1, 1, 1, 2, 2, 2])`, type: `ndarray`
+
+comp_ids, expected value: `array([0, 0, 0, 1, 1, 1, 2, 2, 2])`, type: `ndarray`
+
+obs_ids, expected value: `array([0, 1, 2])`, type: `ndarray`
+
+recons_codes, expected value: `[array([0, 1, 2])]`, type: `list`
+
+dummy_index, expected value: `MultiIndex([(1, 0),
+            (2, 0),
+            (3, 0),
+            (1, 1),
+            (2, 1),
+            (3, 1),
+            (1, 2),
+            (2, 2),
+            (3, 2)],
+           names=[('B', 'b'), '__placeholder__'])`, type: `MultiIndex`
+
+dummy, expected value: `                        d  e
+(B, b) __placeholder__      
+1      0                1  2
+2      0                1  2
+3      0                1  2
+1      1                1  2
+2      1                1  2
+3      1                1  2
+1      2                1  2
+2      2                1  2
+3      2                1  2`, type: `DataFrame`
+
+dummy.index, expected value: `MultiIndex([(1, 0),
+            (2, 0),
+            (3, 0),
+            (1, 1),
+            (2, 1),
+            (3, 1),
+            (1, 2),
+            (2, 2),
+            (3, 2)],
+           names=[('B', 'b'), '__placeholder__'])`, type: `MultiIndex`
+
+unstacked, expected value: `            d        e      
+('A', 'a')  a  b  c  a  b  c
+(B, b)                      
+1           1  1  1  2  2  2
+2           1  1  1  2  2  2
+3           1  1  1  2  2  2`, type: `DataFrame`
+
+new_levels, expected value: `[Index(['d', 'e'], dtype='object'), Index(['a', 'b', 'c'], dtype='object', name=('A', 'a'))]`, type: `list`
+
+new_names, expected value: `[None, ('A', 'a')]`, type: `list`
+
+new_codes, expected value: `[array([0, 0, 0, 1, 1, 1], dtype=int8), array([0, 1, 2, 0, 1, 2])]`, type: `list`
+
+unstcols, expected value: `MultiIndex([('d', 0),
+            ('d', 1),
+            ('d', 2),
+            ('e', 0),
+            ('e', 1),
+            ('e', 2)],
+           names=[None, '__placeholder__'])`, type: `MultiIndex`
+
+unstacked.index, expected value: `Int64Index([1, 2, 3], dtype='int64', name=('B', 'b'))`, type: `Int64Index`
+
+unstacked.columns, expected value: `MultiIndex([('d', 'a'),
+            ('d', 'b'),
+            ('d', 'c'),
+            ('e', 'a'),
+            ('e', 'b'),
+            ('e', 'c')],
+           names=[None, ('A', 'a')])`, type: `MultiIndex`
+
+unstcols.levels, expected value: `FrozenList([['d', 'e'], [0, 1, 2]])`, type: `FrozenList`
+
+unstcols.codes, expected value: `FrozenList([[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]])`, type: `FrozenList`
+
+rec, expected value: `array([0, 1, 2])`, type: `ndarray`
+
+new_columns, expected value: `MultiIndex([('d', 'a'),
+            ('d', 'b'),
+            ('d', 'c'),
+            ('e', 'a'),
+            ('e', 'b'),
+            ('e', 'c')],
+           names=[None, ('A', 'a')])`, type: `MultiIndex`
+
+### Expected case 2
+#### The values and types of buggy function's parameters
+clocs, expected value: `('A', 'a')`, type: `tuple`
+
+data, expected value: `            d  e
+(A, a) B C      
+a      1 3  1  2
+         4  1  2
+       2 3  1  2
+         4  1  2
+b      1 3  1  2
+         4  1  2
+       2 3  1  2
+         4  1  2`, type: `DataFrame`
+
+data.index, expected value: `MultiIndex([('a', 1, 3),
+            ('a', 1, 4),
+            ('a', 2, 3),
+            ('a', 2, 4),
+            ('b', 1, 3),
+            ('b', 1, 4),
+            ('b', 2, 3),
+            ('b', 2, 4)],
+           names=[('A', 'a'), 'B', 'C'])`, type: `MultiIndex`
+
+data.columns, expected value: `Index(['d', 'e'], dtype='object')`, type: `Index`
+
+#### Expected values and types of variables right before the buggy function's return
+clocs, expected value: `[0]`, type: `list`
+
+index, expected value: `MultiIndex([('a', 1, 3),
+            ('a', 1, 4),
+            ('a', 2, 3),
+            ('a', 2, 4),
+            ('b', 1, 3),
+            ('b', 1, 4),
+            ('b', 2, 3),
+            ('b', 2, 4)],
+           names=[('A', 'a'), 'B', 'C'])`, type: `MultiIndex`
+
+index.names, expected value: `FrozenList([('A', 'a'), 'B', 'C'])`, type: `FrozenList`
+
+rlocs, expected value: `[1, 2]`, type: `list`
+
+index.nlevels, expected value: `3`, type: `int`
+
+clevels, expected value: `[Index(['a', 'b'], dtype='object', name=('A', 'a'))]`, type: `list`
+
+index.levels, expected value: `FrozenList([['a', 'b'], [1, 2], [3, 4]])`, type: `FrozenList`
+
+ccodes, expected value: `[array([0, 0, 0, 0, 1, 1, 1, 1], dtype=int8)]`, type: `list`
+
+index.codes, expected value: `FrozenList([[0, 0, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 0, 1, 1], [0, 1, 0, 1, 0, 1, 0, 1]])`, type: `FrozenList`
+
+cnames, expected value: `[('A', 'a')]`, type: `list`
+
+rlevels, expected value: `[Int64Index([1, 2], dtype='int64', name='B'), Int64Index([3, 4], dtype='int64', name='C')]`, type: `list`
+
+rcodes, expected value: `[array([0, 0, 1, 1, 0, 0, 1, 1], dtype=int8), array([0, 1, 0, 1, 0, 1, 0, 1], dtype=int8)]`, type: `list`
+
+rnames, expected value: `['B', 'C']`, type: `list`
+
+shape, expected value: `[2]`, type: `list`
+
+group_index, expected value: `array([0, 0, 0, 0, 1, 1, 1, 1])`, type: `ndarray`
+
+comp_ids, expected value: `array([0, 0, 0, 0, 1, 1, 1, 1])`, type: `ndarray`
+
+obs_ids, expected value: `array([0, 1])`, type: `ndarray`
+
+recons_codes, expected value: `[array([0, 1])]`, type: `list`
+
+dummy_index, expected value: `MultiIndex([(1, 3, 0),
+            (1, 4, 0),
+            (2, 3, 0),
+            (2, 4, 0),
+            (1, 3, 1),
+            (1, 4, 1),
+            (2, 3, 1),
+            (2, 4, 1)],
+           names=['B', 'C', '__placeholder__'])`, type: `MultiIndex`
+
+dummy, expected value: `                     d  e
+B C __placeholder__      
+1 3 0                1  2
+  4 0                1  2
+2 3 0                1  2
+  4 0                1  2
+1 3 1                1  2
+  4 1                1  2
+2 3 1                1  2
+  4 1                1  2`, type: `DataFrame`
+
+dummy.index, expected value: `MultiIndex([(1, 3, 0),
+            (1, 4, 0),
+            (2, 3, 0),
+            (2, 4, 0),
+            (1, 3, 1),
+            (1, 4, 1),
+            (2, 3, 1),
+            (2, 4, 1)],
+           names=['B', 'C', '__placeholder__'])`, type: `MultiIndex`
+
+unstacked, expected value: `            d     e   
+('A', 'a')  a  b  a  b
+B C                   
+1 3         1  1  2  2
+  4         1  1  2  2
+2 3         1  1  2  2
+  4         1  1  2  2`, type: `DataFrame`
+
+new_levels, expected value: `[Index(['d', 'e'], dtype='object'), Index(['a', 'b'], dtype='object', name=('A', 'a'))]`, type: `list`
+
+new_names, expected value: `[None, ('A', 'a')]`, type: `list`
+
+new_codes, expected value: `[array([0, 0, 1, 1], dtype=int8), array([0, 1, 0, 1])]`, type: `list`
+
+unstcols, expected value: `MultiIndex([('d', 0),
+            ('d', 1),
+            ('e', 0),
+            ('e', 1)],
+           names=[None, '__placeholder__'])`, type: `MultiIndex`
+
+unstacked.index, expected value: `MultiIndex([(1, 3),
+            (1, 4),
+            (2, 3),
+            (2, 4)],
+           names=['B', 'C'])`, type: `MultiIndex`
+
+unstacked.columns, expected value: `MultiIndex([('d', 'a'),
+            ('d', 'b'),
+            ('e', 'a'),
+            ('e', 'b')],
+           names=[None, ('A', 'a')])`, type: `MultiIndex`
+
+unstcols.levels, expected value: `FrozenList([['d', 'e'], [0, 1]])`, type: `FrozenList`
+
+unstcols.codes, expected value: `FrozenList([[0, 0, 1, 1], [0, 1, 0, 1]])`, type: `FrozenList`
+
+rec, expected value: `array([0, 1])`, type: `ndarray`
+
+new_columns, expected value: `MultiIndex([('d', 'a'),
+            ('d', 'b'),
+            ('e', 'a'),
+            ('e', 'b')],
+           names=[None, ('A', 'a')])`, type: `MultiIndex`
+
+### Expected case 3
+#### The values and types of buggy function's parameters
+clocs, expected value: `(('A', 'a'), 'B')`, type: `tuple`
+
+data, expected value: `            d  e
+(A, a) B C      
+a      1 3  1  2
+         4  1  2
+       2 3  1  2
+         4  1  2
+b      1 3  1  2
+         4  1  2
+       2 3  1  2
+         4  1  2`, type: `DataFrame`
+
+data.index, expected value: `MultiIndex([('a', 1, 3),
+            ('a', 1, 4),
+            ('a', 2, 3),
+            ('a', 2, 4),
+            ('b', 1, 3),
+            ('b', 1, 4),
+            ('b', 2, 3),
+            ('b', 2, 4)],
+           names=[('A', 'a'), 'B', 'C'])`, type: `MultiIndex`
+
+data.columns, expected value: `Index(['d', 'e'], dtype='object')`, type: `Index`
 
 #### Expected values and types of variables right before the buggy function's return
 clocs, expected value: `[0, 1]`, type: `list`
@@ -333,6 +651,8 @@ index, expected value: `MultiIndex([('a', 1, 3),
             ('b', 2, 4)],
            names=[('A', 'a'), 'B', 'C'])`, type: `MultiIndex`
 
+index.names, expected value: `FrozenList([('A', 'a'), 'B', 'C'])`, type: `FrozenList`
+
 rlocs, expected value: `[2]`, type: `list`
 
 index.nlevels, expected value: `3`, type: `int`
@@ -346,8 +666,6 @@ ccodes, expected value: `[array([0, 0, 0, 0, 1, 1, 1, 1], dtype=int8), array([0,
 index.codes, expected value: `FrozenList([[0, 0, 0, 0, 1, 1, 1, 1], [0, 0, 1, 1, 0, 0, 1, 1], [0, 1, 0, 1, 0, 1, 0, 1]])`, type: `FrozenList`
 
 cnames, expected value: `[('A', 'a'), 'B']`, type: `list`
-
-index.names, expected value: `FrozenList([('A', 'a'), 'B', 'C'])`, type: `FrozenList`
 
 rlevels, expected value: `[Int64Index([3, 4], dtype='int64', name='C')]`, type: `list`
 

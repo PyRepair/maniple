@@ -134,30 +134,5 @@ in_range, value: `array([False, False, False])`, type: `ndarray`
 
 new_data._values, value: `array([0, 1, 2])`, type: `ndarray`
 
-### Case 2
-#### Runtime values and types of the input parameters of the buggy function
-data, value: `0     True
-1     True
-2    False
-dtype: bool`, type: `Series`
-
-self.min_stamp, value: `31536000`, type: `int`
-
-self._STAMP_UNITS, value: `('s', 'ms', 'us', 'ns')`, type: `tuple`
-
-#### Runtime values and types of variables right before the buggy function's return
-new_data, value: `0     True
-1     True
-2    False
-dtype: bool`, type: `Series`
-
-new_data.dtype, value: `dtype('bool')`, type: `dtype`
-
-new_data._values, value: `array([ True,  True, False])`, type: `ndarray`
-
-date_units, value: `('s', 'ms', 'us', 'ns')`, type: `tuple`
-
-date_unit, value: `'ns'`, type: `str`
-
 
 

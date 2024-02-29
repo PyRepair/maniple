@@ -271,27 +271,34 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-obj, 
+obj, expected value: `x  10  20  10  20
+y                
+0   0   1   2   3
+1   4   5   6   7
+0   8   9  10  11`, type: `DataFrame`
 
-axis, 
+axis, expected value: `1`, type: `int`
 
-key, 
+key, expected value: `'x'`, type: `str`
 
-obj.index, 
+obj.index, expected value: `Int64Index([0, 1, 0], dtype='int64', name='y')`, type: `Int64Index`
 
-obj.columns, 
+obj.columns, expected value: `Int64Index([10, 20, 10, 20], dtype='int64', name='x')`, type: `Int64Index`
 
-obj._data, 
+obj._data, expected value: `BlockManager
+Items: Int64Index([10, 20, 10, 20], dtype='int64', name='x')
+Axis 1: Int64Index([0, 1, 0], dtype='int64', name='y')
+IntBlock: slice(0, 4, 1), 4 x 3, dtype: int64`, type: `BlockManager`
 
-validate, 
+validate, expected value: `True`, type: `bool`
 
-obj.shape, 
+obj.shape, expected value: `(3, 4)`, type: `tuple`
 
-sort, 
+sort, expected value: `True`, type: `bool`
 
-observed, 
+observed, expected value: `False`, type: `bool`
 
-mutated, 
+mutated, expected value: `False`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
 group_axis, expected value: `Int64Index([10, 20, 10, 20], dtype='int64', name='x')`, type: `Int64Index`
@@ -322,30 +329,465 @@ i, expected value: `0`, type: `int`
 
 ### Expected case 2
 #### The values and types of buggy function's parameters
-obj, 
+obj, expected value: `y   0  1   0
+x           
+10  0  4   8
+20  1  5   9
+10  2  6  10
+20  3  7  11`, type: `DataFrame`
 
-axis, 
+axis, expected value: `0`, type: `int`
 
-key, 
+key, expected value: `'x'`, type: `str`
 
-obj.index, 
+obj.index, expected value: `Int64Index([10, 20, 10, 20], dtype='int64', name='x')`, type: `Int64Index`
 
-obj.columns, 
+obj.columns, expected value: `Int64Index([0, 1, 0], dtype='int64', name='y')`, type: `Int64Index`
 
-obj._data, 
+obj._data, expected value: `BlockManager
+Items: Int64Index([0, 1, 0], dtype='int64', name='y')
+Axis 1: Int64Index([10, 20, 10, 20], dtype='int64', name='x')
+IntBlock: slice(0, 3, 1), 3 x 4, dtype: int64`, type: `BlockManager`
 
-validate, 
+validate, expected value: `True`, type: `bool`
 
-obj.shape, 
+obj.shape, expected value: `(4, 3)`, type: `tuple`
 
-sort, 
+sort, expected value: `True`, type: `bool`
 
-observed, 
+observed, expected value: `False`, type: `bool`
 
-mutated, 
+mutated, expected value: `False`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
 group_axis, expected value: `Int64Index([10, 20, 10, 20], dtype='int64', name='x')`, type: `Int64Index`
+
+is_tuple, expected value: `False`, type: `bool`
+
+all_hashable, expected value: `False`, type: `bool`
+
+keys, expected value: `['x']`, type: `list`
+
+match_axis_length, expected value: `False`, type: `bool`
+
+any_callable, expected value: `False`, type: `bool`
+
+any_groupers, expected value: `False`, type: `bool`
+
+any_arraylike, expected value: `False`, type: `bool`
+
+levels, expected value: `[None]`, type: `list`
+
+groupings, expected value: `[]`, type: `list`
+
+exclusions, expected value: `[]`, type: `list`
+
+gpr, expected value: `'x'`, type: `str`
+
+i, expected value: `0`, type: `int`
+
+### Expected case 3
+#### The values and types of buggy function's parameters
+obj, expected value: `x  bar     baz     foo    
+x1 one two one two one two
+0    0   1   2   3   4   5
+1    6   7   8   9  10  11
+0   12  13  14  15  16  17`, type: `DataFrame`
+
+axis, expected value: `1`, type: `int`
+
+key, expected value: `'x'`, type: `str`
+
+obj.index, expected value: `Int64Index([0, 1, 0], dtype='int64')`, type: `Int64Index`
+
+obj.columns, expected value: `MultiIndex([('bar', 'one'),
+            ('bar', 'two'),
+            ('baz', 'one'),
+            ('baz', 'two'),
+            ('foo', 'one'),
+            ('foo', 'two')],
+           names=['x', 'x1'])`, type: `MultiIndex`
+
+obj._data, expected value: `BlockManager
+Items: MultiIndex([('bar', 'one'),
+            ('bar', 'two'),
+            ('baz', 'one'),
+            ('baz', 'two'),
+            ('foo', 'one'),
+            ('foo', 'two')],
+           names=['x', 'x1'])
+Axis 1: Int64Index([0, 1, 0], dtype='int64')
+IntBlock: slice(0, 6, 1), 6 x 3, dtype: int64`, type: `BlockManager`
+
+validate, expected value: `True`, type: `bool`
+
+obj.shape, expected value: `(3, 6)`, type: `tuple`
+
+sort, expected value: `True`, type: `bool`
+
+observed, expected value: `False`, type: `bool`
+
+mutated, expected value: `False`, type: `bool`
+
+#### Expected values and types of variables right before the buggy function's return
+group_axis, expected value: `MultiIndex([('bar', 'one'),
+            ('bar', 'two'),
+            ('baz', 'one'),
+            ('baz', 'two'),
+            ('foo', 'one'),
+            ('foo', 'two')],
+           names=['x', 'x1'])`, type: `MultiIndex`
+
+is_tuple, expected value: `False`, type: `bool`
+
+all_hashable, expected value: `False`, type: `bool`
+
+keys, expected value: `['x']`, type: `list`
+
+match_axis_length, expected value: `False`, type: `bool`
+
+any_callable, expected value: `False`, type: `bool`
+
+any_groupers, expected value: `False`, type: `bool`
+
+any_arraylike, expected value: `False`, type: `bool`
+
+levels, expected value: `[None]`, type: `list`
+
+groupings, expected value: `[]`, type: `list`
+
+exclusions, expected value: `[]`, type: `list`
+
+gpr, expected value: `'x'`, type: `str`
+
+i, expected value: `0`, type: `int`
+
+### Expected case 4
+#### The values and types of buggy function's parameters
+obj, expected value: `         0   1   0
+x   x1            
+bar one  0   6  12
+    two  1   7  13
+baz one  2   8  14
+    two  3   9  15
+foo one  4  10  16
+    two  5  11  17`, type: `DataFrame`
+
+axis, expected value: `0`, type: `int`
+
+key, expected value: `'x'`, type: `str`
+
+obj.index, expected value: `MultiIndex([('bar', 'one'),
+            ('bar', 'two'),
+            ('baz', 'one'),
+            ('baz', 'two'),
+            ('foo', 'one'),
+            ('foo', 'two')],
+           names=['x', 'x1'])`, type: `MultiIndex`
+
+obj.columns, expected value: `Int64Index([0, 1, 0], dtype='int64')`, type: `Int64Index`
+
+obj._data, expected value: `BlockManager
+Items: Int64Index([0, 1, 0], dtype='int64')
+Axis 1: MultiIndex([('bar', 'one'),
+            ('bar', 'two'),
+            ('baz', 'one'),
+            ('baz', 'two'),
+            ('foo', 'one'),
+            ('foo', 'two')],
+           names=['x', 'x1'])
+IntBlock: slice(0, 3, 1), 3 x 6, dtype: int64`, type: `BlockManager`
+
+validate, expected value: `True`, type: `bool`
+
+obj.shape, expected value: `(6, 3)`, type: `tuple`
+
+sort, expected value: `True`, type: `bool`
+
+observed, expected value: `False`, type: `bool`
+
+mutated, expected value: `False`, type: `bool`
+
+#### Expected values and types of variables right before the buggy function's return
+group_axis, expected value: `MultiIndex([('bar', 'one'),
+            ('bar', 'two'),
+            ('baz', 'one'),
+            ('baz', 'two'),
+            ('foo', 'one'),
+            ('foo', 'two')],
+           names=['x', 'x1'])`, type: `MultiIndex`
+
+is_tuple, expected value: `False`, type: `bool`
+
+all_hashable, expected value: `False`, type: `bool`
+
+keys, expected value: `['x']`, type: `list`
+
+match_axis_length, expected value: `False`, type: `bool`
+
+any_callable, expected value: `False`, type: `bool`
+
+any_groupers, expected value: `False`, type: `bool`
+
+any_arraylike, expected value: `False`, type: `bool`
+
+levels, expected value: `[None]`, type: `list`
+
+groupings, expected value: `[]`, type: `list`
+
+exclusions, expected value: `[]`, type: `list`
+
+gpr, expected value: `'x'`, type: `str`
+
+i, expected value: `0`, type: `int`
+
+### Expected case 5
+#### The values and types of buggy function's parameters
+obj, expected value: `x  10  20  10  20
+y                
+0   0   1   2   3
+1   4   5   6   7
+0   8   9  10  11`, type: `DataFrame`
+
+axis, expected value: `1`, type: `int`
+
+key, expected value: `['x']`, type: `list`
+
+obj.index, expected value: `Int64Index([0, 1, 0], dtype='int64', name='y')`, type: `Int64Index`
+
+obj.columns, expected value: `Int64Index([10, 20, 10, 20], dtype='int64', name='x')`, type: `Int64Index`
+
+obj._data, expected value: `BlockManager
+Items: Int64Index([10, 20, 10, 20], dtype='int64', name='x')
+Axis 1: Int64Index([0, 1, 0], dtype='int64', name='y')
+IntBlock: slice(0, 4, 1), 4 x 3, dtype: int64`, type: `BlockManager`
+
+validate, expected value: `True`, type: `bool`
+
+obj.shape, expected value: `(3, 4)`, type: `tuple`
+
+sort, expected value: `True`, type: `bool`
+
+observed, expected value: `False`, type: `bool`
+
+mutated, expected value: `False`, type: `bool`
+
+#### Expected values and types of variables right before the buggy function's return
+group_axis, expected value: `Int64Index([10, 20, 10, 20], dtype='int64', name='x')`, type: `Int64Index`
+
+is_tuple, expected value: `False`, type: `bool`
+
+all_hashable, expected value: `False`, type: `bool`
+
+keys, expected value: `['x']`, type: `list`
+
+match_axis_length, expected value: `False`, type: `bool`
+
+any_callable, expected value: `False`, type: `bool`
+
+any_groupers, expected value: `False`, type: `bool`
+
+any_arraylike, expected value: `False`, type: `bool`
+
+levels, expected value: `[None]`, type: `list`
+
+groupings, expected value: `[]`, type: `list`
+
+exclusions, expected value: `[]`, type: `list`
+
+gpr, expected value: `'x'`, type: `str`
+
+i, expected value: `0`, type: `int`
+
+### Expected case 6
+#### The values and types of buggy function's parameters
+obj, expected value: `y   0  1   0
+x           
+10  0  4   8
+20  1  5   9
+10  2  6  10
+20  3  7  11`, type: `DataFrame`
+
+axis, expected value: `0`, type: `int`
+
+key, expected value: `['x']`, type: `list`
+
+obj.index, expected value: `Int64Index([10, 20, 10, 20], dtype='int64', name='x')`, type: `Int64Index`
+
+obj.columns, expected value: `Int64Index([0, 1, 0], dtype='int64', name='y')`, type: `Int64Index`
+
+obj._data, expected value: `BlockManager
+Items: Int64Index([0, 1, 0], dtype='int64', name='y')
+Axis 1: Int64Index([10, 20, 10, 20], dtype='int64', name='x')
+IntBlock: slice(0, 3, 1), 3 x 4, dtype: int64`, type: `BlockManager`
+
+validate, expected value: `True`, type: `bool`
+
+obj.shape, expected value: `(4, 3)`, type: `tuple`
+
+sort, expected value: `True`, type: `bool`
+
+observed, expected value: `False`, type: `bool`
+
+mutated, expected value: `False`, type: `bool`
+
+#### Expected values and types of variables right before the buggy function's return
+group_axis, expected value: `Int64Index([10, 20, 10, 20], dtype='int64', name='x')`, type: `Int64Index`
+
+is_tuple, expected value: `False`, type: `bool`
+
+all_hashable, expected value: `False`, type: `bool`
+
+keys, expected value: `['x']`, type: `list`
+
+match_axis_length, expected value: `False`, type: `bool`
+
+any_callable, expected value: `False`, type: `bool`
+
+any_groupers, expected value: `False`, type: `bool`
+
+any_arraylike, expected value: `False`, type: `bool`
+
+levels, expected value: `[None]`, type: `list`
+
+groupings, expected value: `[]`, type: `list`
+
+exclusions, expected value: `[]`, type: `list`
+
+gpr, expected value: `'x'`, type: `str`
+
+i, expected value: `0`, type: `int`
+
+### Expected case 7
+#### The values and types of buggy function's parameters
+obj, expected value: `x  bar     baz     foo    
+x1 one two one two one two
+0    0   1   2   3   4   5
+1    6   7   8   9  10  11
+0   12  13  14  15  16  17`, type: `DataFrame`
+
+axis, expected value: `1`, type: `int`
+
+key, expected value: `['x']`, type: `list`
+
+obj.index, expected value: `Int64Index([0, 1, 0], dtype='int64')`, type: `Int64Index`
+
+obj.columns, expected value: `MultiIndex([('bar', 'one'),
+            ('bar', 'two'),
+            ('baz', 'one'),
+            ('baz', 'two'),
+            ('foo', 'one'),
+            ('foo', 'two')],
+           names=['x', 'x1'])`, type: `MultiIndex`
+
+obj._data, expected value: `BlockManager
+Items: MultiIndex([('bar', 'one'),
+            ('bar', 'two'),
+            ('baz', 'one'),
+            ('baz', 'two'),
+            ('foo', 'one'),
+            ('foo', 'two')],
+           names=['x', 'x1'])
+Axis 1: Int64Index([0, 1, 0], dtype='int64')
+IntBlock: slice(0, 6, 1), 6 x 3, dtype: int64`, type: `BlockManager`
+
+validate, expected value: `True`, type: `bool`
+
+obj.shape, expected value: `(3, 6)`, type: `tuple`
+
+sort, expected value: `True`, type: `bool`
+
+observed, expected value: `False`, type: `bool`
+
+mutated, expected value: `False`, type: `bool`
+
+#### Expected values and types of variables right before the buggy function's return
+group_axis, expected value: `MultiIndex([('bar', 'one'),
+            ('bar', 'two'),
+            ('baz', 'one'),
+            ('baz', 'two'),
+            ('foo', 'one'),
+            ('foo', 'two')],
+           names=['x', 'x1'])`, type: `MultiIndex`
+
+is_tuple, expected value: `False`, type: `bool`
+
+all_hashable, expected value: `False`, type: `bool`
+
+keys, expected value: `['x']`, type: `list`
+
+match_axis_length, expected value: `False`, type: `bool`
+
+any_callable, expected value: `False`, type: `bool`
+
+any_groupers, expected value: `False`, type: `bool`
+
+any_arraylike, expected value: `False`, type: `bool`
+
+levels, expected value: `[None]`, type: `list`
+
+groupings, expected value: `[]`, type: `list`
+
+exclusions, expected value: `[]`, type: `list`
+
+gpr, expected value: `'x'`, type: `str`
+
+i, expected value: `0`, type: `int`
+
+### Expected case 8
+#### The values and types of buggy function's parameters
+obj, expected value: `         0   1   0
+x   x1            
+bar one  0   6  12
+    two  1   7  13
+baz one  2   8  14
+    two  3   9  15
+foo one  4  10  16
+    two  5  11  17`, type: `DataFrame`
+
+axis, expected value: `0`, type: `int`
+
+key, expected value: `['x']`, type: `list`
+
+obj.index, expected value: `MultiIndex([('bar', 'one'),
+            ('bar', 'two'),
+            ('baz', 'one'),
+            ('baz', 'two'),
+            ('foo', 'one'),
+            ('foo', 'two')],
+           names=['x', 'x1'])`, type: `MultiIndex`
+
+obj.columns, expected value: `Int64Index([0, 1, 0], dtype='int64')`, type: `Int64Index`
+
+obj._data, expected value: `BlockManager
+Items: Int64Index([0, 1, 0], dtype='int64')
+Axis 1: MultiIndex([('bar', 'one'),
+            ('bar', 'two'),
+            ('baz', 'one'),
+            ('baz', 'two'),
+            ('foo', 'one'),
+            ('foo', 'two')],
+           names=['x', 'x1'])
+IntBlock: slice(0, 3, 1), 3 x 6, dtype: int64`, type: `BlockManager`
+
+validate, expected value: `True`, type: `bool`
+
+obj.shape, expected value: `(6, 3)`, type: `tuple`
+
+sort, expected value: `True`, type: `bool`
+
+observed, expected value: `False`, type: `bool`
+
+mutated, expected value: `False`, type: `bool`
+
+#### Expected values and types of variables right before the buggy function's return
+group_axis, expected value: `MultiIndex([('bar', 'one'),
+            ('bar', 'two'),
+            ('baz', 'one'),
+            ('baz', 'two'),
+            ('foo', 'one'),
+            ('foo', 'two')],
+           names=['x', 'x1'])`, type: `MultiIndex`
 
 is_tuple, expected value: `False`, type: `bool`
 

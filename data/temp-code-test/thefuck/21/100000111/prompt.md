@@ -32,11 +32,17 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-command.script, 
+command.script, expected value: `'git'`, type: `str`
 
-command, 
+command, expected value: `Command(script=git, stdout=, stderr=
+usage: git stash list [<options>]
+   or: git stash show [<stash>]
+   or: git stash drop [-q`, type: `Command`
 
-command.stderr, 
+command.stderr, expected value: `'\nusage: git stash list [<options>]\n   or: git stash show [<stash>]\n   or: git stash drop [-q`, type: `str`
+
+#### Expected values and types of variables right before the buggy function's return
+splited_script, expected value: `['git']`, type: `list`
 
 
 

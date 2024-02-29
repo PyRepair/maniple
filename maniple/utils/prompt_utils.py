@@ -33,7 +33,7 @@ class Processor:
         with open(bug_folder / "facts-in-prompt.json") as f:
             self.facts_in_prompt = json.load(f)
 
-        with open(bug_folder / "bug-data.json") as f:
+        with open(bug_folder / "static-dynamic-facts.json") as f:
             json_data = json.load(f)
             __tmp0 = list(json_data[bugid].values())[0]
             self.function_source_code = __tmp0["buggy_functions"][0]["function_code"]
@@ -41,7 +41,7 @@ class Processor:
                 bugid, list(json_data[bugid].keys())[0]
             )
 
-        with open(bug_folder / "facts.json") as f:
+        with open(bug_folder / "processed-facts.json") as f:
             self.fact_data = json.load(f)
 
         title = "### The error message from the failing test"

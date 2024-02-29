@@ -131,7 +131,7 @@ def check(path: str, top=None, verbose=None):
         bugid = ":".join(parts[-2:])
 
         for file in files:
-            if "facts.json" == file:
+            if "processed-facts.json" == file:
                 total_bugs += 1
 
             if "response" in file and file.endswith(".json"):

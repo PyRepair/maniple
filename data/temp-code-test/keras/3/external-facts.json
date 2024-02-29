@@ -1,0 +1,10 @@
+{
+    "keras:3": {
+        "github_issue_title": [
+            "'Could not compute output Tensor' error when I\u2018m using clone_model()\n"
+        ],
+        "github_issue_description": [
+            "Hi guys, I think I just met a bug.\nThere was something wrong when I was using multi_gpu_model with cpu_relocation=True. After analyzing the traceback I think it is a bug inside keras.models.clone_model\nThe script below can reproduce it\n\nfrom keras.models import Model, clone_model\nfrom keras.layers import Input, Add, Lambda\nfrom keras.utils import multi_gpu_model\n\n\ndef build_model():\n    input_layer = Input(shape=(1,))\n    test1, test2 = Lambda(lambda x: [x, x])(input_layer)\n    add = Add()([test1, test2])\n    model = Model(inputs=[input_layer], outputs=[add])\n    return model\n\n\nif __name__ == '__main__':\n    model = build_model()\n    model = clone_model(model)\n    # model = multi_gpu_model(model, cpu_relocation=True)  # it uses clone_model when set cpu_relocation=True\nIf I didn't make any mistake, the script will raise AssertionError: Could not compute output Tensor(\"add_1/add:0\", shape=(?, 1), dtype=float32)\n\nMy environment:\n\nKeras 2.2.4\ntensorflow 1.12.0\nI met the error on both 4 GTX1080tis and my own laptop with a GTX1060MQ\n\nI noticed that output_masks here will always be [None](but [None, None] is expected)\nkeras/keras/models.py\n\nLine 157 in a139716\n\n for x, y, mask in zip(reference_output_tensors, \nand that's because layer.compute_mask(...) will always return None since Lambda doesn't support using masks\nkeras/keras/models.py\n\nLine 153 in a139716\n\n output_masks = to_list( \nSo if I'm using a functional model with a layer which has more outputs without a mask support, I think the error can appear.\n\nP.S. thanks a lot for your brilliant works :)\nFrom my perspective, Keras is an amazing gift to everyone. Thank you all!\n"
+        ]
+    }
+}

@@ -40,7 +40,7 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, actual_grou
     #         "total_tokens": 0
     #     }
 
-    with open(os.path.join(bug_dir, "bug-data.json"), "r") as bug_data_file:
+    with open(os.path.join(bug_dir, "static-dynamic-facts.json"), "r") as bug_data_file:
         bug_data: dict = next(iter(json.load(bug_data_file).values()))
         user_dir: str = list(bug_data)[0]
         buggy_function_name: str = bug_data[user_dir]["buggy_functions"][0]["function_name"]

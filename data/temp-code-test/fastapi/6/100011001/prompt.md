@@ -156,9 +156,9 @@ required_params, value: `[ModelField(name='items', type=list, required=True)]`, 
 received_body, value: `FormData([('items', 'first'), ('items', 'second'), ('items', 'third')])`, type: `FormData`
 
 #### Runtime values and types of variables right before the buggy function's return
-values, value: `{'items': ['first', 'second', 'third']}`, type: `dict`
+values, value: `{}`, type: `dict`
 
-errors, value: `[]`, type: `list`
+errors, value: `[ErrorWrapper(exc=ListError(), loc=('body', 'items'))]`, type: `list`
 
 field, value: `ModelField(name='items', type=list, required=True)`, type: `ModelField`
 
@@ -168,7 +168,7 @@ embed, value: `True`, type: `bool`
 
 field.alias, value: `'items'`, type: `str`
 
-value, value: `['first', 'second', 'third']`, type: `list`
+value, value: `'third'`, type: `str`
 
 field.shape, value: `1`, type: `int`
 
@@ -176,7 +176,9 @@ field.required, value: `True`, type: `bool`
 
 field.name, value: `'items'`, type: `str`
 
-v_, value: `['first', 'second', 'third']`, type: `list`
+v_, value: `'third'`, type: `str`
+
+errors_, value: `ErrorWrapper(exc=ListError(), loc=('body', 'items'))`, type: `ErrorWrapper`
 
 ### Case 2
 #### Runtime values and types of the input parameters of the buggy function
@@ -185,9 +187,9 @@ required_params, value: `[ModelField(name='items', type=set, required=True)]`, t
 received_body, value: `FormData([('items', 'first'), ('items', 'second'), ('items', 'third')])`, type: `FormData`
 
 #### Runtime values and types of variables right before the buggy function's return
-values, value: `{'items': {'first', 'second', 'third'}}`, type: `dict`
+values, value: `{}`, type: `dict`
 
-errors, value: `[]`, type: `list`
+errors, value: `[ErrorWrapper(exc=SetError(), loc=('body', 'items'))]`, type: `list`
 
 field, value: `ModelField(name='items', type=set, required=True)`, type: `ModelField`
 
@@ -197,7 +199,7 @@ embed, value: `True`, type: `bool`
 
 field.alias, value: `'items'`, type: `str`
 
-value, value: `['first', 'second', 'third']`, type: `list`
+value, value: `'third'`, type: `str`
 
 field.shape, value: `1`, type: `int`
 
@@ -205,7 +207,9 @@ field.required, value: `True`, type: `bool`
 
 field.name, value: `'items'`, type: `str`
 
-v_, value: `{'first', 'second', 'third'}`, type: `set`
+v_, value: `'third'`, type: `str`
+
+errors_, value: `ErrorWrapper(exc=SetError(), loc=('body', 'items'))`, type: `ErrorWrapper`
 
 ### Case 3
 #### Runtime values and types of the input parameters of the buggy function
@@ -214,9 +218,9 @@ required_params, value: `[ModelField(name='items', type=tuple, required=True)]`,
 received_body, value: `FormData([('items', 'first'), ('items', 'second'), ('items', 'third')])`, type: `FormData`
 
 #### Runtime values and types of variables right before the buggy function's return
-values, value: `{'items': ('first', 'second', 'third')}`, type: `dict`
+values, value: `{}`, type: `dict`
 
-errors, value: `[]`, type: `list`
+errors, value: `[ErrorWrapper(exc=TupleError(), loc=('body', 'items'))]`, type: `list`
 
 field, value: `ModelField(name='items', type=tuple, required=True)`, type: `ModelField`
 
@@ -226,7 +230,7 @@ embed, value: `True`, type: `bool`
 
 field.alias, value: `'items'`, type: `str`
 
-value, value: `['first', 'second', 'third']`, type: `list`
+value, value: `'third'`, type: `str`
 
 field.shape, value: `1`, type: `int`
 
@@ -234,7 +238,9 @@ field.required, value: `True`, type: `bool`
 
 field.name, value: `'items'`, type: `str`
 
-v_, value: `('first', 'second', 'third')`, type: `tuple`
+v_, value: `'third'`, type: `str`
+
+errors_, value: `ErrorWrapper(exc=TupleError(), loc=('body', 'items'))`, type: `ErrorWrapper`
 
 
 

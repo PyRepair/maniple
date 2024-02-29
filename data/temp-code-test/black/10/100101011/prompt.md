@@ -108,17 +108,15 @@ prefix, value: `'\t# comment\n\t'`, type: `str`
 column, value: `2`, type: `int`
 
 #### Runtime values and types of variables right before the buggy function's return
-lines, value: `[]`, type: `list`
+lines, value: `['\t# comment\n']`, type: `list`
 
-current_line, value: `'\t# comment\n'`, type: `str`
+current_line, value: `'\t'`, type: `str`
 
-current_column, value: `1`, type: `int`
+current_column, value: `4`, type: `int`
 
-wait_for_nl, value: `True`, type: `bool`
+wait_for_nl, value: `False`, type: `bool`
 
-char, value: `'\n'`, type: `str`
-
-res, value: `''`, type: `str`
+char, value: `'\t'`, type: `str`
 
 ### Case 4
 #### Runtime values and types of the input parameters of the buggy function
@@ -136,23 +134,6 @@ current_column, value: `0`, type: `int`
 wait_for_nl, value: `False`, type: `bool`
 
 ### Case 5
-#### Runtime values and types of the input parameters of the buggy function
-prefix, value: `'\t\t# comment\n\t'`, type: `str`
-
-column, value: `2`, type: `int`
-
-#### Runtime values and types of variables right before the buggy function's return
-lines, value: `['\t\t# comment\n']`, type: `list`
-
-current_line, value: `'\t'`, type: `str`
-
-current_column, value: `1`, type: `int`
-
-wait_for_nl, value: `False`, type: `bool`
-
-char, value: `'\t'`, type: `str`
-
-### Case 6
 #### Runtime values and types of the input parameters of the buggy function
 prefix, value: `'        # comment\n    '`, type: `str`
 

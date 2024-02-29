@@ -153,28 +153,36 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-self.axes, 
+self.axes, expected value: `[Index(['a', 'b'], dtype='object'), RangeIndex(start=0, stop=2, step=1)]`, type: `list`
 
-self, 
+self, expected value: `BlockManager
+Items: Index(['a', 'b'], dtype='object')
+Axis 1: RangeIndex(start=0, stop=2, step=1)
+IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64
+ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object`, type: `BlockManager`
 
-other.axes, 
+other.axes, expected value: `[Index(['a', 'b'], dtype='object'), RangeIndex(start=0, stop=2, step=1)]`, type: `list`
 
-other, 
+other, expected value: `BlockManager
+Items: Index(['a', 'b'], dtype='object')
+Axis 1: RangeIndex(start=0, stop=2, step=1)
+IntBlock: slice(1, 2, 1), 1 x 2, dtype: int64
+ObjectBlock: slice(0, 1, 1), 1 x 2, dtype: object`, type: `BlockManager`
 
-self.blocks, 
+self.blocks, expected value: `(IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64, ObjectBlock: slice(1, 2, 1), 1 x 2, dtype: object)`, type: `tuple`
 
-other.blocks, 
+other.blocks, expected value: `(IntBlock: slice(1, 2, 1), 1 x 2, dtype: int64, ObjectBlock: slice(0, 1, 1), 1 x 2, dtype: object)`, type: `tuple`
 
 #### Expected values and types of variables right before the buggy function's return
 self_axes, expected value: `[Index(['a', 'b'], dtype='object'), RangeIndex(start=0, stop=2, step=1)]`, type: `list`
 
 other_axes, expected value: `[Index(['a', 'b'], dtype='object'), RangeIndex(start=0, stop=2, step=1)]`, type: `list`
 
-block.dtype, expected value: `dtype('int64')`, type: `dtype`
+block.mgr_locs, expected value: `BlockPlacement(slice(0, 1, 1))`, type: `BlockPlacement`
 
 block, expected value: `IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64`, type: `IntBlock`
 
-block.mgr_locs, expected value: `BlockPlacement(slice(0, 1, 1))`, type: `BlockPlacement`
+block.dtype, expected value: `dtype('int64')`, type: `dtype`
 
 
 

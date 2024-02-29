@@ -39,19 +39,19 @@ def get_empty_data():
             "Bug_id": [],
             "1.1.1 Buggy function code": [],
             "1.1.2 buggy function docstring": [],
-            "1.2.1 Buggy class declaration": [],
-            "1.2.2 buggy class docstring": [],
-            "1.2.3 Buggy class scope invoked method signature": [],
-            "1.3.1 Buggy file name": [],
-            "1.3.2 Buggy file scope invoked function signature": [],
-            "1.4.1 Test code": [],
-            "1.4.2 Test file name": [],
+            "1.3.1 Buggy class declaration": [],
+            "1.3.2 buggy class docstring": [],
+            "1.4.1 Buggy class scope invoked method signature": [],
+            "1.2.1 Buggy file name": [],
+            "1.4.2 Buggy file scope invoked function signature": [],
+            "1.5.1 Test code": [],
+            "1.5.2 Test file name": [],
             "2.1.1 Error message": [],
             "2.1.2 Error stack trace": [],
-            "2.1.3 Variable runtime value": [],
-            "2.1.4 Variable runtime type": [],
-            "2.1.5 Angelic value": [],
-            "2.1.6 Angelic type": [],
+            "2.3.1 Variable runtime value": [],
+            "2.3.2 Variable runtime type": [],
+            "2.2.1 Angelic value": [],
+            "2.2.2 Angelic type": [],
             "3.1.1 Github linked issue title": [],
             "3.1.2 Github linked issue description": [],
             "cot Chain of Thought prompt technique": [],
@@ -107,19 +107,19 @@ for dataset_name in dataset:
                 else:
                     data["1.1.1 Buggy function code"].append(fact_bitvector["1.1.1"])
                     data["1.1.2 buggy function docstring"].append(fact_bitvector["1.1.2"])
-                    data["1.2.1 Buggy class declaration"].append(fact_bitvector["1.2.1"])
-                    data["1.2.2 buggy class docstring"].append(fact_bitvector["1.2.2"])
-                    data["1.2.3 Buggy class scope invoked method signature"].append(fact_bitvector["1.2.3"])
-                    data["1.3.1 Buggy file name"].append(fact_bitvector["1.3.1"])
-                    data["1.3.2 Buggy file scope invoked function signature"].append(fact_bitvector["1.3.2"])
-                    data["1.4.1 Test code"].append(fact_bitvector["1.4.1"])
-                    data["1.4.2 Test file name"].append(fact_bitvector["1.4.2"])
+                    data["1.3.1 Buggy class declaration"].append(fact_bitvector["1.3.1"])
+                    data["1.3.2 buggy class docstring"].append(fact_bitvector["1.3.2"])
+                    data["1.4.1 Buggy class scope invoked method signature"].append(fact_bitvector["1.4.1"])
+                    data["1.2.1 Buggy file name"].append(fact_bitvector["1.2.1"])
+                    data["1.4.2 Buggy file scope invoked function signature"].append(fact_bitvector["1.4.2"])
+                    data["1.5.1 Test code"].append(fact_bitvector["1.5.1"])
+                    data["1.5.2 Test file name"].append(fact_bitvector["1.5.2"])
                     data["2.1.1 Error message"].append(fact_bitvector["2.1.1"])
                     data["2.1.2 Error stack trace"].append(fact_bitvector["2.1.2"])
-                    data["2.1.3 Variable runtime value"].append(fact_bitvector["2.1.3"])
-                    data["2.1.4 Variable runtime type"].append(fact_bitvector["2.1.4"])
-                    data["2.1.5 Angelic value"].append(fact_bitvector["2.1.5"])
-                    data["2.1.6 Angelic type"].append(fact_bitvector["2.1.6"])
+                    data["2.3.1 Variable runtime value"].append(fact_bitvector["2.3.1"])
+                    data["2.3.2 Variable runtime type"].append(fact_bitvector["2.3.2"])
+                    data["2.2.1 Angelic value"].append(fact_bitvector["2.2.1"])
+                    data["2.2.2 Angelic type"].append(fact_bitvector["2.2.2"])
                     data["3.1.1 Github linked issue title"].append(fact_bitvector["3.1.1"])
                     data["3.1.2 Github linked issue description"].append(fact_bitvector["3.1.2"])
                     data["cot Chain of Thought prompt technique"].append(fact_bitvector["cot"])

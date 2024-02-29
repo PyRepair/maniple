@@ -253,28 +253,34 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-right, 
+right, expected value: `0   NaT
+1   NaT
+dtype: timedelta64[ns]`, type: `Series`
 
-func, 
+func, expected value: `<built-in function mul>`, type: `builtin_function_or_method`
 
-left, 
+left, expected value: `   0  1
+0  1  2
+1  3  4`, type: `DataFrame`
 
-axis, 
+axis, expected value: `'columns'`, type: `str`
 
-right.index, 
+right.index, expected value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
-left.columns, 
+left.columns, expected value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
-left.index, 
+right.dtype, expected value: `dtype('<m8[ns]')`, type: `dtype`
+
+left.index, expected value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
 #### Expected values and types of variables right before the buggy function's return
+right, expected value: `array(['NaT', 'NaT'], dtype='timedelta64[ns]')`, type: `ndarray`
+
 a, expected value: `   0  1
 0  1  2
 1  3  4`, type: `DataFrame`
 
-b, expected value: `0   NaT
-1   NaT
-dtype: timedelta64[ns]`, type: `Series`
+b, expected value: `array(['NaT', 'NaT'], dtype='timedelta64[ns]')`, type: `ndarray`
 
 a.columns, expected value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 

@@ -130,39 +130,65 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-database, 
+database, expected value: `'default'`, type: `str`
 
-table, 
+table, expected value: `'mytable'`, type: `str`
 
 #### Expected values and types of variables right before the buggy function's return
 stdout, expected value: `'OK'`, type: `str`
 
 ### Expected case 2
 #### The values and types of buggy function's parameters
-database, 
+database, expected value: `'default'`, type: `str`
 
-table, 
+table, expected value: `'MyTable'`, type: `str`
 
 #### Expected values and types of variables right before the buggy function's return
 stdout, expected value: `'OK\nmytable'`, type: `str`
 
 ### Expected case 3
 #### The values and types of buggy function's parameters
-database, 
+partition, expected value: `{'a': 'b'}`, type: `dict`
 
-table, 
+database, expected value: `'default'`, type: `str`
+
+table, expected value: `'mytable'`, type: `str`
+
+self.partition_spec, expected value: `<Mock name='partition_spec' id='140132118540144'>`, type: `Mock`
+
+#### Expected values and types of variables right before the buggy function's return
+stdout, expected value: `'day=2013-06-28/hour=3\nday=2013-06-28/hour=4\nday=2013-07-07/hour=2\n'`, type: `str`
+
+### Expected case 4
+#### The values and types of buggy function's parameters
+database, expected value: `'default'`, type: `str`
+
+table, expected value: `'mytable'`, type: `str`
 
 #### Expected values and types of variables right before the buggy function's return
 stdout, expected value: `'OK'`, type: `str`
 
-### Expected case 4
+### Expected case 5
 #### The values and types of buggy function's parameters
-database, 
+database, expected value: `'default'`, type: `str`
 
-table, 
+table, expected value: `'MyTable'`, type: `str`
 
 #### Expected values and types of variables right before the buggy function's return
 stdout, expected value: `'OK\nmytable'`, type: `str`
+
+### Expected case 6
+#### The values and types of buggy function's parameters
+partition, expected value: `{'a': 'b'}`, type: `dict`
+
+database, expected value: `'default'`, type: `str`
+
+table, expected value: `'mytable'`, type: `str`
+
+self.partition_spec, expected value: `<Mock name='partition_spec' id='140132118435728'>`, type: `Mock`
+
+#### Expected values and types of variables right before the buggy function's return
+stdout, expected value: `'day=2013-06-28/hour=3\nday=2013-06-28/hour=4\nday=2013-07-07/hour=2\n'`, type: `str`
 
 
 

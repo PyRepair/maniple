@@ -87,7 +87,11 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-self, 
+self._values, expected value: `<PeriodArray>
+['2019Q1', '2019Q2']
+Length: 2, dtype: period[Q-DEC]`, type: `PeriodArray`
+
+self, expected value: `PeriodIndex(['2019Q1', '2019Q2'], dtype='period[Q-DEC]', freq='Q-DEC')`, type: `PeriodIndex`
 
 
 

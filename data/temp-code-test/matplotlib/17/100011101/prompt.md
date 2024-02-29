@@ -243,13 +243,9 @@ tiny, value: `1e-15`, type: `float`
 increasing, value: `True`, type: `bool`
 
 #### Runtime values and types of variables right before the buggy function's return
-vmin, value: `0.0`, type: `float`
-
-vmax, value: `1.0`, type: `float`
-
 swapped, value: `False`, type: `bool`
 
-maxabsvalue, value: `1.0`, type: `float`
+maxabsvalue, value: `1`, type: `int`
 
 ### Case 2
 #### Runtime values and types of the input parameters of the buggy function
@@ -301,90 +297,6 @@ tiny, value: `1e-15`, type: `float`
 
 increasing, value: `True`, type: `bool`
 
-### Case 5
-#### Runtime values and types of the input parameters of the buggy function
-vmin, value: `-20000`, type: `int16`
-
-vmax, value: `20000`, type: `int16`
-
-expander, value: `0.1`, type: `float`
-
-tiny, value: `1e-15`, type: `float`
-
-increasing, value: `True`, type: `bool`
-
-#### Runtime values and types of variables right before the buggy function's return
-vmin, value: `-20000.0`, type: `float`
-
-vmax, value: `20000.0`, type: `float`
-
-swapped, value: `False`, type: `bool`
-
-maxabsvalue, value: `20000.0`, type: `float`
-
-### Case 6
-#### Runtime values and types of the input parameters of the buggy function
-vmin, value: `-20000.0`, type: `float64`
-
-vmax, value: `20000.0`, type: `float64`
-
-expander, value: `0.05`, type: `float`
-
-tiny, value: `1e-15`, type: `float`
-
-increasing, value: `True`, type: `bool`
-
-#### Runtime values and types of variables right before the buggy function's return
-vmin, value: `-20000.0`, type: `float`
-
-vmax, value: `20000.0`, type: `float`
-
-swapped, value: `False`, type: `bool`
-
-maxabsvalue, value: `20000.0`, type: `float`
-
-### Case 7
-#### Runtime values and types of the input parameters of the buggy function
-vmin, value: `-32768`, type: `int16`
-
-vmax, value: `0`, type: `int16`
-
-expander, value: `0.1`, type: `float`
-
-tiny, value: `1e-15`, type: `float`
-
-increasing, value: `True`, type: `bool`
-
-#### Runtime values and types of variables right before the buggy function's return
-vmin, value: `-32768.0`, type: `float`
-
-vmax, value: `0.0`, type: `float`
-
-swapped, value: `False`, type: `bool`
-
-maxabsvalue, value: `32768.0`, type: `float`
-
-### Case 8
-#### Runtime values and types of the input parameters of the buggy function
-vmin, value: `-32768.0`, type: `float64`
-
-vmax, value: `0.0`, type: `float64`
-
-expander, value: `0.05`, type: `float`
-
-tiny, value: `1e-15`, type: `float`
-
-increasing, value: `True`, type: `bool`
-
-#### Runtime values and types of variables right before the buggy function's return
-vmin, value: `-32768.0`, type: `float`
-
-vmax, value: `0.0`, type: `float`
-
-swapped, value: `False`, type: `bool`
-
-maxabsvalue, value: `32768.0`, type: `float`
-
 
 
 ## Expected values and types of variables during the failing test execution
@@ -392,32 +304,36 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-vmin, value: `0`, type: `int`
+vmin, expected value: `0`, type: `int`
 
-vmax, value: `1`, type: `int`
+vmax, expected value: `1`, type: `int`
 
-expander, value: `0.05`, type: `float`
+expander, expected value: `0.05`, type: `float`
 
-tiny, value: `1e-15`, type: `float`
+tiny, expected value: `1e-15`, type: `float`
 
-increasing, value: `True`, type: `bool`
+increasing, expected value: `True`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
+vmin, expected value: `0.0`, type: `float`
+
+vmax, expected value: `1.0`, type: `float`
+
 swapped, expected value: `False`, type: `bool`
 
-maxabsvalue, expected value: `1`, type: `int`
+maxabsvalue, expected value: `1.0`, type: `float`
 
 ### Expected case 2
 #### The values and types of buggy function's parameters
-vmin, value: `-0.5`, type: `float`
+vmin, expected value: `-0.5`, type: `float`
 
-vmax, value: `1.5`, type: `float`
+vmax, expected value: `1.5`, type: `float`
 
-expander, value: `0.05`, type: `float`
+expander, expected value: `0.05`, type: `float`
 
-tiny, value: `1e-15`, type: `float`
+tiny, expected value: `1e-15`, type: `float`
 
-increasing, value: `True`, type: `bool`
+increasing, expected value: `True`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
 swapped, expected value: `False`, type: `bool`
@@ -426,15 +342,15 @@ maxabsvalue, expected value: `1.5`, type: `float`
 
 ### Expected case 3
 #### The values and types of buggy function's parameters
-vmin, value: `0.5`, type: `float`
+vmin, expected value: `0.5`, type: `float`
 
-vmax, value: `-0.5`, type: `float`
+vmax, expected value: `-0.5`, type: `float`
 
-expander, value: `0.05`, type: `float`
+expander, expected value: `0.05`, type: `float`
 
-tiny, value: `1e-15`, type: `float`
+tiny, expected value: `1e-15`, type: `float`
 
-increasing, value: `True`, type: `bool`
+increasing, expected value: `True`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
 vmin, expected value: `-0.5`, type: `float`
@@ -447,15 +363,99 @@ maxabsvalue, expected value: `0.5`, type: `float`
 
 ### Expected case 4
 #### The values and types of buggy function's parameters
-vmin, value: `-inf`, type: `float`
+vmin, expected value: `-inf`, type: `float`
 
-vmax, value: `inf`, type: `float`
+vmax, expected value: `inf`, type: `float`
 
-expander, value: `0.05`, type: `float`
+expander, expected value: `0.05`, type: `float`
 
-tiny, value: `1e-15`, type: `float`
+tiny, expected value: `1e-15`, type: `float`
 
-increasing, value: `True`, type: `bool`
+increasing, expected value: `True`, type: `bool`
+
+### Expected case 5
+#### The values and types of buggy function's parameters
+vmin, expected value: `-20000`, type: `int16`
+
+vmax, expected value: `20000`, type: `int16`
+
+expander, expected value: `0.1`, type: `float`
+
+tiny, expected value: `1e-15`, type: `float`
+
+increasing, expected value: `True`, type: `bool`
+
+#### Expected values and types of variables right before the buggy function's return
+vmin, expected value: `-20000.0`, type: `float`
+
+vmax, expected value: `20000.0`, type: `float`
+
+swapped, expected value: `False`, type: `bool`
+
+maxabsvalue, expected value: `20000.0`, type: `float`
+
+### Expected case 6
+#### The values and types of buggy function's parameters
+vmin, expected value: `-20000.0`, type: `float64`
+
+vmax, expected value: `20000.0`, type: `float64`
+
+expander, expected value: `0.05`, type: `float`
+
+tiny, expected value: `1e-15`, type: `float`
+
+increasing, expected value: `True`, type: `bool`
+
+#### Expected values and types of variables right before the buggy function's return
+vmin, expected value: `-20000.0`, type: `float`
+
+vmax, expected value: `20000.0`, type: `float`
+
+swapped, expected value: `False`, type: `bool`
+
+maxabsvalue, expected value: `20000.0`, type: `float`
+
+### Expected case 7
+#### The values and types of buggy function's parameters
+vmin, expected value: `-32768`, type: `int16`
+
+vmax, expected value: `0`, type: `int16`
+
+expander, expected value: `0.1`, type: `float`
+
+tiny, expected value: `1e-15`, type: `float`
+
+increasing, expected value: `True`, type: `bool`
+
+#### Expected values and types of variables right before the buggy function's return
+vmin, expected value: `-32768.0`, type: `float`
+
+vmax, expected value: `0.0`, type: `float`
+
+swapped, expected value: `False`, type: `bool`
+
+maxabsvalue, expected value: `32768.0`, type: `float`
+
+### Expected case 8
+#### The values and types of buggy function's parameters
+vmin, expected value: `-32768.0`, type: `float64`
+
+vmax, expected value: `0.0`, type: `float64`
+
+expander, expected value: `0.05`, type: `float`
+
+tiny, expected value: `1e-15`, type: `float`
+
+increasing, expected value: `True`, type: `bool`
+
+#### Expected values and types of variables right before the buggy function's return
+vmin, expected value: `-32768.0`, type: `float`
+
+vmax, expected value: `0.0`, type: `float`
+
+swapped, expected value: `False`, type: `bool`
+
+maxabsvalue, expected value: `32768.0`, type: `float`
 
 
 

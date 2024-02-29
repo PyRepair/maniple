@@ -2,19 +2,19 @@ def generate_variable_angelic_info(facts: dict, bitvector: dict = None) -> str:
     content = ""
     if bitvector is None:
         bitvector = {
-            "2.1.3": 1,
-            "2.1.4": 1
+            "2.3.1": 1,
+            "2.3.2": 1
         }
     
-    variable_angelic_value_test_cases: list = facts["2.1.3"]
-    variable_angelic_type_test_cases: list = facts["2.1.4"]
+    variable_angelic_value_test_cases: list = facts["2.3.1"]
+    variable_angelic_type_test_cases: list = facts["2.3.2"]
 
     place_holder = ""
-    if bitvector["2.1.3"] == 1 and bitvector["2.1.4"] == 1:
+    if bitvector["2.3.1"] == 1 and bitvector["2.3.2"] == 1:
         place_holder = "values and types"
-    elif bitvector["2.1.3"] == 1:
+    elif bitvector["2.3.1"] == 1:
         place_holder = "values"
-    elif bitvector["2.1.4"] == 1:
+    elif bitvector["2.3.2"] == 1:
         place_holder = "types"
 
     content = content + f"## Expected {place_holder} of variables during the failing test execution\n"
@@ -31,7 +31,7 @@ def generate_variable_angelic_info(facts: dict, bitvector: dict = None) -> str:
         input_parameter_values: dict = angelic_values[0]
         input_parameter_types: dict = angelic_types[0]
 
-        content = create_runtime_content_filed(bitvector, content, input_parameter_types, input_parameter_values)
+        content = create_angelic_content_filed(bitvector, content, input_parameter_types, input_parameter_values)
 
         variable_values_before_return: dict = angelic_values[1]
         variable_types_before_return: dict = angelic_types[1]
@@ -54,11 +54,11 @@ def create_angelic_content_filed(bitvector, content, variable_types_before_retur
 
         content = content + f"{variable}, "
 
-        if bitvector["2.1.3"] == 1 and bitvector["2.1.4"] == 1:
+        if bitvector["2.3.1"] == 1 and bitvector["2.3.2"] == 1:
             content = content + f"expected value: `{variable_value}`{variable_shape}, type: `{variable_type}`"
-        elif bitvector["2.1.3"] == 1:
+        elif bitvector["2.3.1"] == 1:
             content = content + f"expected value: `{variable_value}`{variable_shape}"
-        elif bitvector["2.1.4"] == 1:
+        elif bitvector["2.3.2"] == 1:
             content = content + f"expected type: `{variable_type}`"
 
         content = content + "\n\n"
@@ -69,19 +69,19 @@ def generate_variable_runtime_info(facts: dict, bitvector: dict = None) -> str:
     content = ""
     if bitvector is None:
         bitvector = {
-            "2.1.5": 1,
-            "2.1.6": 1
+            "2.2.1": 1,
+            "2.2.2": 1
         }
     
-    variable_runtime_value_test_cases: list = facts["2.1.5"]
-    variable_runtime_type_test_cases: list = facts["2.1.6"]
+    variable_runtime_value_test_cases: list = facts["2.2.1"]
+    variable_runtime_type_test_cases: list = facts["2.2.2"]
 
     place_holder = ""
-    if bitvector["2.1.5"] == 1 and bitvector["2.1.6"] == 1:
+    if bitvector["2.2.1"] == 1 and bitvector["2.2.2"] == 1:
         place_holder = "values and types"
-    elif bitvector["2.1.5"] == 1:
+    elif bitvector["2.2.1"] == 1:
         place_holder = "values"
-    elif bitvector["2.1.6"] == 1:
+    elif bitvector["2.2.2"] == 1:
         place_holder = "types"
 
     content = content + f"## Runtime {place_holder} of variables inside the buggy function\n"
@@ -121,11 +121,11 @@ def create_runtime_content_filed(bitvector, content, variable_types_before_retur
 
         content = content + f"{variable}, "
 
-        if bitvector["2.1.5"] == 1 and bitvector["2.1.6"] == 1:
+        if bitvector["2.2.1"] == 1 and bitvector["2.2.2"] == 1:
             content = content + f"value: `{variable_value}`{variable_shape}, type: `{variable_type}`"
-        elif bitvector["2.1.5"] == 1:
+        elif bitvector["2.2.1"] == 1:
             content = content + f"value: `{variable_value}`{variable_shape}"
-        elif bitvector["2.1.6"] == 1:
+        elif bitvector["2.2.2"] == 1:
             content = content + f"type: `{variable_type}`"
 
         content = content + "\n\n"

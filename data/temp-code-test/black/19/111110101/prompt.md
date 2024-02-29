@@ -173,27 +173,27 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-current_line.depth, 
+current_line.depth, expected value: `0`, type: `int`
 
-current_line, 
+current_line, expected value: `Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.leaves, 
+current_line.leaves, expected value: `[Leaf(AT, '@'), Leaf(NAME, 'property')]`, type: `list`
 
-self.previous_defs, 
+self.previous_defs, expected value: `[]`, type: `list`
 
-self, 
+self, expected value: `EmptyLineTracker(previous_line=None, previous_after=0, previous_defs=[])`, type: `EmptyLineTracker`
 
-current_line.is_decorator, 
+current_line.is_decorator, expected value: `True`, type: `bool`
 
-current_line.is_def, 
+current_line.is_def, expected value: `False`, type: `bool`
 
-current_line.is_class, 
+current_line.is_class, expected value: `False`, type: `bool`
 
-current_line.is_flow_control, 
+current_line.is_flow_control, expected value: `False`, type: `bool`
 
-current_line.is_import, 
+current_line.is_import, expected value: `False`, type: `bool`
 
-current_line.is_yield, 
+current_line.is_yield, expected value: `False`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
 max_allowed, expected value: `2`, type: `int`
@@ -210,29 +210,29 @@ is_decorator, expected value: `True`, type: `bool`
 
 ### Expected case 2
 #### The values and types of buggy function's parameters
-current_line.depth, 
+current_line.depth, expected value: `0`, type: `int`
 
-current_line, 
+current_line, expected value: `Line(depth=0, leaves=[Leaf(153, '# TODO: X')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.leaves, 
+current_line.leaves, expected value: `[Leaf(153, '# TODO: X')]`, type: `list`
 
-self.previous_defs, 
+self.previous_defs, expected value: `[]`, type: `list`
 
-self, 
+self, expected value: `EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])`, type: `EmptyLineTracker`
 
-current_line.is_decorator, 
+current_line.is_decorator, expected value: `False`, type: `bool`
 
-current_line.is_def, 
+current_line.is_def, expected value: `False`, type: `bool`
 
-current_line.is_class, 
+current_line.is_class, expected value: `False`, type: `bool`
 
-self.previous_line, 
+self.previous_line, expected value: `Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.is_flow_control, 
+current_line.is_flow_control, expected value: `False`, type: `bool`
 
-current_line.is_import, 
+current_line.is_import, expected value: `False`, type: `bool`
 
-current_line.is_yield, 
+current_line.is_yield, expected value: `False`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
 max_allowed, expected value: `2`, type: `int`
@@ -249,29 +249,29 @@ is_decorator, expected value: `False`, type: `bool`
 
 ### Expected case 3
 #### The values and types of buggy function's parameters
-current_line.depth, 
+current_line.depth, expected value: `0`, type: `int`
 
-current_line, 
+current_line, expected value: `Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.leaves, 
+current_line.leaves, expected value: `[Leaf(AT, '@'), Leaf(NAME, 'property')]`, type: `list`
 
-self.previous_defs, 
+self.previous_defs, expected value: `[]`, type: `list`
 
-self, 
+self, expected value: `EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(153, '# TODO: X')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])`, type: `EmptyLineTracker`
 
-current_line.is_decorator, 
+current_line.is_decorator, expected value: `True`, type: `bool`
 
-current_line.is_def, 
+current_line.is_def, expected value: `False`, type: `bool`
 
-current_line.is_class, 
+current_line.is_class, expected value: `False`, type: `bool`
 
-self.previous_line, 
+self.previous_line, expected value: `Line(depth=0, leaves=[Leaf(153, '# TODO: X')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.is_flow_control, 
+current_line.is_flow_control, expected value: `False`, type: `bool`
 
-current_line.is_import, 
+current_line.is_import, expected value: `False`, type: `bool`
 
-current_line.is_yield, 
+current_line.is_yield, expected value: `False`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
 max_allowed, expected value: `2`, type: `int`
@@ -286,33 +286,31 @@ depth, expected value: `0`, type: `int`
 
 is_decorator, expected value: `True`, type: `bool`
 
-newlines, expected value: `2`, type: `int`
-
 ### Expected case 4
 #### The values and types of buggy function's parameters
-current_line.depth, 
+current_line.depth, expected value: `0`, type: `int`
 
-current_line, 
+current_line, expected value: `Line(depth=0, leaves=[Leaf(153, '# TODO: Y')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.leaves, 
+current_line.leaves, expected value: `[Leaf(153, '# TODO: Y')]`, type: `list`
 
-self.previous_defs, 
+self.previous_defs, expected value: `[]`, type: `list`
 
-self, 
+self, expected value: `EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])`, type: `EmptyLineTracker`
 
-current_line.is_decorator, 
+current_line.is_decorator, expected value: `False`, type: `bool`
 
-current_line.is_def, 
+current_line.is_def, expected value: `False`, type: `bool`
 
-current_line.is_class, 
+current_line.is_class, expected value: `False`, type: `bool`
 
-self.previous_line, 
+self.previous_line, expected value: `Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.is_flow_control, 
+current_line.is_flow_control, expected value: `False`, type: `bool`
 
-current_line.is_import, 
+current_line.is_import, expected value: `False`, type: `bool`
 
-current_line.is_yield, 
+current_line.is_yield, expected value: `False`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
 max_allowed, expected value: `2`, type: `int`
@@ -329,29 +327,29 @@ is_decorator, expected value: `False`, type: `bool`
 
 ### Expected case 5
 #### The values and types of buggy function's parameters
-current_line.depth, 
+current_line.depth, expected value: `0`, type: `int`
 
-current_line, 
+current_line, expected value: `Line(depth=0, leaves=[Leaf(153, '# TODO: Z')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(153, '# TODO: Z'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.leaves, 
+current_line.leaves, expected value: `[Leaf(153, '# TODO: Z')]`, type: `list`
 
-self.previous_defs, 
+self.previous_defs, expected value: `[]`, type: `list`
 
-self, 
+self, expected value: `EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(153, '# TODO: Y')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])`, type: `EmptyLineTracker`
 
-current_line.is_decorator, 
+current_line.is_decorator, expected value: `False`, type: `bool`
 
-current_line.is_def, 
+current_line.is_def, expected value: `False`, type: `bool`
 
-current_line.is_class, 
+current_line.is_class, expected value: `False`, type: `bool`
 
-self.previous_line, 
+self.previous_line, expected value: `Line(depth=0, leaves=[Leaf(153, '# TODO: Y')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=None, _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.is_flow_control, 
+current_line.is_flow_control, expected value: `False`, type: `bool`
 
-current_line.is_import, 
+current_line.is_import, expected value: `False`, type: `bool`
 
-current_line.is_yield, 
+current_line.is_yield, expected value: `False`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
 max_allowed, expected value: `2`, type: `int`
@@ -368,29 +366,29 @@ is_decorator, expected value: `False`, type: `bool`
 
 ### Expected case 6
 #### The values and types of buggy function's parameters
-current_line.depth, 
+current_line.depth, expected value: `0`, type: `int`
 
-current_line, 
+current_line, expected value: `Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.leaves, 
+current_line.leaves, expected value: `[Leaf(AT, '@'), Leaf(NAME, 'property')]`, type: `list`
 
-self.previous_defs, 
+self.previous_defs, expected value: `[]`, type: `list`
 
-self, 
+self, expected value: `EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(153, '# TODO: Z')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(153, '# TODO: Z'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])`, type: `EmptyLineTracker`
 
-current_line.is_decorator, 
+current_line.is_decorator, expected value: `True`, type: `bool`
 
-current_line.is_def, 
+current_line.is_def, expected value: `False`, type: `bool`
 
-current_line.is_class, 
+current_line.is_class, expected value: `False`, type: `bool`
 
-self.previous_line, 
+self.previous_line, expected value: `Line(depth=0, leaves=[Leaf(153, '# TODO: Z')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(153, '# TODO: Z'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.is_flow_control, 
+current_line.is_flow_control, expected value: `False`, type: `bool`
 
-current_line.is_import, 
+current_line.is_import, expected value: `False`, type: `bool`
 
-current_line.is_yield, 
+current_line.is_yield, expected value: `False`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
 max_allowed, expected value: `2`, type: `int`
@@ -405,33 +403,31 @@ depth, expected value: `0`, type: `int`
 
 is_decorator, expected value: `True`, type: `bool`
 
-newlines, expected value: `2`, type: `int`
-
 ### Expected case 7
 #### The values and types of buggy function's parameters
-current_line.depth, 
+current_line.depth, expected value: `0`, type: `int`
 
-current_line, 
+current_line, expected value: `Line(depth=0, leaves=[Leaf(NAME, 'def'), Leaf(NAME, 'foo'), Leaf(LPAR, '('), Leaf(RPAR, ')'), Leaf(COLON, ':')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(COLON, ':'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.leaves, 
+current_line.leaves, expected value: `[Leaf(NAME, 'def'), Leaf(NAME, 'foo'), Leaf(LPAR, '('), Leaf(RPAR, ')'), Leaf(COLON, ':')]`, type: `list`
 
-self.previous_defs, 
+self.previous_defs, expected value: `[]`, type: `list`
 
-self, 
+self, expected value: `EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[])`, type: `EmptyLineTracker`
 
-current_line.is_decorator, 
+current_line.is_decorator, expected value: `False`, type: `bool`
 
-current_line.is_def, 
+current_line.is_def, expected value: `True`, type: `bool`
 
-current_line.is_class, 
+current_line.is_class, expected value: `False`, type: `bool`
 
-self.previous_line, 
+self.previous_line, expected value: `Line(depth=0, leaves=[Leaf(AT, '@'), Leaf(NAME, 'property')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'property'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.is_flow_control, 
+current_line.is_flow_control, expected value: `False`, type: `bool`
 
-current_line.is_import, 
+current_line.is_import, expected value: `False`, type: `bool`
 
-current_line.is_yield, 
+current_line.is_yield, expected value: `False`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
 max_allowed, expected value: `2`, type: `int`
@@ -452,29 +448,29 @@ is_decorator, expected value: `False`, type: `bool`
 
 ### Expected case 8
 #### The values and types of buggy function's parameters
-current_line.depth, 
+current_line.depth, expected value: `1`, type: `int`
 
-current_line, 
+current_line, expected value: `Line(depth=1, leaves=[Leaf(NAME, 'pass')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(NAME, 'pass'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.leaves, 
+current_line.leaves, expected value: `[Leaf(NAME, 'pass')]`, type: `list`
 
-self.previous_defs, 
+self.previous_defs, expected value: `[0]`, type: `list`
 
-self, 
+self, expected value: `EmptyLineTracker(previous_line=Line(depth=0, leaves=[Leaf(NAME, 'def'), Leaf(NAME, 'foo'), Leaf(LPAR, '('), Leaf(RPAR, ')'), Leaf(COLON, ':')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(COLON, ':'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False), previous_after=0, previous_defs=[0])`, type: `EmptyLineTracker`
 
-current_line.is_decorator, 
+current_line.is_decorator, expected value: `False`, type: `bool`
 
-current_line.is_def, 
+current_line.is_def, expected value: `False`, type: `bool`
 
-current_line.is_class, 
+current_line.is_class, expected value: `False`, type: `bool`
 
-self.previous_line, 
+self.previous_line, expected value: `Line(depth=0, leaves=[Leaf(NAME, 'def'), Leaf(NAME, 'foo'), Leaf(LPAR, '('), Leaf(RPAR, ')'), Leaf(COLON, ':')], comments=[], bracket_tracker=BracketTracker(depth=0, bracket_match={}, delimiters={}, previous=Leaf(COLON, ':'), _for_loop_variable=False, _lambda_arguments=False), inside_brackets=False)`, type: `Line`
 
-current_line.is_flow_control, 
+current_line.is_flow_control, expected value: `False`, type: `bool`
 
-current_line.is_import, 
+current_line.is_import, expected value: `False`, type: `bool`
 
-current_line.is_yield, 
+current_line.is_yield, expected value: `False`, type: `bool`
 
 #### Expected values and types of variables right before the buggy function's return
 max_allowed, expected value: `1`, type: `int`

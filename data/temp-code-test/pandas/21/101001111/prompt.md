@@ -165,11 +165,11 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-key, value: `['C']`, type: `list`
+key, expected value: `['C']`, type: `list`
 
-self.index, value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
+self.index, expected value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
-self, value: `0    A
+self, expected value: `0    A
 1    B
 dtype: object`, type: `Series`
 
@@ -178,11 +178,11 @@ key_type, expected value: `'string'`, type: `str`
 
 ### Expected case 2
 #### The values and types of buggy function's parameters
-key, value: `array(['C'], dtype=object)`, type: `ndarray`
+key, expected value: `array(['C'], dtype=object)`, type: `ndarray`
 
-self.index, value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
+self.index, expected value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
-self, value: `0    A
+self, expected value: `0    A
 1    B
 dtype: object`, type: `Series`
 
@@ -191,27 +191,27 @@ key_type, expected value: `'string'`, type: `str`
 
 ### Expected case 3
 #### The values and types of buggy function's parameters
-key, value: `Index(['C'], dtype='object')`, type: `Index`
+key, expected value: `Index(['C'], dtype='object')`, type: `Index`
 
-self.index, value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
+self.index, expected value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
-self, value: `0    A
+self, expected value: `0    A
 1    B
 dtype: object`, type: `Series`
 
-key.inferred_type, value: `'string'`, type: `str`
+key.inferred_type, expected value: `'string'`, type: `str`
 
 #### Expected values and types of variables right before the buggy function's return
 key_type, expected value: `'string'`, type: `str`
 
 ### Expected case 4
 #### The values and types of buggy function's parameters
-key, value: `0    C
+key, expected value: `0    C
 dtype: object`, type: `Series`
 
-self.index, value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
+self.index, expected value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
-self, value: `0    A
+self, expected value: `0    A
 1    B
 dtype: object`, type: `Series`
 

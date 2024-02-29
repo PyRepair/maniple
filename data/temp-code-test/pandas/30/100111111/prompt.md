@@ -138,31 +138,6 @@ in_range, value: `array([False, False, False])`, type: `ndarray`
 
 new_data._values, value: `array([0, 1, 2])`, type: `ndarray`
 
-### Case 2
-#### Runtime values and types of the input parameters of the buggy function
-data, value: `0     True
-1     True
-2    False
-dtype: bool`, type: `Series`
-
-self.min_stamp, value: `31536000`, type: `int`
-
-self._STAMP_UNITS, value: `('s', 'ms', 'us', 'ns')`, type: `tuple`
-
-#### Runtime values and types of variables right before the buggy function's return
-new_data, value: `0     True
-1     True
-2    False
-dtype: bool`, type: `Series`
-
-new_data.dtype, value: `dtype('bool')`, type: `dtype`
-
-new_data._values, value: `array([ True,  True, False])`, type: `ndarray`
-
-date_units, value: `('s', 'ms', 'us', 'ns')`, type: `tuple`
-
-date_unit, value: `'ns'`, type: `str`
-
 
 
 ## Expected values and types of variables during the failing test execution
@@ -170,11 +145,11 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-data, value: `RangeIndex(start=0, stop=3, step=1)`, type: `RangeIndex`
+data, expected value: `RangeIndex(start=0, stop=3, step=1)`, type: `RangeIndex`
 
-self.min_stamp, value: `31536000`, type: `int`
+self.min_stamp, expected value: `31536000`, type: `int`
 
-self._STAMP_UNITS, value: `('s', 'ms', 'us', 'ns')`, type: `tuple`
+self._STAMP_UNITS, expected value: `('s', 'ms', 'us', 'ns')`, type: `tuple`
 
 #### Expected values and types of variables right before the buggy function's return
 new_data, expected value: `RangeIndex(start=0, stop=3, step=1)`, type: `RangeIndex`
@@ -184,6 +159,31 @@ new_data.dtype, expected value: `dtype('int64')`, type: `dtype`
 in_range, expected value: `array([False, False, False])`, type: `ndarray`
 
 new_data._values, expected value: `array([0, 1, 2])`, type: `ndarray`
+
+### Expected case 2
+#### The values and types of buggy function's parameters
+data, expected value: `0     True
+1     True
+2    False
+dtype: bool`, type: `Series`
+
+self.min_stamp, expected value: `31536000`, type: `int`
+
+self._STAMP_UNITS, expected value: `('s', 'ms', 'us', 'ns')`, type: `tuple`
+
+#### Expected values and types of variables right before the buggy function's return
+new_data, expected value: `0     True
+1     True
+2    False
+dtype: bool`, type: `Series`
+
+new_data.dtype, expected value: `dtype('bool')`, type: `dtype`
+
+new_data._values, expected value: `array([ True,  True, False])`, type: `ndarray`
+
+date_units, expected value: `('s', 'ms', 'us', 'ns')`, type: `tuple`
+
+date_unit, expected value: `'ns'`, type: `str`
 
 
 

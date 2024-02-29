@@ -63,12 +63,6 @@ Each case below includes input parameter values and types, and the values and ty
 
 ### Case 1
 #### Runtime values and types of the input parameters of the buggy function
-self._fillstyle, value: `'none'`, type: `str`
-
-### Case 2
-#### Runtime values and types of the input parameters of the buggy function
-self._fillstyle, value: `'none'`, type: `str`
-
 #### Runtime values and types of variables right before the buggy function's return
 self._path, value: `Path(array([[ 0.        , -1.        ] ... [ 1,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
         4,  4,  4,  4,  4,  4,  4,  4, 79], dtype=uint8))`, shape: `None`, type: `Path`
@@ -79,7 +73,7 @@ self._joinstyle, value: `'round'`, type: `str`
 
 self._capstyle, value: `'butt'`, type: `str`
 
-self._filled, value: `False`, type: `bool`
+self._filled, value: `True`, type: `bool`
 
 
 
@@ -88,6 +82,12 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
+self._fillstyle, expected value: `'none'`, type: `str`
+
+### Expected case 2
+#### The values and types of buggy function's parameters
+self._fillstyle, expected value: `'none'`, type: `str`
+
 #### Expected values and types of variables right before the buggy function's return
 self._path, expected value: `Path(array([[ 0.        , -1.        ] ... [ 1,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
         4,  4,  4,  4,  4,  4,  4,  4, 79], dtype=uint8))`, shape: `None`, type: `Path`
@@ -98,7 +98,7 @@ self._joinstyle, expected value: `'round'`, type: `str`
 
 self._capstyle, expected value: `'butt'`, type: `str`
 
-self._filled, expected value: `True`, type: `bool`
+self._filled, expected value: `False`, type: `bool`
 
 
 

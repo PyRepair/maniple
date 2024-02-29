@@ -140,11 +140,11 @@ self_axes, value: `[Index(['a', 'b'], dtype='object'), RangeIndex(start=0, stop=
 
 other_axes, value: `[Index(['a', 'b'], dtype='object'), RangeIndex(start=0, stop=2, step=1)]`, type: `list`
 
-block.mgr_locs, value: `BlockPlacement(slice(0, 1, 1))`, type: `BlockPlacement`
+block.dtype, value: `dtype('int64')`, type: `dtype`
 
 block, value: `IntBlock: slice(0, 1, 1), 1 x 2, dtype: int64`, type: `IntBlock`
 
-block.dtype, value: `dtype('int64')`, type: `dtype`
+block.mgr_locs, value: `BlockPlacement(slice(0, 1, 1))`, type: `BlockPlacement`
 
 
 

@@ -52,13 +52,13 @@ Each case below includes input parameter values and types, and the values and ty
 ### Case 1
 #### Runtime values and types of the input parameters of the buggy function
 #### Runtime values and types of variables right before the buggy function's return
-proc, value: `<MagicMock name='Popen()' id='140254489932816'>`, type: `MagicMock`
+proc, value: `<MagicMock name='Popen()' id='140050497243408'>`, type: `MagicMock`
 
-version, value: `'3.5.9'`, type: `str`
+version, value: `'fish, version 3.5.9'`, type: `str`
 
-proc.stdout.read, value: `<MagicMock name='Popen().stdout.read' id='140254489856336'>`, type: `MagicMock`
+proc.stdout.read, value: `<MagicMock name='Popen().stdout.read' id='140050497377296'>`, type: `MagicMock`
 
-proc.stdout, value: `<MagicMock name='Popen().stdout' id='140254508210704'>`, type: `MagicMock`
+proc.stdout, value: `<MagicMock name='Popen().stdout' id='140050497379088'>`, type: `MagicMock`
 
 
 

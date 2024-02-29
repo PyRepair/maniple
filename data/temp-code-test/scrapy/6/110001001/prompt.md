@@ -57,7 +57,7 @@ Each case below includes input parameter values and types, and the values and ty
 #### Runtime values and types of the input parameters of the buggy function
 image.format, value: `'JPEG'`, type: `str`
 
-image, value: `<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x7F2A1F05ECD0>`, type: `JpegImageFile`
+image, value: `<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x7F05549DED00>`, type: `JpegImageFile`
 
 image.mode, value: `'RGB'`, type: `str`
 
@@ -67,7 +67,7 @@ image.size, value: `(100, 100)`, type: `tuple`
 #### Runtime values and types of the input parameters of the buggy function
 image.format, value: `'JPEG'`, type: `str`
 
-image, value: `<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x7F2A1F05ECD0>`, type: `JpegImageFile`
+image, value: `<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x7F05549DED00>`, type: `JpegImageFile`
 
 image.mode, value: `'RGB'`, type: `str`
 
@@ -76,7 +76,7 @@ image.size, value: `(100, 100)`, type: `tuple`
 size, value: `(10, 25)`, type: `tuple`
 
 #### Runtime values and types of variables right before the buggy function's return
-image, value: `<PIL.Image.Image image mode=RGB size=10x10 at 0x7F2A1E7A71F0>`, type: `Image`
+image, value: `<PIL.Image.Image image mode=RGB size=10x10 at 0x7F0554967310>`, type: `Image`
 
 image.size, value: `(10, 10)`, type: `tuple`
 
@@ -84,33 +84,31 @@ image.size, value: `(10, 10)`, type: `tuple`
 #### Runtime values and types of the input parameters of the buggy function
 image.format, value: `'PNG'`, type: `str`
 
-image, value: `<PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x7F2A1E7A76A0>`, type: `PngImageFile`
+image, value: `<PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x7F05549677C0>`, type: `PngImageFile`
 
 image.mode, value: `'RGBA'`, type: `str`
 
 image.size, value: `(100, 100)`, type: `tuple`
 
 #### Runtime values and types of variables right before the buggy function's return
-image, value: `<PIL.Image.Image image mode=RGB size=100x100 at 0x7F2A1E7A7BB0>`, type: `Image`
+image, value: `<PIL.Image.Image image mode=RGB size=100x100 at 0x7F05549DED90>`, type: `Image`
 
 image.mode, value: `'RGB'`, type: `str`
 
-background, value: `<PIL.Image.Image image mode=RGBA size=100x100 at 0x7F2A1E7A7B80>`, type: `Image`
+background, value: `<PIL.Image.Image image mode=RGBA size=100x100 at 0x7F0554967CA0>`, type: `Image`
 
 ### Case 4
 #### Runtime values and types of the input parameters of the buggy function
-image, value: `<PIL.Image.Image image mode=P size=100x100 at 0x7F2A1E79CC10>`, type: `Image`
+image, value: `<PIL.Image.Image image mode=P size=100x100 at 0x7F055495DE80>`, type: `Image`
 
 image.mode, value: `'P'`, type: `str`
 
 image.size, value: `(100, 100)`, type: `tuple`
 
 #### Runtime values and types of variables right before the buggy function's return
-image, value: `<PIL.Image.Image image mode=RGB size=100x100 at 0x7F2A1E79C6D0>`, type: `Image`
+image, value: `<PIL.Image.Image image mode=RGB size=100x100 at 0x7F0554967370>`, type: `Image`
 
 image.mode, value: `'RGB'`, type: `str`
-
-background, value: `<PIL.Image.Image image mode=RGBA size=100x100 at 0x7F2A1E79C880>`, type: `Image`
 
 
 

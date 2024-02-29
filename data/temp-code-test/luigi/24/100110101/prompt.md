@@ -142,12 +142,12 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-value, 
+value, expected value: `{'Prop': 'Value'}`, type: `dict`
 
-name, 
+name, expected value: `'--conf'`, type: `str`
 
 #### Expected values and types of variables right before the buggy function's return
-command, expected value: `['--conf', '"Prop=Value"']`, type: `list`
+command, expected value: `['--conf', 'Prop=Value']`, type: `list`
 
 value, expected value: `'Value'`, type: `str`
 
@@ -155,12 +155,12 @@ prop, expected value: `'Prop'`, type: `str`
 
 ### Expected case 2
 #### The values and types of buggy function's parameters
-value, 
+value, expected value: `{'prop1': 'val1'}`, type: `dict`
 
-name, 
+name, expected value: `'--conf'`, type: `str`
 
 #### Expected values and types of variables right before the buggy function's return
-command, expected value: `['--conf', '"prop1=val1"']`, type: `list`
+command, expected value: `['--conf', 'prop1=val1']`, type: `list`
 
 value, expected value: `'val1'`, type: `str`
 

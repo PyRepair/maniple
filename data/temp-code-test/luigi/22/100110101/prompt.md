@@ -76,12 +76,16 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-worker_id, 
+worker_id, expected value: `123`, type: `int`
+
+last_active, expected value: `1706548223.648739`, type: `float`
 
 #### Expected values and types of variables right before the buggy function's return
 self.id, expected value: `123`, type: `int`
 
-self.started, expected value: `1706548222.8972173`, type: `float`
+self.last_active, expected value: `1706548223.648739`, type: `float`
+
+self.started, expected value: `1706548223.6552343`, type: `float`
 
 self.tasks, expected value: `set()`, type: `set`
 

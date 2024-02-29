@@ -89,60 +89,62 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-image.format, 
+image.format, expected value: `'JPEG'`, type: `str`
 
-image, 
+image, expected value: `<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x7F2A1F05ECD0>`, type: `JpegImageFile`
 
-image.mode, 
+image.mode, expected value: `'RGB'`, type: `str`
 
-image.size, 
+image.size, expected value: `(100, 100)`, type: `tuple`
 
 ### Expected case 2
 #### The values and types of buggy function's parameters
-image.format, 
+image.format, expected value: `'JPEG'`, type: `str`
 
-image, 
+image, expected value: `<PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=100x100 at 0x7F2A1F05ECD0>`, type: `JpegImageFile`
 
-image.mode, 
+image.mode, expected value: `'RGB'`, type: `str`
 
-image.size, 
+image.size, expected value: `(100, 100)`, type: `tuple`
 
-size, 
+size, expected value: `(10, 25)`, type: `tuple`
 
 #### Expected values and types of variables right before the buggy function's return
-image, expected value: `<PIL.Image.Image image mode=RGB size=10x10 at 0x7F0554967310>`, type: `Image`
+image, expected value: `<PIL.Image.Image image mode=RGB size=10x10 at 0x7F2A1E7A71F0>`, type: `Image`
 
 image.size, expected value: `(10, 10)`, type: `tuple`
 
 ### Expected case 3
 #### The values and types of buggy function's parameters
-image.format, 
+image.format, expected value: `'PNG'`, type: `str`
 
-image, 
+image, expected value: `<PIL.PngImagePlugin.PngImageFile image mode=RGBA size=100x100 at 0x7F2A1E7A76A0>`, type: `PngImageFile`
 
-image.mode, 
+image.mode, expected value: `'RGBA'`, type: `str`
 
-image.size, 
+image.size, expected value: `(100, 100)`, type: `tuple`
 
 #### Expected values and types of variables right before the buggy function's return
-image, expected value: `<PIL.Image.Image image mode=RGB size=100x100 at 0x7F05549DED90>`, type: `Image`
+image, expected value: `<PIL.Image.Image image mode=RGB size=100x100 at 0x7F2A1E7A7BB0>`, type: `Image`
 
 image.mode, expected value: `'RGB'`, type: `str`
 
-background, expected value: `<PIL.Image.Image image mode=RGBA size=100x100 at 0x7F0554967CA0>`, type: `Image`
+background, expected value: `<PIL.Image.Image image mode=RGBA size=100x100 at 0x7F2A1E7A7B80>`, type: `Image`
 
 ### Expected case 4
 #### The values and types of buggy function's parameters
-image, 
+image, expected value: `<PIL.Image.Image image mode=P size=100x100 at 0x7F2A1E79CC10>`, type: `Image`
 
-image.mode, 
+image.mode, expected value: `'P'`, type: `str`
 
-image.size, 
+image.size, expected value: `(100, 100)`, type: `tuple`
 
 #### Expected values and types of variables right before the buggy function's return
-image, expected value: `<PIL.Image.Image image mode=RGB size=100x100 at 0x7F0554967370>`, type: `Image`
+image, expected value: `<PIL.Image.Image image mode=RGB size=100x100 at 0x7F2A1E79C6D0>`, type: `Image`
 
 image.mode, expected value: `'RGB'`, type: `str`
+
+background, expected value: `<PIL.Image.Image image mode=RGBA size=100x100 at 0x7F2A1E79C880>`, type: `Image`
 
 
 

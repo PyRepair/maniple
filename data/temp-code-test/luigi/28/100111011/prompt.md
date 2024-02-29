@@ -167,19 +167,6 @@ stdout, value: `'OK\nmytable'`, type: `str`
 
 ### Case 3
 #### Runtime values and types of the input parameters of the buggy function
-partition, value: `{'a': 'b'}`, type: `dict`
-
-database, value: `'default'`, type: `str`
-
-table, value: `'mytable'`, type: `str`
-
-self.partition_spec, value: `<Mock name='partition_spec' id='140132118540144'>`, type: `Mock`
-
-#### Runtime values and types of variables right before the buggy function's return
-stdout, value: `'day=2013-06-28/hour=3\nday=2013-06-28/hour=4\nday=2013-07-07/hour=2\n'`, type: `str`
-
-### Case 4
-#### Runtime values and types of the input parameters of the buggy function
 database, value: `'default'`, type: `str`
 
 table, value: `'mytable'`, type: `str`
@@ -187,7 +174,7 @@ table, value: `'mytable'`, type: `str`
 #### Runtime values and types of variables right before the buggy function's return
 stdout, value: `'OK'`, type: `str`
 
-### Case 5
+### Case 4
 #### Runtime values and types of the input parameters of the buggy function
 database, value: `'default'`, type: `str`
 
@@ -195,19 +182,6 @@ table, value: `'MyTable'`, type: `str`
 
 #### Runtime values and types of variables right before the buggy function's return
 stdout, value: `'OK\nmytable'`, type: `str`
-
-### Case 6
-#### Runtime values and types of the input parameters of the buggy function
-partition, value: `{'a': 'b'}`, type: `dict`
-
-database, value: `'default'`, type: `str`
-
-table, value: `'mytable'`, type: `str`
-
-self.partition_spec, value: `<Mock name='partition_spec' id='140132118435728'>`, type: `Mock`
-
-#### Runtime values and types of variables right before the buggy function's return
-stdout, value: `'day=2013-06-28/hour=3\nday=2013-06-28/hour=4\nday=2013-07-07/hour=2\n'`, type: `str`
 
 
 

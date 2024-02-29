@@ -87,14 +87,10 @@ Each case below includes input parameter values and types, and the values and ty
 #### Runtime values and types of the input parameters of the buggy function
 worker_id, value: `123`, type: `int`
 
-last_active, value: `1706548223.648739`, type: `float`
-
 #### Runtime values and types of variables right before the buggy function's return
 self.id, value: `123`, type: `int`
 
-self.last_active, value: `1706548223.648739`, type: `float`
-
-self.started, value: `1706548223.6552343`, type: `float`
+self.started, value: `1706548222.8972173`, type: `float`
 
 self.tasks, value: `set()`, type: `set`
 

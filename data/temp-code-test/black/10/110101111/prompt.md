@@ -115,17 +115,15 @@ prefix, value: `'\t# comment\n\t'`, type: `str`
 column, value: `2`, type: `int`
 
 #### Runtime values and types of variables right before the buggy function's return
-lines, value: `[]`, type: `list`
+lines, value: `['\t# comment\n']`, type: `list`
 
-current_line, value: `'\t# comment\n'`, type: `str`
+current_line, value: `'\t'`, type: `str`
 
-current_column, value: `1`, type: `int`
+current_column, value: `4`, type: `int`
 
-wait_for_nl, value: `True`, type: `bool`
+wait_for_nl, value: `False`, type: `bool`
 
-char, value: `'\n'`, type: `str`
-
-res, value: `''`, type: `str`
+char, value: `'\t'`, type: `str`
 
 ### Case 4
 #### Runtime values and types of the input parameters of the buggy function
@@ -143,23 +141,6 @@ current_column, value: `0`, type: `int`
 wait_for_nl, value: `False`, type: `bool`
 
 ### Case 5
-#### Runtime values and types of the input parameters of the buggy function
-prefix, value: `'\t\t# comment\n\t'`, type: `str`
-
-column, value: `2`, type: `int`
-
-#### Runtime values and types of variables right before the buggy function's return
-lines, value: `['\t\t# comment\n']`, type: `list`
-
-current_line, value: `'\t'`, type: `str`
-
-current_column, value: `1`, type: `int`
-
-wait_for_nl, value: `False`, type: `bool`
-
-char, value: `'\t'`, type: `str`
-
-### Case 6
 #### Runtime values and types of the input parameters of the buggy function
 prefix, value: `'        # comment\n    '`, type: `str`
 
@@ -183,9 +164,9 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-prefix, value: `'    # comment\n    '`, type: `str`
+prefix, expected value: `'    # comment\n    '`, type: `str`
 
-column, value: `8`, type: `int`
+column, expected value: `8`, type: `int`
 
 #### Expected values and types of variables right before the buggy function's return
 lines, expected value: `[]`, type: `list`
@@ -202,9 +183,9 @@ res, expected value: `''`, type: `str`
 
 ### Expected case 2
 #### The values and types of buggy function's parameters
-prefix, value: `''`, type: `str`
+prefix, expected value: `''`, type: `str`
 
-column, value: `4`, type: `int`
+column, expected value: `4`, type: `int`
 
 #### Expected values and types of variables right before the buggy function's return
 lines, expected value: `[]`, type: `list`
@@ -217,26 +198,28 @@ wait_for_nl, expected value: `False`, type: `bool`
 
 ### Expected case 3
 #### The values and types of buggy function's parameters
-prefix, value: `'\t# comment\n\t'`, type: `str`
+prefix, expected value: `'\t# comment\n\t'`, type: `str`
 
-column, value: `2`, type: `int`
+column, expected value: `2`, type: `int`
 
 #### Expected values and types of variables right before the buggy function's return
-lines, expected value: `['\t# comment\n']`, type: `list`
+lines, expected value: `[]`, type: `list`
 
-current_line, expected value: `'\t'`, type: `str`
+current_line, expected value: `'\t# comment\n'`, type: `str`
 
-current_column, expected value: `4`, type: `int`
+current_column, expected value: `1`, type: `int`
 
-wait_for_nl, expected value: `False`, type: `bool`
+wait_for_nl, expected value: `True`, type: `bool`
 
-char, expected value: `'\t'`, type: `str`
+char, expected value: `'\n'`, type: `str`
+
+res, expected value: `''`, type: `str`
 
 ### Expected case 4
 #### The values and types of buggy function's parameters
-prefix, value: `''`, type: `str`
+prefix, expected value: `''`, type: `str`
 
-column, value: `1`, type: `int`
+column, expected value: `1`, type: `int`
 
 #### Expected values and types of variables right before the buggy function's return
 lines, expected value: `[]`, type: `list`
@@ -249,9 +232,26 @@ wait_for_nl, expected value: `False`, type: `bool`
 
 ### Expected case 5
 #### The values and types of buggy function's parameters
-prefix, value: `'        # comment\n    '`, type: `str`
+prefix, expected value: `'\t\t# comment\n\t'`, type: `str`
 
-column, value: `8`, type: `int`
+column, expected value: `2`, type: `int`
+
+#### Expected values and types of variables right before the buggy function's return
+lines, expected value: `['\t\t# comment\n']`, type: `list`
+
+current_line, expected value: `'\t'`, type: `str`
+
+current_column, expected value: `1`, type: `int`
+
+wait_for_nl, expected value: `False`, type: `bool`
+
+char, expected value: `'\t'`, type: `str`
+
+### Expected case 6
+#### The values and types of buggy function's parameters
+prefix, expected value: `'        # comment\n    '`, type: `str`
+
+column, expected value: `8`, type: `int`
 
 #### Expected values and types of variables right before the buggy function's return
 lines, expected value: `['        # comment\n']`, type: `list`

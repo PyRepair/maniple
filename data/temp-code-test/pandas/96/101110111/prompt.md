@@ -386,40 +386,42 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-other, 
+other, expected value: `Timestamp('2020-11-25 15:00:00')`, type: `Timestamp`
 
-other.year, 
+other.year, expected value: `2020`, type: `int`
 
-other.month, 
+other.month, expected value: `11`, type: `int`
 
-other.day, 
+other.day, expected value: `25`, type: `int`
 
-other.hour, 
+other.hour, expected value: `15`, type: `int`
 
-other.minute, 
+other.minute, expected value: `0`, type: `int`
 
-other.second, 
+other.second, expected value: `0`, type: `int`
 
-other.microsecond, 
+other.microsecond, expected value: `0`, type: `int`
 
-self.n, 
+self.n, expected value: `3`, type: `int`
 
-self, 
+self, expected value: `<3 * CustomBusinessHours: CBH=15:00-17:00>`, type: `CustomBusinessHour`
 
-self.end, 
+self.end, expected value: `(datetime.time(17, 0),)`, type: `tuple`
 
-self.start, 
+self.start, expected value: `(datetime.time(15, 0),)`, type: `tuple`
 
-self.next_bday, 
+self.weekmask, expected value: `'Mon Tue Wed Thu Fri'`, type: `str`
+
+self.holidays, expected value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
+
+self.next_bday, expected value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 14, 16, 0)`, type: `datetime`
+other, expected value: `Timestamp('2020-11-27 16:00:00')`, type: `Timestamp`
 
 nanosecond, expected value: `0`, type: `int`
 
-other.month, expected value: `12`, type: `int`
-
-other.day, expected value: `14`, type: `int`
+other.day, expected value: `27`, type: `int`
 
 other.hour, expected value: `16`, type: `int`
 
@@ -431,39 +433,43 @@ bd, expected value: `1`, type: `int`
 
 r, expected value: `60`, type: `int`
 
-skip_bd, expected value: `<BusinessDay>`, type: `BusinessDay`
+skip_bd, expected value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
 
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+bhour, expected value: `Timedelta('0 days 02:00:00')`, type: `Timedelta`
 
 ### Expected case 2
 #### The values and types of buggy function's parameters
-other, 
+other, expected value: `Timestamp('2020-11-25 15:00:00')`, type: `Timestamp`
 
-other.year, 
+other.year, expected value: `2020`, type: `int`
 
-other.month, 
+other.month, expected value: `11`, type: `int`
 
-other.day, 
+other.day, expected value: `25`, type: `int`
 
-other.hour, 
+other.hour, expected value: `15`, type: `int`
 
-other.minute, 
+other.minute, expected value: `0`, type: `int`
 
-other.second, 
+other.second, expected value: `0`, type: `int`
 
-other.microsecond, 
+other.microsecond, expected value: `0`, type: `int`
 
-self.n, 
+self.n, expected value: `1`, type: `int`
 
-self, 
+self, expected value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
 
-self.end, 
+self.end, expected value: `(datetime.time(17, 0),)`, type: `tuple`
 
-self.start, 
+self.start, expected value: `(datetime.time(15, 0),)`, type: `tuple`
 
-self.next_bday, 
+self.weekmask, expected value: `'Mon Tue Wed Thu Fri'`, type: `str`
+
+self.holidays, expected value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
+
+self.next_bday, expected value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Expected values and types of variables right before the buggy function's return
 other, expected value: `datetime.datetime(2020, 11, 25, 16, 0)`, type: `datetime`
@@ -486,31 +492,35 @@ bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
 
 ### Expected case 3
 #### The values and types of buggy function's parameters
-other, 
+other, expected value: `Timestamp('2020-11-25 16:00:00')`, type: `Timestamp`
 
-other.year, 
+other.year, expected value: `2020`, type: `int`
 
-other.month, 
+other.month, expected value: `11`, type: `int`
 
-other.day, 
+other.day, expected value: `25`, type: `int`
 
-other.hour, 
+other.hour, expected value: `16`, type: `int`
 
-other.minute, 
+other.minute, expected value: `0`, type: `int`
 
-other.second, 
+other.second, expected value: `0`, type: `int`
 
-other.microsecond, 
+other.microsecond, expected value: `0`, type: `int`
 
-self.n, 
+self.n, expected value: `1`, type: `int`
 
-self, 
+self, expected value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
 
-self.end, 
+self.end, expected value: `(datetime.time(17, 0),)`, type: `tuple`
 
-self.start, 
+self.start, expected value: `(datetime.time(15, 0),)`, type: `tuple`
 
-self.next_bday, 
+self.weekmask, expected value: `'Mon Tue Wed Thu Fri'`, type: `str`
+
+self.holidays, expected value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
+
+self.next_bday, expected value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Expected values and types of variables right before the buggy function's return
 other, expected value: `datetime.datetime(2020, 11, 27, 15, 0)`, type: `datetime`
@@ -535,31 +545,35 @@ bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
 
 ### Expected case 4
 #### The values and types of buggy function's parameters
-other, 
+other, expected value: `Timestamp('2020-11-27 15:00:00')`, type: `Timestamp`
 
-other.year, 
+other.year, expected value: `2020`, type: `int`
 
-other.month, 
+other.month, expected value: `11`, type: `int`
 
-other.day, 
+other.day, expected value: `27`, type: `int`
 
-other.hour, 
+other.hour, expected value: `15`, type: `int`
 
-other.minute, 
+other.minute, expected value: `0`, type: `int`
 
-other.second, 
+other.second, expected value: `0`, type: `int`
 
-other.microsecond, 
+other.microsecond, expected value: `0`, type: `int`
 
-self.n, 
+self.n, expected value: `1`, type: `int`
 
-self, 
+self, expected value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
 
-self.end, 
+self.end, expected value: `(datetime.time(17, 0),)`, type: `tuple`
 
-self.start, 
+self.start, expected value: `(datetime.time(15, 0),)`, type: `tuple`
 
-self.next_bday, 
+self.weekmask, expected value: `'Mon Tue Wed Thu Fri'`, type: `str`
+
+self.holidays, expected value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
+
+self.next_bday, expected value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Expected values and types of variables right before the buggy function's return
 other, expected value: `datetime.datetime(2020, 11, 27, 16, 0)`, type: `datetime`
@@ -582,1098 +596,42 @@ bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
 
 ### Expected case 5
 #### The values and types of buggy function's parameters
-other, 
+other, expected value: `Timestamp('2020-11-25 15:00:00', freq='CBH')`, type: `Timestamp`
 
-other.year, 
+other.year, expected value: `2020`, type: `int`
 
-other.month, 
+other.month, expected value: `11`, type: `int`
 
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 11, 30, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `30`, type: `int`
+other.day, expected value: `25`, type: `int`
 
 other.hour, expected value: `15`, type: `int`
 
-n, expected value: `1`, type: `int`
+other.minute, expected value: `0`, type: `int`
 
-businesshours, expected value: `7200`, type: `int`
+other.second, expected value: `0`, type: `int`
 
-bd, expected value: `0`, type: `int`
+other.microsecond, expected value: `0`, type: `int`
 
-r, expected value: `60`, type: `int`
+self.n, expected value: `3`, type: `int`
 
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
+self, expected value: `<3 * CustomBusinessHours: CBH=15:00-17:00>`, type: `CustomBusinessHour`
 
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+self.end, expected value: `(datetime.time(17, 0),)`, type: `tuple`
 
-### Expected case 6
-#### The values and types of buggy function's parameters
-other, 
+self.start, expected value: `(datetime.time(15, 0),)`, type: `tuple`
 
-other.year, 
+self.weekmask, expected value: `'Mon Tue Wed Thu Fri'`, type: `str`
 
-other.month, 
+self.holidays, expected value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
 
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
+self.next_bday, expected value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 11, 30, 16, 0)`, type: `datetime`
+other, expected value: `Timestamp('2020-11-27 16:00:00')`, type: `Timestamp`
 
 nanosecond, expected value: `0`, type: `int`
 
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 7
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 1, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.month, expected value: `12`, type: `int`
-
-other.day, expected value: `1`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 8
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 1, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 9
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 2, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `2`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 10
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 2, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 11
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 3, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `3`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 12
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 3, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 13
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 4, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `4`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 14
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 4, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 15
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 7, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `7`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 16
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 7, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 17
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 8, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `8`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 18
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 8, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 19
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 9, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `9`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 20
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 9, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 21
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 10, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `10`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 22
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 10, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 23
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 11, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `11`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 24
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 11, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 25
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 14, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `14`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 26
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 14, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 27
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 14, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.month, expected value: `12`, type: `int`
-
-other.day, expected value: `14`, type: `int`
+other.day, expected value: `27`, type: `int`
 
 other.hour, expected value: `16`, type: `int`
 
@@ -1685,39 +643,43 @@ bd, expected value: `1`, type: `int`
 
 r, expected value: `60`, type: `int`
 
-skip_bd, expected value: `<BusinessDay>`, type: `BusinessDay`
+skip_bd, expected value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
 
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+bhour, expected value: `Timedelta('0 days 02:00:00')`, type: `Timedelta`
 
-### Expected case 28
+### Expected case 6
 #### The values and types of buggy function's parameters
-other, 
+other, expected value: `Timestamp('2020-11-25 15:00:00', freq='CBH')`, type: `Timestamp`
 
-other.year, 
+other.year, expected value: `2020`, type: `int`
 
-other.month, 
+other.month, expected value: `11`, type: `int`
 
-other.day, 
+other.day, expected value: `25`, type: `int`
 
-other.hour, 
+other.hour, expected value: `15`, type: `int`
 
-other.minute, 
+other.minute, expected value: `0`, type: `int`
 
-other.second, 
+other.second, expected value: `0`, type: `int`
 
-other.microsecond, 
+other.microsecond, expected value: `0`, type: `int`
 
-self.n, 
+self.n, expected value: `1`, type: `int`
 
-self, 
+self, expected value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
 
-self.end, 
+self.end, expected value: `(datetime.time(17, 0),)`, type: `tuple`
 
-self.start, 
+self.start, expected value: `(datetime.time(15, 0),)`, type: `tuple`
 
-self.next_bday, 
+self.weekmask, expected value: `'Mon Tue Wed Thu Fri'`, type: `str`
+
+self.holidays, expected value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
+
+self.next_bday, expected value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Expected values and types of variables right before the buggy function's return
 other, expected value: `datetime.datetime(2020, 11, 25, 16, 0)`, type: `datetime`
@@ -1738,33 +700,37 @@ bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
 
 bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
 
-### Expected case 29
+### Expected case 7
 #### The values and types of buggy function's parameters
-other, 
+other, expected value: `Timestamp('2020-11-25 16:00:00')`, type: `Timestamp`
 
-other.year, 
+other.year, expected value: `2020`, type: `int`
 
-other.month, 
+other.month, expected value: `11`, type: `int`
 
-other.day, 
+other.day, expected value: `25`, type: `int`
 
-other.hour, 
+other.hour, expected value: `16`, type: `int`
 
-other.minute, 
+other.minute, expected value: `0`, type: `int`
 
-other.second, 
+other.second, expected value: `0`, type: `int`
 
-other.microsecond, 
+other.microsecond, expected value: `0`, type: `int`
 
-self.n, 
+self.n, expected value: `1`, type: `int`
 
-self, 
+self, expected value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
 
-self.end, 
+self.end, expected value: `(datetime.time(17, 0),)`, type: `tuple`
 
-self.start, 
+self.start, expected value: `(datetime.time(15, 0),)`, type: `tuple`
 
-self.next_bday, 
+self.weekmask, expected value: `'Mon Tue Wed Thu Fri'`, type: `str`
+
+self.holidays, expected value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
+
+self.next_bday, expected value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Expected values and types of variables right before the buggy function's return
 other, expected value: `datetime.datetime(2020, 11, 27, 15, 0)`, type: `datetime`
@@ -1787,810 +753,40 @@ bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
 
 bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
 
-### Expected case 30
+### Expected case 8
 #### The values and types of buggy function's parameters
-other, 
+other, expected value: `Timestamp('2020-11-27 15:00:00')`, type: `Timestamp`
 
-other.year, 
+other.year, expected value: `2020`, type: `int`
 
-other.month, 
+other.month, expected value: `11`, type: `int`
 
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 11, 30, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `30`, type: `int`
+other.day, expected value: `27`, type: `int`
 
 other.hour, expected value: `15`, type: `int`
 
-n, expected value: `1`, type: `int`
+other.minute, expected value: `0`, type: `int`
 
-businesshours, expected value: `7200`, type: `int`
+other.second, expected value: `0`, type: `int`
 
-bd, expected value: `0`, type: `int`
+other.microsecond, expected value: `0`, type: `int`
 
-r, expected value: `60`, type: `int`
+self.n, expected value: `1`, type: `int`
 
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
+self, expected value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
 
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+self.end, expected value: `(datetime.time(17, 0),)`, type: `tuple`
 
-### Expected case 31
-#### The values and types of buggy function's parameters
-other, 
+self.start, expected value: `(datetime.time(15, 0),)`, type: `tuple`
 
-other.year, 
+self.weekmask, expected value: `'Mon Tue Wed Thu Fri'`, type: `str`
 
-other.month, 
+self.holidays, expected value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
 
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
+self.next_bday, expected value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 1, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.month, expected value: `12`, type: `int`
-
-other.day, expected value: `1`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 32
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 2, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `2`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 33
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 3, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `3`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 34
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 3, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 35
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 4, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `4`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 36
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 4, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 37
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 8, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `8`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 38
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 8, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 39
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 9, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `9`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 40
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 9, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 41
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 10, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `10`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 42
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 10, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 43
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 11, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `11`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 44
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 11, 16, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.hour, expected value: `16`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
-
-### Expected case 45
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 14, 15, 0)`, type: `datetime`
-
-nanosecond, expected value: `0`, type: `int`
-
-other.day, expected value: `14`, type: `int`
-
-other.hour, expected value: `15`, type: `int`
-
-n, expected value: `1`, type: `int`
-
-businesshours, expected value: `7200`, type: `int`
-
-bd, expected value: `0`, type: `int`
-
-r, expected value: `60`, type: `int`
-
-bhour_remain, expected value: `datetime.timedelta(0)`, type: `timedelta`
-
-bhour, expected value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
-
-### Expected case 46
-#### The values and types of buggy function's parameters
-other, 
-
-other.year, 
-
-other.month, 
-
-other.day, 
-
-other.hour, 
-
-other.minute, 
-
-other.second, 
-
-other.microsecond, 
-
-self.n, 
-
-self, 
-
-self.end, 
-
-self.start, 
-
-self.next_bday, 
-
-#### Expected values and types of variables right before the buggy function's return
-other, expected value: `datetime.datetime(2020, 12, 14, 16, 0)`, type: `datetime`
+other, expected value: `datetime.datetime(2020, 11, 27, 16, 0)`, type: `datetime`
 
 nanosecond, expected value: `0`, type: `int`
 

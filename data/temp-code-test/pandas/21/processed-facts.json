@@ -1,0 +1,367 @@
+{
+    "1.1.1": "def _get_with(self, key):\n    # other: fancy integer or otherwise\n    if isinstance(key, slice):\n        # _convert_slice_indexer to determin if this slice is positional\n        #  or label based, and if the latter, convert to positional\n        slobj = self.index._convert_slice_indexer(key, kind=\"getitem\")\n        return self._slice(slobj)\n    elif isinstance(key, ABCDataFrame):\n        raise TypeError(\n            \"Indexing a Series with DataFrame is not \"\n            \"supported, use the appropriate DataFrame column\"\n        )\n    elif isinstance(key, tuple):\n        return self._get_values_tuple(key)\n\n    elif not is_list_like(key):\n        # e.g. scalars that aren't recognized by lib.is_scalar, GH#32684\n        return self.loc[key]\n\n    if not isinstance(key, (list, np.ndarray, ExtensionArray, Series, Index)):\n        key = list(key)\n\n    if isinstance(key, Index):\n        key_type = key.inferred_type\n    else:\n        key_type = lib.infer_dtype(key, skipna=False)\n\n    # Note: The key_type == \"boolean\" case should be caught by the\n    #  com.is_bool_indexer check in __getitem__\n    if key_type == \"integer\":\n        # We need to decide whether to treat this as a positional indexer\n        #  (i.e. self.iloc) or label-based (i.e. self.loc)\n        if not self.index._should_fallback_to_positional():\n            return self.loc[key]\n        else:\n            return self.iloc[key]\n\n    if isinstance(key, list):\n        # handle the dup indexing case GH#4246\n        return self.loc[key]\n\n    return self.reindex(key)\n",
+    "1.1.2": null,
+    "1.2.1": "pandas/core/series.py",
+    "1.2.2": "import numpy as np\nfrom pandas._libs import lib, properties, reshape, tslibs\nfrom pandas.core.dtypes.common import ensure_platform_int, is_bool, is_categorical_dtype, is_dict_like, is_extension_array_dtype, is_integer, is_iterator, is_list_like, is_object_dtype, is_scalar\nfrom pandas.core.dtypes.generic import ABCDataFrame, ABCDatetimeIndex, ABCMultiIndex, ABCPeriodIndex, ABCSeries\nfrom pandas.core.arrays import ExtensionArray\nfrom pandas.core.indexes.api import Float64Index, Index, InvalidIndexError, MultiIndex, ensure_index",
+    "1.3.1": "class Series(base.IndexOpsMixin, generic.NDFrame)",
+    "1.3.2": "One-dimensional ndarray with axis labels (including time series).\n\nLabels need not be unique but must be a hashable type. The object\nsupports both integer- and label-based indexing and provides a host of\nmethods for performing operations involving the index. Statistical\nmethods from ndarray have been overridden to automatically exclude\nmissing data (currently represented as NaN).\n\nOperations between Series (+, -, /, *, **) align values based on their\nassociated index values-- they need not be the same length. The result\nindex will be the sorted union of the two indexes.\n\nParameters\n----------\ndata : array-like, Iterable, dict, or scalar value\n    Contains data stored in Series.\n\n    .. versionchanged:: 0.23.0\n       If data is a dict, argument order is maintained for Python 3.6\n       and later.\n\nindex : array-like or Index (1d)\n    Values must be hashable and have the same length as `data`.\n    Non-unique index values are allowed. Will default to\n    RangeIndex (0, 1, 2, ..., n) if not provided. If both a dict and index\n    sequence are used, the index will override the keys found in the\n    dict.\ndtype : str, numpy.dtype, or ExtensionDtype, optional\n    Data type for the output Series. If not specified, this will be\n    inferred from `data`.\n    See the :ref:`user guide <basics.dtypes>` for more usages.\nname : str, optional\n    The name to give to the Series.\ncopy : bool, default False\n    Copy input data.",
+    "1.4.1": [
+        "_slice(self, slobj: slice, axis: int=0) -> 'Series'",
+        "_get_values_tuple(self, key)",
+        "reindex(self, index=None, **kwargs)"
+    ],
+    "1.4.2": [
+        "_slice(self, slobj: slice, axis: int=0) -> 'Series'",
+        "_get_values_tuple(self, key)",
+        "reindex(self, index=None, **kwargs)"
+    ],
+    "1.5.1": [
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index, pd.Series])\n    def test_getitem_no_matches(self, box):\n        # GH#33462 we expect the same behavior for list/ndarray/Index/Series\n        ser = Series([\"A\", \"B\"])\n\n        key = Series([\"C\"], dtype=object)\n        key = box(key)\n\n        msg = r\"None of \\[Index\\(\\['C'\\], dtype='object'\\)\\] are in the \\[index\\]\"\n        with pytest.raises(KeyError, match=msg):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index, pd.Series])\n    def test_getitem_no_matches(self, box):\n        # GH#33462 we expect the same behavior for list/ndarray/Index/Series\n        ser = Series([\"A\", \"B\"])\n\n        key = Series([\"C\"], dtype=object)\n        key = box(key)\n\n        msg = r\"None of \\[Index\\(\\['C'\\], dtype='object'\\)\\] are in the \\[index\\]\"\n        with pytest.raises(KeyError, match=msg):\n            ser[key]",
+        "    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index, pd.Series])\n    def test_getitem_no_matches(self, box):\n        # GH#33462 we expect the same behavior for list/ndarray/Index/Series\n        ser = Series([\"A\", \"B\"])\n\n        key = Series([\"C\"], dtype=object)\n        key = box(key)\n\n        msg = r\"None of \\[Index\\(\\['C'\\], dtype='object'\\)\\] are in the \\[index\\]\"\n        with pytest.raises(KeyError, match=msg):\n            ser[key]"
+    ],
+    "1.5.2": [
+        "pandas/tests/series/indexing/test_getitem.py",
+        "pandas/tests/series/indexing/test_getitem.py",
+        "pandas/tests/series/indexing/test_getitem.py"
+    ],
+    "2.1.1": [
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ],
+        [
+            "E           Failed: DID NOT RAISE <class 'KeyError'>"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x7faf2e0b6670>\nbox = <built-in function array>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index, pd.Series])\n    def test_getitem_no_matches(self, box):\n        # GH#33462 we expect the same behavior for list/ndarray/Index/Series\n        ser = Series([\"A\", \"B\"])\n    \n        key = Series([\"C\"], dtype=object)\n        key = box(key)\n    \n        msg = r\"None of \\[Index\\(\\['C'\\], dtype='object'\\)\\] are in the \\[index\\]\"\n        with pytest.raises(KeyError, match=msg):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:91: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x7faf2dde16a0>\nbox = <class 'pandas.core.indexes.base.Index'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index, pd.Series])\n    def test_getitem_no_matches(self, box):\n        # GH#33462 we expect the same behavior for list/ndarray/Index/Series\n        ser = Series([\"A\", \"B\"])\n    \n        key = Series([\"C\"], dtype=object)\n        key = box(key)\n    \n        msg = r\"None of \\[Index\\(\\['C'\\], dtype='object'\\)\\] are in the \\[index\\]\"\n        with pytest.raises(KeyError, match=msg):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:91: Failed"
+        ],
+        [
+            "self = <pandas.tests.series.indexing.test_getitem.TestSeriesGetitemListLike object at 0x7faf2ddf4760>\nbox = <class 'pandas.core.series.Series'>\n\n    @pytest.mark.parametrize(\"box\", [list, np.array, pd.Index, pd.Series])\n    def test_getitem_no_matches(self, box):\n        # GH#33462 we expect the same behavior for list/ndarray/Index/Series\n        ser = Series([\"A\", \"B\"])\n    \n        key = Series([\"C\"], dtype=object)\n        key = box(key)\n    \n        msg = r\"None of \\[Index\\(\\['C'\\], dtype='object'\\)\\] are in the \\[index\\]\"\n        with pytest.raises(KeyError, match=msg):\n>           ser[key]",
+            "\npandas/tests/series/indexing/test_getitem.py:91: Failed"
+        ]
+    ],
+    "2.2.1": [
+        [
+            {
+                "key": {
+                    "value": "['C']",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "RangeIndex(start=0, stop=2, step=1)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "0    A\n1    B\ndtype: object",
+                    "shape": "(2,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'string'",
+                    "shape": "6",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array(['C'], dtype=object)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "RangeIndex(start=0, stop=2, step=1)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "0    A\n1    B\ndtype: object",
+                    "shape": "(2,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'string'",
+                    "shape": "6",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "Index(['C'], dtype='object')",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "RangeIndex(start=0, stop=2, step=1)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "0    A\n1    B\ndtype: object",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "key.inferred_type": {
+                    "value": "'string'",
+                    "shape": "6",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'string'",
+                    "shape": "6",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "0    C\ndtype: object",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "RangeIndex(start=0, stop=2, step=1)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "0    A\n1    B\ndtype: object",
+                    "shape": "(2,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'string'",
+                    "shape": "6",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.2.2": [
+        [
+            {
+                "key": "list",
+                "self.index": "RangeIndex",
+                "self": "Series"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self.index": "RangeIndex",
+                "self": "Series"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "Index",
+                "self.index": "RangeIndex",
+                "self": "Series",
+                "key.inferred_type": "str"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "Series",
+                "self.index": "RangeIndex",
+                "self": "Series"
+            },
+            {
+                "key_type": "str"
+            }
+        ]
+    ],
+    "2.3.1": [
+        [
+            {
+                "key": {
+                    "value": "['C']",
+                    "shape": "1",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "RangeIndex(start=0, stop=2, step=1)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "0    A\n1    B\ndtype: object",
+                    "shape": "(2,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'string'",
+                    "shape": "6",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "array(['C'], dtype=object)",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "RangeIndex(start=0, stop=2, step=1)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "0    A\n1    B\ndtype: object",
+                    "shape": "(2,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'string'",
+                    "shape": "6",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "Index(['C'], dtype='object')",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "RangeIndex(start=0, stop=2, step=1)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "0    A\n1    B\ndtype: object",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "key.inferred_type": {
+                    "value": "'string'",
+                    "shape": "6",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'string'",
+                    "shape": "6",
+                    "omitted": false
+                }
+            }
+        ],
+        [
+            {
+                "key": {
+                    "value": "0    C\ndtype: object",
+                    "shape": "(1,)",
+                    "omitted": false
+                },
+                "self.index": {
+                    "value": "RangeIndex(start=0, stop=2, step=1)",
+                    "shape": "(2,)",
+                    "omitted": false
+                },
+                "self": {
+                    "value": "0    A\n1    B\ndtype: object",
+                    "shape": "(2,)",
+                    "omitted": false
+                }
+            },
+            {
+                "key_type": {
+                    "value": "'string'",
+                    "shape": "6",
+                    "omitted": false
+                }
+            }
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "key": "list",
+                "self.index": "RangeIndex",
+                "self": "Series"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "ndarray",
+                "self.index": "RangeIndex",
+                "self": "Series"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "Index",
+                "self.index": "RangeIndex",
+                "self": "Series",
+                "key.inferred_type": "str"
+            },
+            {
+                "key_type": "str"
+            }
+        ],
+        [
+            {
+                "key": "Series",
+                "self.index": "RangeIndex",
+                "self": "Series"
+            },
+            {
+                "key_type": "str"
+            }
+        ]
+    ],
+    "3.1.1": [
+        "API: Series[index_with_no_matches] vs Series[list_with_no_matches]\n"
+    ],
+    "3.1.2": [
+        "We treat list indexers differently from array-like indexers:\n\nser = pd.Series([\"A\", \"B\"])\nkey = pd.Series([\"C\"])\n\n>>> ser[key]\nC    NaN\ndtype: object\n\n>>> ser[pd.Index(key)]\nC    NaN\ndtype: object\n\n>>> ser[np.array(key)]\nC    NaN\ndtype: object\n\n>>> ser[list(key)]\nTraceback (most recent call last):\n[...]\n  File \"/Users/bmendel/Desktop/pd/pandas/pandas/core/indexing.py\", line 1312, in _validate_read_indexer\n    raise KeyError(f\"None of [{key}] are in the [{axis_name}]\")\nKeyError: \"None of [Index(['C'], dtype='object')] are in the [index]\"\nAlso inconsistent because ser.loc[key] raises for all 4 cases.\n\nIs there a compelling reason for this? I tried making all of these behave like the list case and only one test broke (that test being the example above). The test was added in #5880.\n"
+    ]
+}

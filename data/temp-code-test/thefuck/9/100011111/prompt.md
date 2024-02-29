@@ -112,84 +112,6 @@ upstream_option_index, value: `-1`, type: `int`
 
 push_upstream, value: `'push --set-upstream origin master'`, type: `str`
 
-### Case 2
-#### Runtime values and types of the input parameters of the buggy function
-command.script_parts, value: `['git', 'push', '-u']`, type: `list`
-
-command, value: `Command(script=git push -u, stdout=, stderr=fatal: The current branch master has no upstream branch.
-To push the current branch and set the remote as upstream, use
-
-    git push --set-upstream origin master
-
-)`, type: `Command`
-
-command.stderr, value: `'fatal: The current branch master has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin master\n\n'`, type: `str`
-
-#### Runtime values and types of variables right before the buggy function's return
-upstream_option_index, value: `2`, type: `int`
-
-command.script_parts, value: `['git', 'push']`, type: `list`
-
-push_upstream, value: `'push --set-upstream origin master'`, type: `str`
-
-### Case 3
-#### Runtime values and types of the input parameters of the buggy function
-command.script_parts, value: `['git', 'push', '-u', 'origin']`, type: `list`
-
-command, value: `Command(script=git push -u origin, stdout=, stderr=fatal: The current branch master has no upstream branch.
-To push the current branch and set the remote as upstream, use
-
-    git push --set-upstream origin master
-
-)`, type: `Command`
-
-command.stderr, value: `'fatal: The current branch master has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin master\n\n'`, type: `str`
-
-#### Runtime values and types of variables right before the buggy function's return
-upstream_option_index, value: `2`, type: `int`
-
-command.script_parts, value: `['git', 'push']`, type: `list`
-
-push_upstream, value: `'push --set-upstream origin master'`, type: `str`
-
-### Case 4
-#### Runtime values and types of the input parameters of the buggy function
-command.script_parts, value: `['git', 'push', '--set-upstream', 'origin']`, type: `list`
-
-command, value: `Command(script=git push --set-upstream origin, stdout=, stderr=fatal: The current branch master has no upstream branch.
-To push the current branch and set the remote as upstream, use
-
-    git push --set-upstream origin master
-
-)`, type: `Command`
-
-command.stderr, value: `'fatal: The current branch master has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin master\n\n'`, type: `str`
-
-#### Runtime values and types of variables right before the buggy function's return
-upstream_option_index, value: `2`, type: `int`
-
-command.script_parts, value: `['git', 'push']`, type: `list`
-
-push_upstream, value: `'push --set-upstream origin master'`, type: `str`
-
-### Case 5
-#### Runtime values and types of the input parameters of the buggy function
-command.script_parts, value: `['git', 'push', '--quiet']`, type: `list`
-
-command, value: `Command(script=git push --quiet, stdout=, stderr=fatal: The current branch master has no upstream branch.
-To push the current branch and set the remote as upstream, use
-
-    git push --set-upstream origin master
-
-)`, type: `Command`
-
-command.stderr, value: `'fatal: The current branch master has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin master\n\n'`, type: `str`
-
-#### Runtime values and types of variables right before the buggy function's return
-upstream_option_index, value: `-1`, type: `int`
-
-push_upstream, value: `'push --set-upstream origin master'`, type: `str`
-
 
 
 ## Expected values and types of variables during the failing test execution
@@ -197,16 +119,94 @@ Each case below includes input parameter values and types, and the expected valu
 
 ### Expected case 1
 #### The values and types of buggy function's parameters
-command.script_parts, value: `['git', 'push']`, type: `list`
+command.script_parts, expected value: `['git', 'push']`, type: `list`
 
-command, value: `Command(script=git push, stdout=, stderr=fatal: The current branch master has no upstream branch.
+command, expected value: `Command(script=git push, stdout=, stderr=fatal: The current branch master has no upstream branch.
 To push the current branch and set the remote as upstream, use
 
     git push --set-upstream origin master
 
 )`, type: `Command`
 
-command.stderr, value: `'fatal: The current branch master has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin master\n\n'`, type: `str`
+command.stderr, expected value: `'fatal: The current branch master has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin master\n\n'`, type: `str`
+
+#### Expected values and types of variables right before the buggy function's return
+upstream_option_index, expected value: `-1`, type: `int`
+
+push_upstream, expected value: `'push --set-upstream origin master'`, type: `str`
+
+### Expected case 2
+#### The values and types of buggy function's parameters
+command.script_parts, expected value: `['git', 'push', '-u']`, type: `list`
+
+command, expected value: `Command(script=git push -u, stdout=, stderr=fatal: The current branch master has no upstream branch.
+To push the current branch and set the remote as upstream, use
+
+    git push --set-upstream origin master
+
+)`, type: `Command`
+
+command.stderr, expected value: `'fatal: The current branch master has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin master\n\n'`, type: `str`
+
+#### Expected values and types of variables right before the buggy function's return
+upstream_option_index, expected value: `2`, type: `int`
+
+command.script_parts, expected value: `['git', 'push']`, type: `list`
+
+push_upstream, expected value: `'push --set-upstream origin master'`, type: `str`
+
+### Expected case 3
+#### The values and types of buggy function's parameters
+command.script_parts, expected value: `['git', 'push', '-u', 'origin']`, type: `list`
+
+command, expected value: `Command(script=git push -u origin, stdout=, stderr=fatal: The current branch master has no upstream branch.
+To push the current branch and set the remote as upstream, use
+
+    git push --set-upstream origin master
+
+)`, type: `Command`
+
+command.stderr, expected value: `'fatal: The current branch master has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin master\n\n'`, type: `str`
+
+#### Expected values and types of variables right before the buggy function's return
+upstream_option_index, expected value: `2`, type: `int`
+
+command.script_parts, expected value: `['git', 'push']`, type: `list`
+
+push_upstream, expected value: `'push --set-upstream origin master'`, type: `str`
+
+### Expected case 4
+#### The values and types of buggy function's parameters
+command.script_parts, expected value: `['git', 'push', '--set-upstream', 'origin']`, type: `list`
+
+command, expected value: `Command(script=git push --set-upstream origin, stdout=, stderr=fatal: The current branch master has no upstream branch.
+To push the current branch and set the remote as upstream, use
+
+    git push --set-upstream origin master
+
+)`, type: `Command`
+
+command.stderr, expected value: `'fatal: The current branch master has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin master\n\n'`, type: `str`
+
+#### Expected values and types of variables right before the buggy function's return
+upstream_option_index, expected value: `2`, type: `int`
+
+command.script_parts, expected value: `['git', 'push']`, type: `list`
+
+push_upstream, expected value: `'push --set-upstream origin master'`, type: `str`
+
+### Expected case 5
+#### The values and types of buggy function's parameters
+command.script_parts, expected value: `['git', 'push', '--quiet']`, type: `list`
+
+command, expected value: `Command(script=git push --quiet, stdout=, stderr=fatal: The current branch master has no upstream branch.
+To push the current branch and set the remote as upstream, use
+
+    git push --set-upstream origin master
+
+)`, type: `Command`
+
+command.stderr, expected value: `'fatal: The current branch master has no upstream branch.\nTo push the current branch and set the remote as upstream, use\n\n    git push --set-upstream origin master\n\n'`, type: `str`
 
 #### Expected values and types of variables right before the buggy function's return
 upstream_option_index, expected value: `-1`, type: `int`

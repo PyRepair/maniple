@@ -236,7 +236,7 @@ def _extract_function_and_imports_from_code_block_impl(
 
 
 def get_function_code(bugid_folder: Path, bugid: str) -> str:
-    with open(bugid_folder / "bug-data.json") as f:
+    with open(bugid_folder / "static-dynamic-facts.json") as f:
         json_data = json.load(f)
         __tmp0 = list(json_data[bugid].values())[0]
         return __tmp0["buggy_functions"][0]["function_code"]
@@ -248,7 +248,7 @@ def get_facts_in_prompt(bugid_folder: Path) -> Dict[str, str]:
 
 
 def get_import_statements(bugid_folder: Path) -> str:
-    with open(bugid_folder / "facts.json") as f:
+    with open(bugid_folder / "processed-facts.json") as f:
         json_data = json.load(f)
         return json_data["used_imports"]
 

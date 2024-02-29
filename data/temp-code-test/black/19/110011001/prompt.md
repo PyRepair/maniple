@@ -237,6 +237,8 @@ depth, value: `0`, type: `int`
 
 is_decorator, value: `True`, type: `bool`
 
+newlines, value: `2`, type: `int`
+
 ### Case 4
 #### Runtime values and types of the input parameters of the buggy function
 current_line.depth, value: `0`, type: `int`
@@ -353,6 +355,8 @@ first_leaf.prefix, value: `''`, type: `str`
 depth, value: `0`, type: `int`
 
 is_decorator, value: `True`, type: `bool`
+
+newlines, value: `2`, type: `int`
 
 ### Case 7
 #### Runtime values and types of the input parameters of the buggy function

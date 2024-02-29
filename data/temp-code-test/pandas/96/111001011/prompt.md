@@ -264,18 +264,16 @@ self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
 
 self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
 
-self.weekmask, value: `'Mon Tue Wed Thu Fri'`, type: `str`
-
-self.holidays, value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
-
 self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Runtime values and types of variables right before the buggy function's return
-other, value: `Timestamp('2020-11-27 16:00:00')`, type: `Timestamp`
+other, value: `datetime.datetime(2020, 12, 14, 16, 0)`, type: `datetime`
 
 nanosecond, value: `0`, type: `int`
 
-other.day, value: `27`, type: `int`
+other.month, value: `12`, type: `int`
+
+other.day, value: `14`, type: `int`
 
 other.hour, value: `16`, type: `int`
 
@@ -287,11 +285,11 @@ bd, value: `1`, type: `int`
 
 r, value: `60`, type: `int`
 
-skip_bd, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+skip_bd, value: `<BusinessDay>`, type: `BusinessDay`
 
 bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
 
-bhour, value: `Timedelta('0 days 02:00:00')`, type: `Timedelta`
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
 
 ### Case 2
 #### Runtime values and types of the input parameters of the buggy function
@@ -318,10 +316,6 @@ self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
 self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
 
 self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
-
-self.weekmask, value: `'Mon Tue Wed Thu Fri'`, type: `str`
-
-self.holidays, value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
 
 self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
@@ -369,10 +363,6 @@ self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
 self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
 
 self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
-
-self.weekmask, value: `'Mon Tue Wed Thu Fri'`, type: `str`
-
-self.holidays, value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
 
 self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
@@ -423,10 +413,6 @@ self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
 
 self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
 
-self.weekmask, value: `'Mon Tue Wed Thu Fri'`, type: `str`
-
-self.holidays, value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
-
 self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Runtime values and types of variables right before the buggy function's return
@@ -449,6 +435,1064 @@ bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
 bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
 
 ### Case 5
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-11-27 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `11`, type: `int`
+
+other.day, value: `27`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 11, 30, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `30`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 6
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-11-30 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `11`, type: `int`
+
+other.day, value: `30`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 11, 30, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 7
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-11-30 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `11`, type: `int`
+
+other.day, value: `30`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 1, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `1`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 8
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-01 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `1`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 1, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 9
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-01 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `1`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 2, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `2`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 10
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-02 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `2`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 2, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 11
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-02 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `2`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 3, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `3`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 12
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-03 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `3`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 3, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 13
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-03 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `3`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 4, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `4`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 14
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-04 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `4`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 4, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 15
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-04 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `4`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 7, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `7`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 16
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-07 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `7`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 7, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 17
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-07 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `7`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 8, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `8`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 18
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-08 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `8`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 8, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 19
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-08 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `8`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 9, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `9`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 20
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-09 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `9`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 9, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 21
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-09 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `9`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 10, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `10`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 22
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-10 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `10`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 10, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 23
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-10 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `10`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 11, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `11`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 24
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-11 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `11`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 11, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 25
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-11 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `11`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 14, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `14`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 26
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-14 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `14`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 14, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 27
 #### Runtime values and types of the input parameters of the buggy function
 other, value: `Timestamp('2020-11-25 15:00:00', freq='CBH')`, type: `Timestamp`
 
@@ -474,18 +1518,16 @@ self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
 
 self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
 
-self.weekmask, value: `'Mon Tue Wed Thu Fri'`, type: `str`
-
-self.holidays, value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
-
 self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Runtime values and types of variables right before the buggy function's return
-other, value: `Timestamp('2020-11-27 16:00:00')`, type: `Timestamp`
+other, value: `datetime.datetime(2020, 12, 14, 16, 0)`, type: `datetime`
 
 nanosecond, value: `0`, type: `int`
 
-other.day, value: `27`, type: `int`
+other.month, value: `12`, type: `int`
+
+other.day, value: `14`, type: `int`
 
 other.hour, value: `16`, type: `int`
 
@@ -497,13 +1539,13 @@ bd, value: `1`, type: `int`
 
 r, value: `60`, type: `int`
 
-skip_bd, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+skip_bd, value: `<BusinessDay>`, type: `BusinessDay`
 
 bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
 
-bhour, value: `Timedelta('0 days 02:00:00')`, type: `Timedelta`
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
 
-### Case 6
+### Case 28
 #### Runtime values and types of the input parameters of the buggy function
 other, value: `Timestamp('2020-11-25 15:00:00', freq='CBH')`, type: `Timestamp`
 
@@ -529,10 +1571,6 @@ self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
 
 self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
 
-self.weekmask, value: `'Mon Tue Wed Thu Fri'`, type: `str`
-
-self.holidays, value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
-
 self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Runtime values and types of variables right before the buggy function's return
@@ -554,7 +1592,7 @@ bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
 
 bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
 
-### Case 7
+### Case 29
 #### Runtime values and types of the input parameters of the buggy function
 other, value: `Timestamp('2020-11-25 16:00:00')`, type: `Timestamp`
 
@@ -580,10 +1618,6 @@ self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
 
 self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
 
-self.weekmask, value: `'Mon Tue Wed Thu Fri'`, type: `str`
-
-self.holidays, value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
-
 self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Runtime values and types of variables right before the buggy function's return
@@ -607,15 +1641,213 @@ bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
 
 bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
 
-### Case 8
+### Case 30
 #### Runtime values and types of the input parameters of the buggy function
-other, value: `Timestamp('2020-11-27 15:00:00')`, type: `Timestamp`
+other, value: `Timestamp('2020-11-27 16:00:00')`, type: `Timestamp`
 
 other.year, value: `2020`, type: `int`
 
 other.month, value: `11`, type: `int`
 
 other.day, value: `27`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 11, 30, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `30`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 31
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-11-30 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `11`, type: `int`
+
+other.day, value: `30`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 1, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `1`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 32
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-01 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `1`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 2, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `2`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 33
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-02 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `2`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 3, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `3`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 34
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-03 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `3`, type: `int`
 
 other.hour, value: `15`, type: `int`
 
@@ -633,14 +1865,586 @@ self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
 
 self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
 
-self.weekmask, value: `'Mon Tue Wed Thu Fri'`, type: `str`
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
-self.holidays, value: `(numpy.datetime64('2020-11-26'),)`, type: `tuple`
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 3, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 35
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-03 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `3`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
 
 self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
 
 #### Runtime values and types of variables right before the buggy function's return
-other, value: `datetime.datetime(2020, 11, 27, 16, 0)`, type: `datetime`
+other, value: `datetime.datetime(2020, 12, 4, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `4`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 36
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-04 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `4`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 4, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 37
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-07 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `7`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 8, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `8`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 38
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-08 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `8`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 8, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 39
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-08 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `8`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 9, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `9`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 40
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-09 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `9`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 9, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 41
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-09 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `9`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 10, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `10`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 42
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-10 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `10`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 10, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 43
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-10 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `10`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 11, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `11`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 44
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-11 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `11`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 11, 16, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=7200)`, type: `timedelta`
+
+### Case 45
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-11 16:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `11`, type: `int`
+
+other.hour, value: `16`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 14, 15, 0)`, type: `datetime`
+
+nanosecond, value: `0`, type: `int`
+
+other.day, value: `14`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+n, value: `1`, type: `int`
+
+businesshours, value: `7200`, type: `int`
+
+bd, value: `0`, type: `int`
+
+r, value: `60`, type: `int`
+
+bhour_remain, value: `datetime.timedelta(0)`, type: `timedelta`
+
+bhour, value: `datetime.timedelta(seconds=3600)`, type: `timedelta`
+
+### Case 46
+#### Runtime values and types of the input parameters of the buggy function
+other, value: `Timestamp('2020-12-14 15:00:00')`, type: `Timestamp`
+
+other.year, value: `2020`, type: `int`
+
+other.month, value: `12`, type: `int`
+
+other.day, value: `14`, type: `int`
+
+other.hour, value: `15`, type: `int`
+
+other.minute, value: `0`, type: `int`
+
+other.second, value: `0`, type: `int`
+
+other.microsecond, value: `0`, type: `int`
+
+self.n, value: `1`, type: `int`
+
+self, value: `<CustomBusinessHour: CBH=15:00-17:00>`, type: `CustomBusinessHour`
+
+self.end, value: `(datetime.time(17, 0),)`, type: `tuple`
+
+self.start, value: `(datetime.time(15, 0),)`, type: `tuple`
+
+self.next_bday, value: `<CustomBusinessDay>`, type: `CustomBusinessDay`
+
+#### Runtime values and types of variables right before the buggy function's return
+other, value: `datetime.datetime(2020, 12, 14, 16, 0)`, type: `datetime`
 
 nanosecond, value: `0`, type: `int`
 

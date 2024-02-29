@@ -49,9 +49,6 @@ usage: git stash list [<options>]
 
 command.stderr, value: `'\nusage: git stash list [<options>]\n   or: git stash show [<stash>]\n   or: git stash drop [-q`, type: `str`
 
-#### Runtime values and types of variables right before the buggy function's return
-splited_script, value: `['git']`, type: `list`
-
 
 
 ## A GitHub issue for this bug

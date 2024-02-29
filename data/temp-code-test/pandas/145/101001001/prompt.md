@@ -116,18 +116,16 @@ right.index, value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
 left.columns, value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
-right.dtype, value: `dtype('<m8[ns]')`, type: `dtype`
-
 left.index, value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
 #### Runtime values and types of variables right before the buggy function's return
-right, value: `array(['NaT', 'NaT'], dtype='timedelta64[ns]')`, type: `ndarray`
-
 a, value: `   0  1
 0  1  2
 1  3  4`, type: `DataFrame`
 
-b, value: `array(['NaT', 'NaT'], dtype='timedelta64[ns]')`, type: `ndarray`
+b, value: `0   NaT
+1   NaT
+dtype: timedelta64[ns]`, type: `Series`
 
 a.columns, value: `RangeIndex(start=0, stop=2, step=1)`, type: `RangeIndex`
 
