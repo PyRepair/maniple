@@ -20,7 +20,7 @@
     ],
     "2.1.2": [
         [
-            "def test_preprocess_input():\n        # Test image batch with float and int image input\n        x = np.random.uniform(0, 255, (2, 10, 10, 3))\n        xint = x.astype('int32')\n        assert utils.preprocess_input(x).shape == x.shape\n>       assert utils.preprocess_input(xint).shape == xint.shape\n\ntests/keras/applications/imagenet_utils_test.py:15: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nkeras/applications/imagenet_utils.py:178: in preprocess_input\n    return _preprocess_numpy_input(x, data_format=data_format, mode=mode)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nx = array([[[[  7,  68, 163],\n         [234,   8, 149],\n         [ 72,  58,  80],\n         [ 46, 179, 213],\n         [190,...         [115,  24,  52],\n         [204,  28,  65],\n         [ 77,  30, 101],\n         [112,  43, 107]]]], dtype=int32)\ndata_format = 'channels_last', mode = 'caffe'\n\n    def _preprocess_numpy_input(x, data_format, mode):\n        \"\"\"Preprocesses a Numpy array encoding a batch of images.\n    \n        # Arguments\n            x: Input array, 3D or 4D.\n            data_format: Data format of the image array.\n            mode: One of \"caffe\", \"tf\" or \"torch\".\n                - caffe: will convert the images from RGB to BGR,\n                    then will zero-center each color channel with\n                    respect to the ImageNet dataset,\n                    without scaling.\n                - tf: will scale pixels between -1 and 1,\n                    sample-wise.\n                - torch: will scale pixels between 0 and 1 and then\n                    will normalize each channel with respect to the\n                    ImageNet dataset.\n    \n        # Returns\n            Preprocessed Numpy array.\n        \"\"\"\n        if mode == 'tf':\n            x /= 127.5\n            x -= 1.\n            return x\n    \n        if mode == 'torch':\n            x /= 255.\n            mean = [0.485, 0.456, 0.406]\n            std = [0.229, 0.224, 0.225]\n        else:\n            if data_format == 'channels_first':\n                # 'RGB'->'BGR'\n                if x.ndim == 3:\n                    x = x[::-1, ...]\n                else:\n                    x = x[:, ::-1, ...]\n            else:\n                # 'RGB'->'BGR'\n                x = x[..., ::-1]\n            mean = [103.939, 116.779, 123.68]\n            std = None\n    \n        # Zero-center by mean pixel\n        if data_format == 'channels_first':\n            if x.ndim == 3:\n                x[0, :, :] -= mean[0]\n                x[1, :, :] -= mean[1]\n                x[2, :, :] -= mean[2]\n                if std is not None:\n                    x[0, :, :] /= std[0]\n                    x[1, :, :] /= std[1]\n                    x[2, :, :] /= std[2]\n            else:\n                x[:, 0, :, :] -= mean[0]\n                x[:, 1, :, :] -= mean[1]\n                x[:, 2, :, :] -= mean[2]\n                if std is not None:\n                    x[:, 0, :, :] /= std[0]\n                    x[:, 1, :, :] /= std[1]\n                    x[:, 2, :, :] /= std[2]\n        else:\n>           x[..., 0] -= mean[0]",
+            "def test_preprocess_input():\n        # Test image batch with float and int image input\n        x = np.random.uniform(0, 255, (2, 10, 10, 3))\n        xint = x.astype('int32')\n        assert utils.preprocess_input(x).shape == x.shape\n>       assert utils.preprocess_input(xint).shape == xint.shape\n\ntests/keras/applications/imagenet_utils_test.py:15: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nkeras/applications/imagenet_utils.py:178: in preprocess_input\n    return _preprocess_numpy_input(x, data_format=data_format, mode=mode)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nx = array([[[[136,  12,   8],\n         [226, 173,  28],\n         [ 76, 175, 143],\n         [ 76, 251,  52],\n         [ 86,...         [151,  91, 128],\n         [  1, 226, 220],\n         [214,  61, 186],\n         [ 55, 243,   0]]]], dtype=int32)\ndata_format = 'channels_last', mode = 'caffe'\n\n    def _preprocess_numpy_input(x, data_format, mode):\n        \"\"\"Preprocesses a Numpy array encoding a batch of images.\n    \n        # Arguments\n            x: Input array, 3D or 4D.\n            data_format: Data format of the image array.\n            mode: One of \"caffe\", \"tf\" or \"torch\".\n                - caffe: will convert the images from RGB to BGR,\n                    then will zero-center each color channel with\n                    respect to the ImageNet dataset,\n                    without scaling.\n                - tf: will scale pixels between -1 and 1,\n                    sample-wise.\n                - torch: will scale pixels between 0 and 1 and then\n                    will normalize each channel with respect to the\n                    ImageNet dataset.\n    \n        # Returns\n            Preprocessed Numpy array.\n        \"\"\"\n        if mode == 'tf':\n            x /= 127.5\n            x -= 1.\n            return x\n    \n        if mode == 'torch':\n            x /= 255.\n            mean = [0.485, 0.456, 0.406]\n            std = [0.229, 0.224, 0.225]\n        else:\n            if data_format == 'channels_first':\n                # 'RGB'->'BGR'\n                if x.ndim == 3:\n                    x = x[::-1, ...]\n                else:\n                    x = x[:, ::-1, ...]\n            else:\n                # 'RGB'->'BGR'\n                x = x[..., ::-1]\n            mean = [103.939, 116.779, 123.68]\n            std = None\n    \n        # Zero-center by mean pixel\n        if data_format == 'channels_first':\n            if x.ndim == 3:\n                x[0, :, :] -= mean[0]\n                x[1, :, :] -= mean[1]\n                x[2, :, :] -= mean[2]\n                if std is not None:\n                    x[0, :, :] /= std[0]\n                    x[1, :, :] /= std[1]\n                    x[2, :, :] /= std[2]\n            else:\n                x[:, 0, :, :] -= mean[0]\n                x[:, 1, :, :] -= mean[1]\n                x[:, 2, :, :] -= mean[2]\n                if std is not None:\n                    x[:, 0, :, :] /= std[0]\n                    x[:, 1, :, :] /= std[1]\n                    x[:, 2, :, :] /= std[2]\n        else:\n>           x[..., 0] -= mean[0]",
             "\nkeras/applications/imagenet_utils.py:82: UFuncTypeError"
         ]
     ],
@@ -33,7 +33,7 @@
                     "omitted": false
                 },
                 "x": {
-                    "value": "array([[[[2.41663406e+02, 2.03615904e+02, 1.23041871e+02] ... [1.83974028e+02, 2.11950768e+02, 7.47029975e+01]]]])",
+                    "value": "array([[[[138.93167355, 145.69409078, 159.01897433] ... [ 45.12879342,  60.7569453 , 163.40798381]]]])",
                     "shape": "(2, 10, 10, 3)",
                     "omitted": true
                 },
@@ -50,7 +50,7 @@
             },
             {
                 "x": {
-                    "value": "array([[[[ 1.91028712e+01,  8.68369035e+01,  1.17983406e+02] ... [-2.92360025e+01,  9.51717684e+01,  6.02940276e+01]]]])",
+                    "value": "array([[[[ 5.50799743e+01,  2.89150908e+01,  1.52516735e+01] ... [ 5.94689838e+01, -5.60220547e+01, -7.85512066e+01]]]])",
                     "shape": "(2, 10, 10, 3)",
                     "omitted": true
                 },
@@ -80,7 +80,7 @@
         [
             {
                 "x": {
-                    "value": "array([[[[8.32939097e+01, 1.58826939e+02, 7.11201740e+01] ... [1.87889982e+02, 1.53575807e+02, 3.38969476e+01]]]])",
+                    "value": "array([[[[ 29.21230896,  87.71107713, 188.50084669] ... [194.40231591, 142.8569995 ,  34.26928009]]]])",
                     "shape": "(2, 10, 10, 3)",
                     "omitted": true
                 },
@@ -102,7 +102,7 @@
             },
             {
                 "x": {
-                    "value": "array([[[[ -32.818832  ,   42.047935  ,  -40.386093  ] ... [ -70.04205   ,   36.796806  ,   64.209984  ]]]], dtype=float32)",
+                    "value": "array([[[[  84.56184   ,  -29.067924  ,  -94.46769   ] ... [ -69.66972   ,   26.077995  ,   70.72231   ]]]], dtype=float32)",
                     "shape": "(2, 10, 10, 3)",
                     "omitted": true
                 },
@@ -116,7 +116,7 @@
         [
             {
                 "x": {
-                    "value": "array([[[[ 83, 158,  71],\n         [212,  81, 108] ... [187, 153,  33]]]], dtype=int32)",
+                    "value": "array([[[[ 29,  87, 188],\n         [209, 193, 108] ... [194, 142,  34]]]], dtype=int32)",
                     "shape": "(2, 10, 10, 3)",
                     "omitted": true
                 },
@@ -138,7 +138,7 @@
             },
             {
                 "x": {
-                    "value": "array([[[[ -32.939003 ,   41.221    ,  -40.68     ] ... [ -70.939    ,   36.221    ,   63.32     ]]]], dtype=float32)",
+                    "value": "array([[[[ 8.4060997e+01, -2.9778999e+01, -9.4680000e+01] ... [-6.9939003e+01,  2.5221001e+01,  7.0320000e+01]]]],\n      dtype=float32)",
                     "shape": "(2, 10, 10, 3)",
                     "omitted": true
                 },
@@ -152,7 +152,7 @@
         [
             {
                 "x": {
-                    "value": "array([[[[8.32939097e+01, 2.12570344e+02, 1.00949471e+02,\n          5.76643430e+01, 8.17956587e+00, 6.18931883e+01,\n          2.19722055e+02, 2.45664731e+02, 1.57249748e+02,\n          1.58486588e+02] ... [1.30424001e+02, 1.91059859e+01, 1.27214786e+02,\n          2.56041013e+01, 6.38678791e+01, 1.90013246e+02,\n          2.12690058e+02, 1.01920850e+02, 8.07537958e+01,\n          3.38969476e+01]]]])",
+                    "value": "array([[[[ 29.21230896, 209.41729494,  45.62468045,  22.44007862,\n          243.84798   , 216.10475329, 113.55622864,  37.14484519,\n          222.4370074 , 164.5636182 ] ... [ 75.24741248, 214.76673091, 180.62167609,  37.68675235,\n          162.91539468, 126.39317227, 156.63167788, 173.35465026,\n           11.27012929,  34.26928009]]]])",
                     "shape": "(2, 3, 10, 10)",
                     "omitted": true
                 },
@@ -174,7 +174,7 @@
             },
             {
                 "x": {
-                    "value": "array([[[[ -32.818832  ,    4.1764984 ,  -48.688873  ,   97.41508   ,\n            90.60496   ,  148.53314   ,  -19.713097  ,  -42.897     ,\n           -96.822044  ,  -35.7118    ] ... [ -84.767044  ,  104.536354  ,  -93.69115   ,   72.05509   ,\n             1.8826447 ,  115.48211   ,   60.59954   ,  -73.851234  ,\n           128.36111   ,   64.209984  ]]]], dtype=float32)",
+                    "value": "array([[[[  84.56184   ,    4.74086   ,  -60.009624  ,  -77.312935  ,\n            82.67155   ,  126.40717   ,   91.07589   ,   97.959724  ,\n           -14.25592   ,  -40.40584   ] ... [-111.183846  ,   47.572136  ,   87.22161   ,  -23.14309   ,\n            12.973625  ,   34.522316  ,  104.74453   ,  -93.59377   ,\n           -82.728806  ,   70.72231   ]]]], dtype=float32)",
                     "shape": "(2, 3, 10, 10)",
                     "omitted": true
                 },
@@ -188,7 +188,7 @@
         [
             {
                 "x": {
-                    "value": "array([[[[ 83, 212, 100,  57,   8,  61, 219, 245, 157, 158] ... [130,  19, 127,  25,  63, 190, 212, 101,  80,  33]]]],\n      dtype=int32)",
+                    "value": "array([[[[ 29, 209,  45,  22, 243, 216, 113,  37, 222, 164] ... [ 75, 214, 180,  37, 162, 126, 156, 173,  11,  34]]]],\n      dtype=int32)",
                     "shape": "(2, 3, 10, 10)",
                     "omitted": true
                 },
@@ -210,7 +210,7 @@
             },
             {
                 "x": {
-                    "value": "array([[[[ -32.939003 ,    4.060997 ,  -48.939003 ,   97.061    ,\n            90.061    ,  148.061    ,  -19.939003 ,  -42.939003 ,\n           -96.939    ,  -35.939003 ] ... [ -85.68     ,  104.32     ,  -94.68     ,   71.32     ,\n             1.3199997,  115.32     ,   60.32     ,  -74.68     ,\n           128.32     ,   63.32     ]]]], dtype=float32)",
+                    "value": "array([[[[ 8.4060997e+01,  4.0609970e+00, -6.0939003e+01,\n          -7.7939003e+01,  8.2060997e+01,  1.2606100e+02,\n           9.1060997e+01,  9.7060997e+01, -1.4939003e+01,\n          -4.0939003e+01] ... [-1.1168000e+02,  4.7320000e+01,  8.6320000e+01,\n          -2.3680000e+01,  1.2320000e+01,  3.4320000e+01,\n           1.0432000e+02, -9.3680000e+01, -8.3680000e+01,\n           7.0320000e+01]]]], dtype=float32)",
                     "shape": "(2, 3, 10, 10)",
                     "omitted": true
                 },
@@ -224,7 +224,7 @@
         [
             {
                 "x": {
-                    "value": "array([[[162.50537429,  99.07329766, 228.43745039] ... [ 86.07150378,  68.1503929 , 238.70848519]]])",
+                    "value": "array([[[228.66238252,  36.4369918 , 204.78119743] ... [178.35512436, 105.38679985,  13.08039064]]])",
                     "shape": "(10, 10, 3)",
                     "omitted": true
                 },
@@ -246,7 +246,7 @@
             },
             {
                 "x": {
-                    "value": "array([[[ 1.24498451e+02, -1.77057037e+01,  3.88253708e+01] ... [ 1.34769470e+02, -4.86286087e+01, -3.76084976e+01]]],\n      dtype=float32)",
+                    "value": "array([[[ 1.00842201e+02, -8.03420105e+01,  1.04982384e+02] ... [-9.08586121e+01, -1.13921967e+01,  5.46751175e+01]]],\n      dtype=float32)",
                     "shape": "(10, 10, 3)",
                     "omitted": true
                 },
@@ -260,7 +260,7 @@
         [
             {
                 "x": {
-                    "value": "array([[[162,  99, 228],\n        [131, 157, 188] ... [ 86,  68, 238]]], dtype=int32)",
+                    "value": "array([[[228,  36, 204],\n        [244, 156, 122] ... [178, 105,  13]]], dtype=int32)",
                     "shape": "(10, 10, 3)",
                     "omitted": true
                 },
@@ -282,7 +282,7 @@
             },
             {
                 "x": {
-                    "value": "array([[[ 124.061     ,  -17.779     ,   38.32      ] ... [ 134.061     ,  -48.779     ,  -37.68      ]]], dtype=float32)",
+                    "value": "array([[[ 100.061     ,  -80.779     ,  104.32      ] ... [ -90.939     ,  -11.778999  ,   54.32      ]]], dtype=float32)",
                     "shape": "(10, 10, 3)",
                     "omitted": true
                 },
@@ -296,7 +296,7 @@
         [
             {
                 "x": {
-                    "value": "array([[[162.50537429, 131.11378575, 189.96812214,   4.49692782,\n          60.84519658, 165.31087294, 158.95050999,  93.36317822,\n           5.72473581, 141.15910184] ... [127.65130071,  35.20959943,  58.91523706,  92.7986535 ,\n          48.28749906, 158.29740143, 129.32190313,  41.25218934,\n         167.6285976 , 238.70848519]]])",
+                    "value": "array([[[228.66238252, 244.08452765,  99.43757151, 219.10769478,\n          88.62094635,   3.36911937, 141.73384306,  37.96260828,\n         163.28597842, 237.09218609] ... [180.64200314,  26.13185405, 214.58663258, 170.71953065,\n         152.5605002 ,  29.42117177,  36.81959288, 129.21450444,\n          18.75308327,  13.08039064]]])",
                     "shape": "(3, 10, 10)",
                     "omitted": true
                 },
@@ -318,7 +318,7 @@
             },
             {
                 "x": {
-                    "value": "array([[[ 1.24498451e+02,  8.50105820e+01, -4.32390709e+01,\n          2.73190079e+01, -3.98328247e+01,  7.66391220e+01,\n          9.54817581e+01,  6.92658615e+01,  1.21316383e+02,\n          2.76638565e+01] ... [ 6.17939987e+01, -1.88979950e+01,  3.08891678e+01,\n          5.35729141e+01, -3.53952713e+01, -3.93547592e+01,\n          9.41559982e+01,  6.22945480e+01,  3.04864502e+00,\n         -3.76084976e+01]]], dtype=float32)",
+                    "value": "array([[[ 1.00842201e+02,  1.85020905e+01,  1.23630409e+02,\n          4.47860336e+01, -4.72529068e+01, -5.33748322e+01,\n         -4.54614487e+01,  1.05647469e+02, -5.73399391e+01,\n          1.15121712e+02] ... [-3.83664551e+01,  1.16741951e+02,  5.07955551e+01,\n          7.17619095e+01,  8.95218124e+01, -5.55644150e+01,\n          2.71690598e+01,  4.03660355e+01,  6.13274765e+01,\n          5.46751175e+01]]], dtype=float32)",
                     "shape": "(3, 10, 10)",
                     "omitted": true
                 },
@@ -332,7 +332,7 @@
         [
             {
                 "x": {
-                    "value": "array([[[162, 131, 189,   4,  60, 165, 158,  93,   5, 141] ... [127,  35,  58,  92,  48, 158, 129,  41, 167, 238]]], dtype=int32)",
+                    "value": "array([[[228, 244,  99, 219,  88,   3, 141,  37, 163, 237] ... [180,  26, 214, 170, 152,  29,  36, 129,  18,  13]]], dtype=int32)",
                     "shape": "(3, 10, 10)",
                     "omitted": true
                 },
@@ -354,7 +354,7 @@
             },
             {
                 "x": {
-                    "value": "array([[[ 124.061     ,   84.061     ,  -43.939003  ,   27.060997  ,\n          -39.939003  ,   76.061     ,   95.061     ,   69.061     ,\n          121.061     ,   27.060997  ] ... [  61.32      ,  -19.68      ,   30.32      ,   53.32      ,\n          -35.68      ,  -39.68      ,   93.32      ,   61.32      ,\n            2.3199997 ,  -37.68      ]]], dtype=float32)",
+                    "value": "array([[[ 100.061     ,   18.060997  ,  123.061     ,   44.060997  ,\n          -47.939003  ,  -53.939003  ,  -45.939003  ,  105.061     ,\n          -57.939003  ,  115.061     ] ... [ -38.68      ,  116.32      ,   50.32      ,   71.32      ,\n           89.32      ,  -55.68      ,   26.32      ,   40.32      ,\n           61.32      ,   54.32      ]]], dtype=float32)",
                     "shape": "(3, 10, 10)",
                     "omitted": true
                 },

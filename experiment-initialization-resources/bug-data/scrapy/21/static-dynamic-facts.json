@@ -83,9 +83,9 @@
                             "DOWNLOAD_PRIORITY"
                         ],
                         "constructor_variable_names": [
+                            "_useragent",
                             "_parsers",
-                            "crawler",
-                            "_useragent"
+                            "crawler"
                         ]
                     },
                     "used_imports": [],
@@ -103,12 +103,12 @@
                                     "variable_shape": null
                                 },
                                 "self._parsers": {
-                                    "variable_value": "{'site.local': <Deferred at 0x7f8b25ece6a0>}",
+                                    "variable_value": "{'site.local': <Deferred at 0x7fe3bca8baf0>}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x7f8b25ece4f0>",
+                                    "variable_value": "<scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x7fe3bca8b940>",
                                     "variable_type": "RobotsTxtMiddleware",
                                     "variable_shape": null
                                 },
@@ -135,7 +135,7 @@
                                     "variable_shape": "0"
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x7f8b25ece4f0>",
+                                    "variable_value": "<scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x7fe3bca8b940>",
                                     "variable_type": "RobotsTxtMiddleware",
                                     "variable_shape": null
                                 },
@@ -156,12 +156,12 @@
                                     "variable_shape": null
                                 },
                                 "self._parsers": {
-                                    "variable_value": "{'site.local': <Deferred at 0x7fcb264cae20>}",
+                                    "variable_value": "{'site.local': <Deferred at 0x7f68e2c910d0>}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x7fcb264cac70>",
+                                    "variable_value": "<scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x7f68e2c8aee0>",
                                     "variable_type": "RobotsTxtMiddleware",
                                     "variable_shape": null
                                 },
@@ -178,7 +178,7 @@
                             },
                             {
                                 "rp_dfd": {
-                                    "variable_value": "<Deferred at 0x7fcb264cae20 current result: None>",
+                                    "variable_value": "<Deferred at 0x7f68e2c910d0 current result: None>",
                                     "variable_type": "Deferred",
                                     "variable_shape": null
                                 },
@@ -188,7 +188,7 @@
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x7fcb264cac70>",
+                                    "variable_value": "<scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x7f68e2c8aee0>",
                                     "variable_type": "RobotsTxtMiddleware",
                                     "variable_shape": null
                                 },
@@ -198,7 +198,7 @@
                                     "variable_shape": "10"
                                 },
                                 "rp_dfd.callback": {
-                                    "variable_value": "<bound method Deferred.callback of <Deferred at 0x7fcb264cae20 current result: None>>",
+                                    "variable_value": "<bound method Deferred.callback of <Deferred at 0x7f68e2c910d0 current result: None>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 }
@@ -207,28 +207,53 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def __init__(self, crawler):\n    if not crawler.settings.getbool('ROBOTSTXT_OBEY'):\n        raise NotConfigured\n\n    self.crawler = crawler\n    self._useragent = crawler.settings.get('USER_AGENT')\n    self._parsers = {}",
-                "@classmethod\ndef from_crawler(cls, crawler):\n    return cls(crawler)",
-                "def process_request(self, request, spider):\n    if request.meta.get('dont_obey_robotstxt'):\n        return\n    d = maybeDeferred(self.robot_parser, request, spider)\n    d.addCallback(self.process_request_2, request, spider)\n    return d",
-                "def process_request_2(self, rp, request, spider):\n    if rp is not None and not rp.can_fetch(self._useragent, request.url):\n        logger.debug(\"Forbidden by robots.txt: %(request)s\",\n                     {'request': request}, extra={'spider': spider})\n        raise IgnoreRequest()",
-                "def robot_parser(self, request, spider):\n    url = urlparse_cached(request)\n    netloc = url.netloc\n\n    if netloc not in self._parsers:\n        self._parsers[netloc] = Deferred()\n        robotsurl = \"%s://%s/robots.txt\" % (url.scheme, url.netloc)\n        robotsreq = Request(\n            robotsurl,\n            priority=self.DOWNLOAD_PRIORITY,\n            meta={'dont_obey_robotstxt': True}\n        )\n        dfd = self.crawler.engine.download(robotsreq, spider)\n        dfd.addCallback(self._parse_robots, netloc)\n        dfd.addErrback(self._logerror, robotsreq, spider)\n        dfd.addErrback(self._robots_error, netloc)\n\n    if isinstance(self._parsers[netloc], Deferred):\n        d = Deferred()\n        def cb(result):\n            d.callback(result)\n            return result\n        self._parsers[netloc].addCallback(cb)\n        return d\n    else:\n        return self._parsers[netloc]",
-                "def _logerror(self, failure, request, spider):\n    if failure.type is not IgnoreRequest:\n        logger.error(\"Error downloading %(request)s: %(f_exception)s\",\n                     {'request': request, 'f_exception': failure.value},\n                     exc_info=failure_to_exc_info(failure),\n                     extra={'spider': spider})\n    return failure",
-                "def _parse_robots(self, response, netloc):\n    rp = robotparser.RobotFileParser(response.url)\n    body = ''\n    if hasattr(response, 'text'):\n        body = response.text\n    else: # last effort try\n        try:\n            body = response.body.decode('utf-8')\n        except UnicodeDecodeError:\n            # If we found garbage, disregard it:,\n            # but keep the lookup cached (in self._parsers)\n            # Running rp.parse() will set rp state from\n            # 'disallow all' to 'allow any'.\n            pass\n    rp.parse(body.splitlines())\n\n    rp_dfd = self._parsers[netloc]\n    self._parsers[netloc] = rp\n    rp_dfd.callback(rp)",
-                "def _robots_error(self, failure, netloc):\n    self._parsers.pop(netloc).callback(None)",
-                "def cb(result):\n    d.callback(result)\n    return result"
-            ],
-            "inscope_function_signatures": [
-                "__init__(self, crawler)",
-                "from_crawler(cls, crawler)",
-                "process_request(self, request, spider)",
-                "process_request_2(self, rp, request, spider)",
-                "robot_parser(self, request, spider)",
-                "_logerror(self, failure, request, spider)",
-                "_parse_robots(self, response, netloc)",
-                "_robots_error(self, failure, netloc)",
-                "cb(result)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [
+                    {
+                        "code": "def cb(result):\n    d.callback(result)\n    return result",
+                        "signature": "cb(result)"
+                    }
+                ],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class RobotsTxtMiddleware:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, crawler):\n    if not crawler.settings.getbool('ROBOTSTXT_OBEY'):\n        raise NotConfigured\n\n    self.crawler = crawler\n    self._useragent = crawler.settings.get('USER_AGENT')\n    self._parsers = {}",
+                                "signature": "__init__(self, crawler)"
+                            },
+                            {
+                                "code": "@classmethod\ndef from_crawler(cls, crawler):\n    return cls(crawler)",
+                                "signature": "from_crawler(cls, crawler)"
+                            },
+                            {
+                                "code": "def process_request(self, request, spider):\n    if request.meta.get('dont_obey_robotstxt'):\n        return\n    d = maybeDeferred(self.robot_parser, request, spider)\n    d.addCallback(self.process_request_2, request, spider)\n    return d",
+                                "signature": "process_request(self, request, spider)"
+                            },
+                            {
+                                "code": "def process_request_2(self, rp, request, spider):\n    if rp is not None and not rp.can_fetch(self._useragent, request.url):\n        logger.debug(\"Forbidden by robots.txt: %(request)s\",\n                     {'request': request}, extra={'spider': spider})\n        raise IgnoreRequest()",
+                                "signature": "process_request_2(self, rp, request, spider)"
+                            },
+                            {
+                                "code": "def robot_parser(self, request, spider):\n    url = urlparse_cached(request)\n    netloc = url.netloc\n\n    if netloc not in self._parsers:\n        self._parsers[netloc] = Deferred()\n        robotsurl = \"%s://%s/robots.txt\" % (url.scheme, url.netloc)\n        robotsreq = Request(\n            robotsurl,\n            priority=self.DOWNLOAD_PRIORITY,\n            meta={'dont_obey_robotstxt': True}\n        )\n        dfd = self.crawler.engine.download(robotsreq, spider)\n        dfd.addCallback(self._parse_robots, netloc)\n        dfd.addErrback(self._logerror, robotsreq, spider)\n        dfd.addErrback(self._robots_error, netloc)\n\n    if isinstance(self._parsers[netloc], Deferred):\n        d = Deferred()\n        def cb(result):\n            d.callback(result)\n            return result\n        self._parsers[netloc].addCallback(cb)\n        return d\n    else:\n        return self._parsers[netloc]",
+                                "signature": "robot_parser(self, request, spider)"
+                            },
+                            {
+                                "code": "def _logerror(self, failure, request, spider):\n    if failure.type is not IgnoreRequest:\n        logger.error(\"Error downloading %(request)s: %(f_exception)s\",\n                     {'request': request, 'f_exception': failure.value},\n                     exc_info=failure_to_exc_info(failure),\n                     extra={'spider': spider})\n    return failure",
+                                "signature": "_logerror(self, failure, request, spider)"
+                            },
+                            {
+                                "code": "def _parse_robots(self, response, netloc):\n    rp = robotparser.RobotFileParser(response.url)\n    body = ''\n    if hasattr(response, 'text'):\n        body = response.text\n    else: # last effort try\n        try:\n            body = response.body.decode('utf-8')\n        except UnicodeDecodeError:\n            # If we found garbage, disregard it:,\n            # but keep the lookup cached (in self._parsers)\n            # Running rp.parse() will set rp state from\n            # 'disallow all' to 'allow any'.\n            pass\n    rp.parse(body.splitlines())\n\n    rp_dfd = self._parsers[netloc]\n    self._parsers[netloc] = rp\n    rp_dfd.callback(rp)",
+                                "signature": "_parse_robots(self, response, netloc)"
+                            },
+                            {
+                                "code": "def _robots_error(self, failure, netloc):\n    self._parsers.pop(netloc).callback(None)",
+                                "signature": "_robots_error(self, failure, netloc)"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "logger": [
                     17,
@@ -848,7 +873,7 @@
                 "test_function": "test_robotstxt_immediate_error",
                 "test_function_code": "    def test_robotstxt_immediate_error(self):\n        self.crawler.settings.set('ROBOTSTXT_OBEY', True)\n        err = error.DNSLookupError('Robotstxt address not found')\n        def immediate_failure(request, spider):\n            deferred = Deferred()\n            deferred.errback(failure.Failure(err))\n            return deferred\n        self.crawler.engine.download.side_effect = immediate_failure\n\n        middleware = RobotsTxtMiddleware(self.crawler)\n        return self.assertNotIgnored(Request('http://site.local'), middleware)",
                 "test_error": "KeyError: 'site.local'",
-                "full_test_error": "f = <bound method RobotsTxtMiddleware.robot_parser of <scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x7f2248c0bf10>>\nargs = (<GET http://site.local>, None), kw = {}\n\n    def maybeDeferred(f, *args, **kw):\n        \"\"\"\n        Invoke a function that may or may not return a L{Deferred}.\n    \n        Call the given function with the given arguments.  If the returned\n        object is a L{Deferred}, return it.  If the returned object is a L{Failure},\n        wrap it with L{fail} and return it.  Otherwise, wrap it in L{succeed} and\n        return it.  If an exception is raised, convert it to a L{Failure}, wrap it\n        in L{fail}, and then return it.\n    \n        @type f: Any callable\n        @param f: The callable to invoke\n    \n        @param args: The arguments to pass to C{f}\n        @param kw: The keyword arguments to pass to C{f}\n    \n        @rtype: L{Deferred}\n        @return: The result of the function call, wrapped in a L{Deferred} if\n        necessary.\n        \"\"\"\n        try:\n>           result = f(*args, **kw)\n\n/home/ubuntu/Desktop/bgp_envs_local/envs/scrapy_21/lib/python3.8/site-packages/twisted/internet/defer.py:151: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x7f2248c0bf10>\nrequest = <GET http://site.local>, spider = None\n\n    def robot_parser(self, request, spider):\n        url = urlparse_cached(request)\n        netloc = url.netloc\n    \n        if netloc not in self._parsers:\n            self._parsers[netloc] = Deferred()\n            robotsurl = \"%s://%s/robots.txt\" % (url.scheme, url.netloc)\n            robotsreq = Request(\n                robotsurl,\n                priority=self.DOWNLOAD_PRIORITY,\n                meta={'dont_obey_robotstxt': True}\n            )\n            dfd = self.crawler.engine.download(robotsreq, spider)\n            dfd.addCallback(self._parse_robots, netloc)\n            dfd.addErrback(self._logerror, robotsreq, spider)\n            dfd.addErrback(self._robots_error, netloc)\n    \n>       if isinstance(self._parsers[netloc], Deferred):\nE       KeyError: 'site.local'\n\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_21/scrapy/downloadermiddlewares/robotstxt.py:65: KeyError",
+                "full_test_error": "f = <bound method RobotsTxtMiddleware.robot_parser of <scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x7feb0dd0efd0>>\nargs = (<GET http://site.local>, None), kw = {}\n\n    def maybeDeferred(f, *args, **kw):\n        \"\"\"\n        Invoke a function that may or may not return a L{Deferred}.\n    \n        Call the given function with the given arguments.  If the returned\n        object is a L{Deferred}, return it.  If the returned object is a L{Failure},\n        wrap it with L{fail} and return it.  Otherwise, wrap it in L{succeed} and\n        return it.  If an exception is raised, convert it to a L{Failure}, wrap it\n        in L{fail}, and then return it.\n    \n        @type f: Any callable\n        @param f: The callable to invoke\n    \n        @param args: The arguments to pass to C{f}\n        @param kw: The keyword arguments to pass to C{f}\n    \n        @rtype: L{Deferred}\n        @return: The result of the function call, wrapped in a L{Deferred} if\n        necessary.\n        \"\"\"\n        try:\n>           result = f(*args, **kw)\n\n/home/ubuntu/Desktop/bgp_envs_local/envs/scrapy_21/lib/python3.8/site-packages/twisted/internet/defer.py:151: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <scrapy.downloadermiddlewares.robotstxt.RobotsTxtMiddleware object at 0x7feb0dd0efd0>\nrequest = <GET http://site.local>, spider = None\n\n    def robot_parser(self, request, spider):\n        url = urlparse_cached(request)\n        netloc = url.netloc\n    \n        if netloc not in self._parsers:\n            self._parsers[netloc] = Deferred()\n            robotsurl = \"%s://%s/robots.txt\" % (url.scheme, url.netloc)\n            robotsreq = Request(\n                robotsurl,\n                priority=self.DOWNLOAD_PRIORITY,\n                meta={'dont_obey_robotstxt': True}\n            )\n            dfd = self.crawler.engine.download(robotsreq, spider)\n            dfd.addCallback(self._parse_robots, netloc)\n            dfd.addErrback(self._logerror, robotsreq, spider)\n            dfd.addErrback(self._robots_error, netloc)\n    \n>       if isinstance(self._parsers[netloc], Deferred):\nE       KeyError: 'site.local'\n\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_21/scrapy/downloadermiddlewares/robotstxt.py:65: KeyError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": []

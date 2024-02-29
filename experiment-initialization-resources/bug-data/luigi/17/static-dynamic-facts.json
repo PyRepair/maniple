@@ -107,26 +107,57 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def setup_interface_logging(conf_file=None):\n    # use a variable in the function object to determine if it has run before\n    if getattr(setup_interface_logging, \"has_run\", False):\n        return\n\n    if conf_file is None:\n        logger = logging.getLogger('luigi-interface')\n        logger.setLevel(logging.DEBUG)\n\n        stream_handler = logging.StreamHandler()\n        stream_handler.setLevel(logging.DEBUG)\n\n        formatter = logging.Formatter('%(levelname)s: %(message)s')\n        stream_handler.setFormatter(formatter)\n\n        logger.addHandler(stream_handler)\n    else:\n        logging.config.fileConfig(conf_file, disable_existing_loggers=False)\n\n    setup_interface_logging.has_run = True",
-                "def _schedule_and_run(tasks, worker_scheduler_factory=None, override_defaults=None):\n    \"\"\"\n    :param tasks:\n    :param worker_scheduler_factory:\n    :param override_defaults:\n    :return: True if all tasks and their dependencies were successfully run (or already completed);\n             False if any error occurred.\n    \"\"\"\n\n    if worker_scheduler_factory is None:\n        worker_scheduler_factory = _WorkerSchedulerFactory()\n    if override_defaults is None:\n        override_defaults = {}\n    env_params = core(**override_defaults)\n    # search for logging configuration path first on the command line, then\n    # in the application config file\n    logging_conf = env_params.logging_conf_file\n    if logging_conf is not None and not os.path.exists(logging_conf):\n        raise Exception(\n            \"Error: Unable to locate specified logging configuration file!\"\n        )\n\n    if not configuration.get_config().getboolean(\n            'core', 'no_configure_logging', False):\n        setup_interface_logging(logging_conf)\n\n    kill_signal = signal.SIGUSR1 if env_params.take_lock else None\n    if (not env_params.no_lock and\n            not(lock.acquire_for(env_params.lock_pid_dir, env_params.lock_size, kill_signal))):\n        raise PidLockAlreadyTakenExit()\n\n    if env_params.local_scheduler:\n        sch = worker_scheduler_factory.create_local_scheduler()\n    else:\n        if env_params.scheduler_url is not None:\n            url = env_params.scheduler_url\n        else:\n            url = 'http://{host}:{port:d}/'.format(\n                host=env_params.scheduler_host,\n                port=env_params.scheduler_port,\n            )\n        sch = worker_scheduler_factory.create_remote_scheduler(url=url)\n\n    worker = worker_scheduler_factory.create_worker(\n        scheduler=sch, worker_processes=env_params.workers, assistant=env_params.assistant)\n\n    success = True\n    logger = logging.getLogger('luigi-interface')\n    with worker:\n        for t in tasks:\n            success &= worker.add(t, env_params.parallel_scheduling)\n        logger.info('Done scheduling tasks')\n        if env_params.workers != 0:\n            success &= worker.run()\n    logger.info(execution_summary.summary(worker))\n    return dict(success=success, worker=worker)",
-                "def run(*args, **kwargs):\n    return _run(*args, **kwargs)['success']",
-                "def _run(cmdline_args=None, main_task_cls=None,\n         worker_scheduler_factory=None, use_dynamic_argparse=None, local_scheduler=False):\n    \"\"\"\n    Please dont use. Instead use `luigi` binary.\n\n    Run from cmdline using argparse.\n\n    :param cmdline_args:\n    :param main_task_cls:\n    :param worker_scheduler_factory:\n    :param use_dynamic_argparse: Deprecated and ignored\n    :param local_scheduler:\n    \"\"\"\n    if use_dynamic_argparse is not None:\n        warnings.warn(\"use_dynamic_argparse is deprecated, don't set it.\",\n                      DeprecationWarning, stacklevel=2)\n    if cmdline_args is None:\n        cmdline_args = sys.argv[1:]\n\n    if main_task_cls:\n        cmdline_args.insert(0, main_task_cls.task_family)\n    if local_scheduler:\n        cmdline_args.insert(0, '--local-scheduler')\n\n    with CmdlineParser.global_instance(cmdline_args) as cp:\n        return _schedule_and_run([cp.get_task_obj()], worker_scheduler_factory)",
-                "def build(tasks, worker_scheduler_factory=None, **env_params):\n    \"\"\"\n    Run internally, bypassing the cmdline parsing.\n\n    Useful if you have some luigi code that you want to run internally.\n    Example:\n\n    .. code-block:: python\n\n        luigi.build([MyTask1(), MyTask2()], local_scheduler=True)\n\n    One notable difference is that `build` defaults to not using\n    the identical process lock. Otherwise, `build` would only be\n    callable once from each process.\n\n    :param tasks:\n    :param worker_scheduler_factory:\n    :param env_params:\n    :return: True if there were no scheduling errors, even if tasks may fail.\n    \"\"\"\n    if \"no_lock\" not in env_params:\n        env_params[\"no_lock\"] = True\n\n    return _schedule_and_run(tasks, worker_scheduler_factory, override_defaults=env_params)['success']",
-                "def create_local_scheduler(self):\n    return scheduler.CentralPlannerScheduler(prune_on_get_work=True)",
-                "def create_remote_scheduler(self, url):\n    return rpc.RemoteScheduler(url)",
-                "def create_worker(self, scheduler, worker_processes, assistant=False):\n    return worker.Worker(\n        scheduler=scheduler, worker_processes=worker_processes, assistant=assistant)"
-            ],
-            "inscope_function_signatures": [
-                "setup_interface_logging(conf_file=None)",
-                "_schedule_and_run(tasks, worker_scheduler_factory=None, override_defaults=None)",
-                "run(*args, **kwargs)",
-                "_run(cmdline_args=None, main_task_cls=None, worker_scheduler_factory=None, use_dynamic_argparse=None, local_scheduler=False)",
-                "build(tasks, worker_scheduler_factory=None, **env_params)",
-                "create_local_scheduler(self)",
-                "create_remote_scheduler(self, url)",
-                "create_worker(self, scheduler, worker_processes, assistant=False)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [
+                    {
+                        "code": "def setup_interface_logging(conf_file=None):\n    # use a variable in the function object to determine if it has run before\n    if getattr(setup_interface_logging, \"has_run\", False):\n        return\n\n    if conf_file is None:\n        logger = logging.getLogger('luigi-interface')\n        logger.setLevel(logging.DEBUG)\n\n        stream_handler = logging.StreamHandler()\n        stream_handler.setLevel(logging.DEBUG)\n\n        formatter = logging.Formatter('%(levelname)s: %(message)s')\n        stream_handler.setFormatter(formatter)\n\n        logger.addHandler(stream_handler)\n    else:\n        logging.config.fileConfig(conf_file, disable_existing_loggers=False)\n\n    setup_interface_logging.has_run = True",
+                        "signature": "setup_interface_logging(conf_file=None)"
+                    },
+                    {
+                        "code": "def _schedule_and_run(tasks, worker_scheduler_factory=None, override_defaults=None):\n    \"\"\"\n    :param tasks:\n    :param worker_scheduler_factory:\n    :param override_defaults:\n    :return: True if all tasks and their dependencies were successfully run (or already completed);\n             False if any error occurred.\n    \"\"\"\n\n    if worker_scheduler_factory is None:\n        worker_scheduler_factory = _WorkerSchedulerFactory()\n    if override_defaults is None:\n        override_defaults = {}\n    env_params = core(**override_defaults)\n    # search for logging configuration path first on the command line, then\n    # in the application config file\n    logging_conf = env_params.logging_conf_file\n    if logging_conf is not None and not os.path.exists(logging_conf):\n        raise Exception(\n            \"Error: Unable to locate specified logging configuration file!\"\n        )\n\n    if not configuration.get_config().getboolean(\n            'core', 'no_configure_logging', False):\n        setup_interface_logging(logging_conf)\n\n    kill_signal = signal.SIGUSR1 if env_params.take_lock else None\n    if (not env_params.no_lock and\n            not(lock.acquire_for(env_params.lock_pid_dir, env_params.lock_size, kill_signal))):\n        raise PidLockAlreadyTakenExit()\n\n    if env_params.local_scheduler:\n        sch = worker_scheduler_factory.create_local_scheduler()\n    else:\n        if env_params.scheduler_url is not None:\n            url = env_params.scheduler_url\n        else:\n            url = 'http://{host}:{port:d}/'.format(\n                host=env_params.scheduler_host,\n                port=env_params.scheduler_port,\n            )\n        sch = worker_scheduler_factory.create_remote_scheduler(url=url)\n\n    worker = worker_scheduler_factory.create_worker(\n        scheduler=sch, worker_processes=env_params.workers, assistant=env_params.assistant)\n\n    success = True\n    logger = logging.getLogger('luigi-interface')\n    with worker:\n        for t in tasks:\n            success &= worker.add(t, env_params.parallel_scheduling)\n        logger.info('Done scheduling tasks')\n        if env_params.workers != 0:\n            success &= worker.run()\n    logger.info(execution_summary.summary(worker))\n    return dict(success=success, worker=worker)",
+                        "signature": "_schedule_and_run(tasks, worker_scheduler_factory=None, override_defaults=None)"
+                    },
+                    {
+                        "code": "def run(*args, **kwargs):\n    return _run(*args, **kwargs)['success']",
+                        "signature": "run(*args, **kwargs)"
+                    },
+                    {
+                        "code": "def _run(cmdline_args=None, main_task_cls=None,\n         worker_scheduler_factory=None, use_dynamic_argparse=None, local_scheduler=False):\n    \"\"\"\n    Please dont use. Instead use `luigi` binary.\n\n    Run from cmdline using argparse.\n\n    :param cmdline_args:\n    :param main_task_cls:\n    :param worker_scheduler_factory:\n    :param use_dynamic_argparse: Deprecated and ignored\n    :param local_scheduler:\n    \"\"\"\n    if use_dynamic_argparse is not None:\n        warnings.warn(\"use_dynamic_argparse is deprecated, don't set it.\",\n                      DeprecationWarning, stacklevel=2)\n    if cmdline_args is None:\n        cmdline_args = sys.argv[1:]\n\n    if main_task_cls:\n        cmdline_args.insert(0, main_task_cls.task_family)\n    if local_scheduler:\n        cmdline_args.insert(0, '--local-scheduler')\n\n    with CmdlineParser.global_instance(cmdline_args) as cp:\n        return _schedule_and_run([cp.get_task_obj()], worker_scheduler_factory)",
+                        "signature": "_run(cmdline_args=None, main_task_cls=None, worker_scheduler_factory=None, use_dynamic_argparse=None, local_scheduler=False)"
+                    },
+                    {
+                        "code": "def build(tasks, worker_scheduler_factory=None, **env_params):\n    \"\"\"\n    Run internally, bypassing the cmdline parsing.\n\n    Useful if you have some luigi code that you want to run internally.\n    Example:\n\n    .. code-block:: python\n\n        luigi.build([MyTask1(), MyTask2()], local_scheduler=True)\n\n    One notable difference is that `build` defaults to not using\n    the identical process lock. Otherwise, `build` would only be\n    callable once from each process.\n\n    :param tasks:\n    :param worker_scheduler_factory:\n    :param env_params:\n    :return: True if there were no scheduling errors, even if tasks may fail.\n    \"\"\"\n    if \"no_lock\" not in env_params:\n        env_params[\"no_lock\"] = True\n\n    return _schedule_and_run(tasks, worker_scheduler_factory, override_defaults=env_params)['success']",
+                        "signature": "build(tasks, worker_scheduler_factory=None, **env_params)"
+                    }
+                ],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class core:",
+                        "functions": []
+                    },
+                    {
+                        "class_declaration": "class _WorkerSchedulerFactory:",
+                        "functions": [
+                            {
+                                "code": "def create_local_scheduler(self):\n    return scheduler.CentralPlannerScheduler(prune_on_get_work=True)",
+                                "signature": "create_local_scheduler(self)"
+                            },
+                            {
+                                "code": "def create_remote_scheduler(self, url):\n    return rpc.RemoteScheduler(url)",
+                                "signature": "create_remote_scheduler(self, url)"
+                            },
+                            {
+                                "code": "def create_worker(self, scheduler, worker_processes, assistant=False):\n    return worker.Worker(\n        scheduler=scheduler, worker_processes=worker_processes, assistant=assistant)",
+                                "signature": "create_worker(self, scheduler, worker_processes, assistant=False)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class PidLockAlreadyTakenExit:",
+                        "functions": []
+                    }
+                ]
+            },
             "variables_in_file": {
                 "getattr": [
                     45

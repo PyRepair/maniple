@@ -632,7 +632,22 @@ def collect_facts(
         verbose_logging=verbose_logging,
     ):
         return
+    
+    # check whether full_test_error is presented, if not retry until reaching limit 5
+    trial_count = 0
+    while trial_count < 5 and not is_test_available(bugid, bug_json_file):
+        trial_count += 1
+        print_in_yellow(f"Test info not available, trial {trial_count}")
+        run_extract_features_command(
+            bugid,
+            bug_json_file,
+            envs_dir,
+            use_docker=use_docker,
+            overwrite=True,
+            verbose_logging=verbose_logging,
+        )
 
+    # test info is not available, post process the data
     facts = Facts(bugid, bwd)
     facts.load_from_bwd(bug_json_file, write_markdown_files=True, write_facts_json=True)
 
@@ -640,3 +655,21 @@ def collect_facts(
         print_in_yellow(facts.report_stats())
 
     print_in_green(f"fact collected successfully for {bugid}")
+
+
+def is_test_available(bugid: str, feature_json_path: str):
+    if not os.path.exists(feature_json_path):
+        return False
+    
+    with open(feature_json_path, "r") as f:
+        json_output = json.load(f)
+
+    test_data = json_output[bugid]["test_data"]
+    if len(test_data) == 0:
+        return False
+    
+    for test_record in test_data:
+        if len(test_record["full_test_error"]) > 0:
+            return True
+
+    return False

@@ -113,7 +113,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.crawler.CrawlerProcess object at 0x7fa02cf435b0>",
+                                    "variable_value": "<scrapy.crawler.CrawlerProcess object at 0x7fb01d2e0fd0>",
                                     "variable_type": "CrawlerProcess",
                                     "variable_shape": null
                                 },
@@ -128,7 +128,7 @@
                                     "variable_shape": null
                                 },
                                 "self._signal_shutdown": {
-                                    "variable_value": "<bound method CrawlerProcess._signal_shutdown of <scrapy.crawler.CrawlerProcess object at 0x7fa02cf435b0>>",
+                                    "variable_value": "<bound method CrawlerProcess._signal_shutdown of <scrapy.crawler.CrawlerProcess object at 0x7fb01d2e0fd0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -160,7 +160,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.crawler.CrawlerProcess object at 0x7fc935774fd0>",
+                                    "variable_value": "<scrapy.crawler.CrawlerProcess object at 0x7f9c459cbfa0>",
                                     "variable_type": "CrawlerProcess",
                                     "variable_shape": null
                                 },
@@ -175,7 +175,7 @@
                                     "variable_shape": null
                                 },
                                 "self._signal_shutdown": {
-                                    "variable_value": "<bound method CrawlerProcess._signal_shutdown of <scrapy.crawler.CrawlerProcess object at 0x7fc935774fd0>>",
+                                    "variable_value": "<bound method CrawlerProcess._signal_shutdown of <scrapy.crawler.CrawlerProcess object at 0x7f9c459cbfa0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -207,7 +207,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<scrapy.crawler.CrawlerProcess object at 0x7fc935774fd0>",
+                                    "variable_value": "<scrapy.crawler.CrawlerProcess object at 0x7f9c459cbfa0>",
                                     "variable_type": "CrawlerProcess",
                                     "variable_shape": null
                                 },
@@ -222,7 +222,7 @@
                                     "variable_shape": null
                                 },
                                 "self._signal_shutdown": {
-                                    "variable_value": "<bound method CrawlerProcess._signal_shutdown of <scrapy.crawler.CrawlerProcess object at 0x7fc935774fd0>>",
+                                    "variable_value": "<bound method CrawlerProcess._signal_shutdown of <scrapy.crawler.CrawlerProcess object at 0x7f9c459cbfa0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -232,7 +232,7 @@
                                     "variable_shape": null
                                 },
                                 "self.settings": {
-                                    "variable_value": "<scrapy.settings.Settings object at 0x7fc933950b20>",
+                                    "variable_value": "<scrapy.settings.Settings object at 0x7f9c43390c40>",
                                     "variable_type": "Settings",
                                     "variable_shape": null
                                 },
@@ -246,48 +246,99 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def _get_spider_loader(settings):\n    \"\"\" Get SpiderLoader instance from settings \"\"\"\n    if settings.get('SPIDER_MANAGER_CLASS'):\n        warnings.warn(\n            'SPIDER_MANAGER_CLASS option is deprecated. '\n            'Please use SPIDER_LOADER_CLASS.',\n            category=ScrapyDeprecationWarning, stacklevel=2\n        )\n    cls_path = settings.get('SPIDER_MANAGER_CLASS',\n                            settings.get('SPIDER_LOADER_CLASS'))\n    loader_cls = load_object(cls_path)\n    try:\n        verifyClass(ISpiderLoader, loader_cls)\n    except DoesNotImplement:\n        warnings.warn(\n            'SPIDER_LOADER_CLASS (previously named SPIDER_MANAGER_CLASS) does '\n            'not fully implement scrapy.interfaces.ISpiderLoader interface. '\n            'Please add all missing methods to avoid unexpected runtime errors.',\n            category=ScrapyDeprecationWarning, stacklevel=2\n        )\n    return loader_cls.from_settings(settings.frozencopy())",
-                "def __init__(self, spidercls, settings):\n    if isinstance(settings, dict):\n        settings = Settings(settings)\n\n    self.spidercls = spidercls\n    self.settings = settings.copy()\n\n    self.signals = SignalManager(self)\n    self.stats = load_object(self.settings['STATS_CLASS'])(self)\n\n    handler = LogCounterHandler(self, level=settings.get('LOG_LEVEL'))\n    logging.root.addHandler(handler)\n    # lambda is assigned to Crawler attribute because this way it is not\n    # garbage collected after leaving __init__ scope\n    self.__remove_handler = lambda: logging.root.removeHandler(handler)\n    self.signals.connect(self.__remove_handler, signals.engine_stopped)\n\n    lf_cls = load_object(self.settings['LOG_FORMATTER'])\n    self.logformatter = lf_cls.from_crawler(self)\n    self.extensions = ExtensionManager.from_crawler(self)\n\n    self.spidercls.update_settings(self.settings)\n    self.settings.freeze()\n\n    self.crawling = False\n    self.spider = None\n    self.engine = None",
-                "@property\ndef spiders(self):\n    if not hasattr(self, '_spiders'):\n        warnings.warn(\"Crawler.spiders is deprecated, use \"\n                      \"CrawlerRunner.spider_loader or instantiate \"\n                      \"scrapy.spiderloader.SpiderLoader with your \"\n                      \"settings.\",\n                      category=ScrapyDeprecationWarning, stacklevel=2)\n        self._spiders = _get_spider_loader(self.settings.frozencopy())\n    return self._spiders",
-                "@defer.inlineCallbacks\ndef crawl(self, *args, **kwargs):\n    assert not self.crawling, \"Crawling already taking place\"\n    self.crawling = True\n\n    try:\n        self.spider = self._create_spider(*args, **kwargs)\n        self.engine = self._create_engine()\n        start_requests = iter(self.spider.start_requests())\n        yield self.engine.open_spider(self.spider, start_requests)\n        yield defer.maybeDeferred(self.engine.start)\n    except Exception:\n        self.crawling = False\n        raise",
-                "def _create_spider(self, *args, **kwargs):\n    return self.spidercls.from_crawler(self, *args, **kwargs)",
-                "def _create_engine(self):\n    return ExecutionEngine(self, lambda _: self.stop())",
-                "@defer.inlineCallbacks\ndef stop(self):\n    if self.crawling:\n        self.crawling = False\n        yield defer.maybeDeferred(self.engine.stop)",
-                "def __init__(self, settings):\n    if isinstance(settings, dict):\n        settings = Settings(settings)\n    self.settings = settings\n    self.spider_loader = _get_spider_loader(settings)\n    self._crawlers = set()\n    self._active = set()",
-                "@property\ndef spiders(self):\n    warnings.warn(\"CrawlerRunner.spiders attribute is renamed to \"\n                  \"CrawlerRunner.spider_loader.\",\n                  category=ScrapyDeprecationWarning, stacklevel=2)\n    return self.spider_loader",
-                "def crawl(self, crawler_or_spidercls, *args, **kwargs):\n    \"\"\"\n    Run a crawler with the provided arguments.\n\n    It will call the given Crawler's :meth:`~Crawler.crawl` method, while\n    keeping track of it so it can be stopped later.\n\n    If `crawler_or_spidercls` isn't a :class:`~scrapy.crawler.Crawler`\n    instance, this method will try to create one using this parameter as\n    the spider class given to it.\n\n    Returns a deferred that is fired when the crawling is finished.\n\n    :param crawler_or_spidercls: already created crawler, or a spider class\n        or spider's name inside the project to create it\n    :type crawler_or_spidercls: :class:`~scrapy.crawler.Crawler` instance,\n        :class:`~scrapy.spiders.Spider` subclass or string\n\n    :param list args: arguments to initialize the spider\n\n    :param dict kwargs: keyword arguments to initialize the spider\n    \"\"\"\n    crawler = crawler_or_spidercls\n    if not isinstance(crawler_or_spidercls, Crawler):\n        crawler = self._create_crawler(crawler_or_spidercls)\n\n    self.crawlers.add(crawler)\n    d = crawler.crawl(*args, **kwargs)\n    self._active.add(d)\n\n    def _done(result):\n        self.crawlers.discard(crawler)\n        self._active.discard(d)\n        return result\n\n    return d.addBoth(_done)",
-                "def _create_crawler(self, spidercls):\n    if isinstance(spidercls, six.string_types):\n        spidercls = self.spider_loader.load(spidercls)\n    return Crawler(spidercls, self.settings)",
-                "def stop(self):\n    \"\"\"\n    Stops simultaneously all the crawling jobs taking place.\n\n    Returns a deferred that is fired when they all have ended.\n    \"\"\"\n    return defer.DeferredList([c.stop() for c in list(self.crawlers)])",
-                "@defer.inlineCallbacks\ndef join(self):\n    \"\"\"\n    join()\n\n    Returns a deferred that is fired when all managed :attr:`crawlers` have\n    completed their executions.\n    \"\"\"\n    while self._active:\n        yield defer.DeferredList(self._active)",
-                "def __init__(self, settings):\n    super(CrawlerProcess, self).__init__(settings)\n    install_shutdown_handlers(self._signal_shutdown)\n    configure_logging(settings)\n    log_scrapy_info(settings)",
-                "def _signal_shutdown(self, signum, _):\n    install_shutdown_handlers(self._signal_kill)\n    signame = signal_names[signum]\n    logger.info(\"Received %(signame)s, shutting down gracefully. Send again to force \",\n                {'signame': signame})\n    reactor.callFromThread(self.stop)",
-                "def _signal_kill(self, signum, _):\n    install_shutdown_handlers(signal.SIG_IGN)\n    signame = signal_names[signum]\n    logger.info('Received %(signame)s twice, forcing unclean shutdown',\n                {'signame': signame})\n    reactor.callFromThread(self._stop_reactor)",
-                "def start(self, stop_after_crawl=True):\n    \"\"\"\n    This method starts a Twisted `reactor`_, adjusts its pool size to\n    :setting:`REACTOR_THREADPOOL_MAXSIZE`, and installs a DNS cache based\n    on :setting:`DNSCACHE_ENABLED` and :setting:`DNSCACHE_SIZE`.\n\n    If `stop_after_crawl` is True, the reactor will be stopped after all\n    crawlers have finished, using :meth:`join`.\n\n    :param boolean stop_after_crawl: stop or not the reactor when all\n        crawlers have finished\n    \"\"\"\n    if stop_after_crawl:\n        d = self.join()\n        # Don't start the reactor if the deferreds are already fired\n        if d.called:\n            return\n        d.addBoth(lambda _: self._stop_reactor())\n\n    cache_size = self.settings.getint('DNSCACHE_SIZE') if self.settings.getbool('DNSCACHE_ENABLED') else 0\n    reactor.installResolver(CachingThreadedResolver(reactor, cache_size,\n                                                        self.settings.getfloat('DNS_TIMEOUT')))\n    tp = reactor.getThreadPool()\n    tp.adjustPoolsize(maxthreads=self.settings.getint('REACTOR_THREADPOOL_MAXSIZE'))\n    reactor.addSystemEventTrigger('before', 'shutdown', self.stop)\n    reactor.run(installSignalHandlers=False)  # blocking call",
-                "def _stop_reactor(self, _=None):\n    try:\n        reactor.stop()\n    except RuntimeError:  # raised if already stopped or in shutdown stage\n        pass",
-                "def _done(result):\n    self.crawlers.discard(crawler)\n    self._active.discard(d)\n    return result"
-            ],
-            "inscope_function_signatures": [
-                "_get_spider_loader(settings)",
-                "__init__(self, spidercls, settings)",
-                "spiders(self)",
-                "crawl(self, *args, **kwargs)",
-                "_create_spider(self, *args, **kwargs)",
-                "_create_engine(self)",
-                "stop(self)",
-                "__init__(self, settings)",
-                "spiders(self)",
-                "crawl(self, crawler_or_spidercls, *args, **kwargs)",
-                "_create_crawler(self, spidercls)",
-                "stop(self)",
-                "join(self)",
-                "__init__(self, settings)",
-                "_signal_shutdown(self, signum, _)",
-                "_signal_kill(self, signum, _)",
-                "start(self, stop_after_crawl=True)",
-                "_stop_reactor(self, _=None)",
-                "_done(result)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [
+                    {
+                        "code": "def _get_spider_loader(settings):\n    \"\"\" Get SpiderLoader instance from settings \"\"\"\n    if settings.get('SPIDER_MANAGER_CLASS'):\n        warnings.warn(\n            'SPIDER_MANAGER_CLASS option is deprecated. '\n            'Please use SPIDER_LOADER_CLASS.',\n            category=ScrapyDeprecationWarning, stacklevel=2\n        )\n    cls_path = settings.get('SPIDER_MANAGER_CLASS',\n                            settings.get('SPIDER_LOADER_CLASS'))\n    loader_cls = load_object(cls_path)\n    try:\n        verifyClass(ISpiderLoader, loader_cls)\n    except DoesNotImplement:\n        warnings.warn(\n            'SPIDER_LOADER_CLASS (previously named SPIDER_MANAGER_CLASS) does '\n            'not fully implement scrapy.interfaces.ISpiderLoader interface. '\n            'Please add all missing methods to avoid unexpected runtime errors.',\n            category=ScrapyDeprecationWarning, stacklevel=2\n        )\n    return loader_cls.from_settings(settings.frozencopy())",
+                        "signature": "_get_spider_loader(settings)"
+                    }
+                ],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class Crawler:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, spidercls, settings):\n    if isinstance(settings, dict):\n        settings = Settings(settings)\n\n    self.spidercls = spidercls\n    self.settings = settings.copy()\n\n    self.signals = SignalManager(self)\n    self.stats = load_object(self.settings['STATS_CLASS'])(self)\n\n    handler = LogCounterHandler(self, level=settings.get('LOG_LEVEL'))\n    logging.root.addHandler(handler)\n    # lambda is assigned to Crawler attribute because this way it is not\n    # garbage collected after leaving __init__ scope\n    self.__remove_handler = lambda: logging.root.removeHandler(handler)\n    self.signals.connect(self.__remove_handler, signals.engine_stopped)\n\n    lf_cls = load_object(self.settings['LOG_FORMATTER'])\n    self.logformatter = lf_cls.from_crawler(self)\n    self.extensions = ExtensionManager.from_crawler(self)\n\n    self.spidercls.update_settings(self.settings)\n    self.settings.freeze()\n\n    self.crawling = False\n    self.spider = None\n    self.engine = None",
+                                "signature": "__init__(self, spidercls, settings)"
+                            },
+                            {
+                                "code": "@property\ndef spiders(self):\n    if not hasattr(self, '_spiders'):\n        warnings.warn(\"Crawler.spiders is deprecated, use \"\n                      \"CrawlerRunner.spider_loader or instantiate \"\n                      \"scrapy.spiderloader.SpiderLoader with your \"\n                      \"settings.\",\n                      category=ScrapyDeprecationWarning, stacklevel=2)\n        self._spiders = _get_spider_loader(self.settings.frozencopy())\n    return self._spiders",
+                                "signature": "spiders(self)"
+                            },
+                            {
+                                "code": "@defer.inlineCallbacks\ndef crawl(self, *args, **kwargs):\n    assert not self.crawling, \"Crawling already taking place\"\n    self.crawling = True\n\n    try:\n        self.spider = self._create_spider(*args, **kwargs)\n        self.engine = self._create_engine()\n        start_requests = iter(self.spider.start_requests())\n        yield self.engine.open_spider(self.spider, start_requests)\n        yield defer.maybeDeferred(self.engine.start)\n    except Exception:\n        self.crawling = False\n        raise",
+                                "signature": "crawl(self, *args, **kwargs)"
+                            },
+                            {
+                                "code": "def _create_spider(self, *args, **kwargs):\n    return self.spidercls.from_crawler(self, *args, **kwargs)",
+                                "signature": "_create_spider(self, *args, **kwargs)"
+                            },
+                            {
+                                "code": "def _create_engine(self):\n    return ExecutionEngine(self, lambda _: self.stop())",
+                                "signature": "_create_engine(self)"
+                            },
+                            {
+                                "code": "@defer.inlineCallbacks\ndef stop(self):\n    if self.crawling:\n        self.crawling = False\n        yield defer.maybeDeferred(self.engine.stop)",
+                                "signature": "stop(self)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class CrawlerRunner:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, settings):\n    if isinstance(settings, dict):\n        settings = Settings(settings)\n    self.settings = settings\n    self.spider_loader = _get_spider_loader(settings)\n    self._crawlers = set()\n    self._active = set()",
+                                "signature": "__init__(self, settings)"
+                            },
+                            {
+                                "code": "@property\ndef spiders(self):\n    warnings.warn(\"CrawlerRunner.spiders attribute is renamed to \"\n                  \"CrawlerRunner.spider_loader.\",\n                  category=ScrapyDeprecationWarning, stacklevel=2)\n    return self.spider_loader",
+                                "signature": "spiders(self)"
+                            },
+                            {
+                                "code": "def crawl(self, crawler_or_spidercls, *args, **kwargs):\n    \"\"\"\n    Run a crawler with the provided arguments.\n\n    It will call the given Crawler's :meth:`~Crawler.crawl` method, while\n    keeping track of it so it can be stopped later.\n\n    If `crawler_or_spidercls` isn't a :class:`~scrapy.crawler.Crawler`\n    instance, this method will try to create one using this parameter as\n    the spider class given to it.\n\n    Returns a deferred that is fired when the crawling is finished.\n\n    :param crawler_or_spidercls: already created crawler, or a spider class\n        or spider's name inside the project to create it\n    :type crawler_or_spidercls: :class:`~scrapy.crawler.Crawler` instance,\n        :class:`~scrapy.spiders.Spider` subclass or string\n\n    :param list args: arguments to initialize the spider\n\n    :param dict kwargs: keyword arguments to initialize the spider\n    \"\"\"\n    crawler = crawler_or_spidercls\n    if not isinstance(crawler_or_spidercls, Crawler):\n        crawler = self._create_crawler(crawler_or_spidercls)\n\n    self.crawlers.add(crawler)\n    d = crawler.crawl(*args, **kwargs)\n    self._active.add(d)\n\n    def _done(result):\n        self.crawlers.discard(crawler)\n        self._active.discard(d)\n        return result\n\n    return d.addBoth(_done)",
+                                "signature": "crawl(self, crawler_or_spidercls, *args, **kwargs)"
+                            },
+                            {
+                                "code": "def _create_crawler(self, spidercls):\n    if isinstance(spidercls, six.string_types):\n        spidercls = self.spider_loader.load(spidercls)\n    return Crawler(spidercls, self.settings)",
+                                "signature": "_create_crawler(self, spidercls)"
+                            },
+                            {
+                                "code": "def stop(self):\n    \"\"\"\n    Stops simultaneously all the crawling jobs taking place.\n\n    Returns a deferred that is fired when they all have ended.\n    \"\"\"\n    return defer.DeferredList([c.stop() for c in list(self.crawlers)])",
+                                "signature": "stop(self)"
+                            },
+                            {
+                                "code": "@defer.inlineCallbacks\ndef join(self):\n    \"\"\"\n    join()\n\n    Returns a deferred that is fired when all managed :attr:`crawlers` have\n    completed their executions.\n    \"\"\"\n    while self._active:\n        yield defer.DeferredList(self._active)",
+                                "signature": "join(self)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class CrawlerProcess:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, settings):\n    super(CrawlerProcess, self).__init__(settings)\n    install_shutdown_handlers(self._signal_shutdown)\n    configure_logging(settings)\n    log_scrapy_info(settings)",
+                                "signature": "__init__(self, settings)"
+                            },
+                            {
+                                "code": "def _signal_shutdown(self, signum, _):\n    install_shutdown_handlers(self._signal_kill)\n    signame = signal_names[signum]\n    logger.info(\"Received %(signame)s, shutting down gracefully. Send again to force \",\n                {'signame': signame})\n    reactor.callFromThread(self.stop)",
+                                "signature": "_signal_shutdown(self, signum, _)"
+                            },
+                            {
+                                "code": "def _signal_kill(self, signum, _):\n    install_shutdown_handlers(signal.SIG_IGN)\n    signame = signal_names[signum]\n    logger.info('Received %(signame)s twice, forcing unclean shutdown',\n                {'signame': signame})\n    reactor.callFromThread(self._stop_reactor)",
+                                "signature": "_signal_kill(self, signum, _)"
+                            },
+                            {
+                                "code": "def start(self, stop_after_crawl=True):\n    \"\"\"\n    This method starts a Twisted `reactor`_, adjusts its pool size to\n    :setting:`REACTOR_THREADPOOL_MAXSIZE`, and installs a DNS cache based\n    on :setting:`DNSCACHE_ENABLED` and :setting:`DNSCACHE_SIZE`.\n\n    If `stop_after_crawl` is True, the reactor will be stopped after all\n    crawlers have finished, using :meth:`join`.\n\n    :param boolean stop_after_crawl: stop or not the reactor when all\n        crawlers have finished\n    \"\"\"\n    if stop_after_crawl:\n        d = self.join()\n        # Don't start the reactor if the deferreds are already fired\n        if d.called:\n            return\n        d.addBoth(lambda _: self._stop_reactor())\n\n    cache_size = self.settings.getint('DNSCACHE_SIZE') if self.settings.getbool('DNSCACHE_ENABLED') else 0\n    reactor.installResolver(CachingThreadedResolver(reactor, cache_size,\n                                                        self.settings.getfloat('DNS_TIMEOUT')))\n    tp = reactor.getThreadPool()\n    tp.adjustPoolsize(maxthreads=self.settings.getint('REACTOR_THREADPOOL_MAXSIZE'))\n    reactor.addSystemEventTrigger('before', 'shutdown', self.stop)\n    reactor.run(installSignalHandlers=False)  # blocking call",
+                                "signature": "start(self, stop_after_crawl=True)"
+                            },
+                            {
+                                "code": "def _stop_reactor(self, _=None):\n    try:\n        reactor.stop()\n    except RuntimeError:  # raised if already stopped or in shutdown stage\n        pass",
+                                "signature": "_stop_reactor(self, _=None)"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "logger": [
                     225,

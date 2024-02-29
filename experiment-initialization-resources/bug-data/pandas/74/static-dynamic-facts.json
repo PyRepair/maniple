@@ -268,7 +268,7 @@
                                 "cls": {
                                     "variable_value": "<class 'pandas.core.indexes.timedeltas.TimedeltaIndex'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x7f1b5bf4d9f0>"
+                                    "variable_shape": "<property object at 0x7fde7f74d9f0>"
                                 },
                                 "is_scalar": {
                                     "variable_value": null,
@@ -360,7 +360,7 @@
                                 "cls": {
                                     "variable_value": "<class 'pandas.core.indexes.timedeltas.TimedeltaIndex'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x7f1b5bf4d9f0>"
+                                    "variable_shape": "<property object at 0x7fde7f74d9f0>"
                                 },
                                 "is_scalar": {
                                     "variable_value": null,
@@ -456,7 +456,7 @@
                                 "cls": {
                                     "variable_value": "<class 'pandas.core.indexes.timedeltas.TimedeltaIndex'>",
                                     "variable_type": "type",
-                                    "variable_shape": "<property object at 0x7fea08f0da40>"
+                                    "variable_shape": "<property object at 0x7f6862f4d9f0>"
                                 },
                                 "is_scalar": {
                                     "variable_value": null,
@@ -529,34 +529,69 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def timedelta_range(\n    start=None, end=None, periods=None, freq=None, name=None, closed=None\n) -> TimedeltaIndex:\n    \"\"\"\n    Return a fixed frequency TimedeltaIndex, with day as the default\n    frequency.\n\n    Parameters\n    ----------\n    start : str or timedelta-like, default None\n        Left bound for generating timedeltas.\n    end : str or timedelta-like, default None\n        Right bound for generating timedeltas.\n    periods : int, default None\n        Number of periods to generate.\n    freq : str or DateOffset, default 'D'\n        Frequency strings can have multiples, e.g. '5H'.\n    name : str, default None\n        Name of the resulting TimedeltaIndex.\n    closed : str, default None\n        Make the interval closed with respect to the given frequency to\n        the 'left', 'right', or both sides (None).\n\n    Returns\n    -------\n    rng : TimedeltaIndex\n\n    Notes\n    -----\n    Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,\n    exactly three must be specified. If ``freq`` is omitted, the resulting\n    ``TimedeltaIndex`` will have ``periods`` linearly spaced elements between\n    ``start`` and ``end`` (closed on both sides).\n\n    To learn more about the frequency strings, please see `this link\n    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.\n\n    Examples\n    --------\n\n    >>> pd.timedelta_range(start='1 day', periods=4)\n    TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],\n                   dtype='timedelta64[ns]', freq='D')\n\n    The ``closed`` parameter specifies which endpoint is included.  The default\n    behavior is to include both endpoints.\n\n    >>> pd.timedelta_range(start='1 day', periods=4, closed='right')\n    TimedeltaIndex(['2 days', '3 days', '4 days'],\n                   dtype='timedelta64[ns]', freq='D')\n\n    The ``freq`` parameter specifies the frequency of the TimedeltaIndex.\n    Only fixed frequencies can be passed, non-fixed frequencies such as\n    'M' (month end) will raise.\n\n    >>> pd.timedelta_range(start='1 day', end='2 days', freq='6H')\n    TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00',\n                    '1 days 18:00:00', '2 days 00:00:00'],\n                   dtype='timedelta64[ns]', freq='6H')\n\n    Specify ``start``, ``end``, and ``periods``; the frequency is generated\n    automatically (linearly spaced).\n\n    >>> pd.timedelta_range(start='1 day', end='5 days', periods=4)\n    TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',\n                '5 days 00:00:00'],\n               dtype='timedelta64[ns]', freq=None)\n    \"\"\"\n    if freq is None and com.any_none(periods, start, end):\n        freq = \"D\"\n\n    freq, freq_infer = dtl.maybe_infer_freq(freq)\n    tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)\n    return TimedeltaIndex._simple_new(tdarr, name=name)",
-                "def __new__(\n    cls,\n    data=None,\n    unit=None,\n    freq=None,\n    closed=None,\n    dtype=_TD_DTYPE,\n    copy=False,\n    name=None,\n):\n    name = maybe_extract_name(name, data, cls)\n\n    if is_scalar(data):\n        raise TypeError(\n            f\"{cls.__name__}() must be called with a \"\n            f\"collection of some kind, {repr(data)} was passed\"\n        )\n\n    if unit in {\"Y\", \"y\", \"M\"}:\n        raise ValueError(\n            \"Units 'M' and 'Y' are no longer supported, as they do not \"\n            \"represent unambiguous timedelta values durations.\"\n        )\n\n    if isinstance(data, TimedeltaArray):\n        if copy:\n            data = data.copy()\n        return cls._simple_new(data, name=name, freq=freq)\n\n    if isinstance(data, TimedeltaIndex) and freq is None and name is None:\n        if copy:\n            return data.copy()\n        else:\n            return data._shallow_copy()\n\n    # - Cases checked above all return/raise before reaching here - #\n\n    tdarr = TimedeltaArray._from_sequence(\n        data, freq=freq, unit=unit, dtype=dtype, copy=copy\n    )\n    return cls._simple_new(tdarr, name=name)",
-                "@classmethod\ndef _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):\n    # `dtype` is passed by _shallow_copy in corner cases, should always\n    #  be timedelta64[ns] if present\n\n    if not isinstance(values, TimedeltaArray):\n        values = TimedeltaArray._simple_new(values, dtype=dtype, freq=freq)\n    else:\n        if freq is None:\n            freq = values.freq\n    assert isinstance(values, TimedeltaArray), type(values)\n    assert dtype == _TD_DTYPE, dtype\n    assert values.dtype == \"m8[ns]\", values.dtype\n\n    tdarr = TimedeltaArray._simple_new(values._data, freq=freq)\n    result = object.__new__(cls)\n    result._data = tdarr\n    result._name = name\n    # For groupby perf. See note in indexes/base about _index_data\n    result._index_data = tdarr._data\n\n    result._reset_identity()\n    return result",
-                "@property\ndef _formatter_func(self):\n    from pandas.io.formats.format import _get_format_timedelta64\n\n    return _get_format_timedelta64(self, box=True)",
-                "@Appender(_index_shared_docs[\"astype\"])\ndef astype(self, dtype, copy=True):\n    dtype = pandas_dtype(dtype)\n    if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):\n        # Have to repeat the check for 'timedelta64' (not ns) dtype\n        #  so that we can return a numeric index, since pandas will return\n        #  a TimedeltaIndex when dtype='timedelta'\n        result = self._data.astype(dtype, copy=copy)\n        if self.hasnans:\n            return Index(result, name=self.name)\n        return Index(result.astype(\"i8\"), name=self.name)\n    return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)",
-                "def _maybe_promote(self, other):\n    if other.inferred_type == \"timedelta\":\n        other = TimedeltaIndex(other)\n    return self, other",
-                "def get_value(self, series, key):\n    \"\"\"\n    Fast lookup of value from 1-dimensional ndarray. Only use this if you\n    know what you're doing\n    \"\"\"\n    if is_integer(key):\n        loc = key\n    else:\n        loc = self.get_loc(key)\n    return self._get_values_for_loc(series, loc)",
-                "def get_loc(self, key, method=None, tolerance=None):\n    \"\"\"\n    Get integer location for requested label\n\n    Returns\n    -------\n    loc : int, slice, or ndarray[int]\n    \"\"\"\n    if not is_scalar(key):\n        raise InvalidIndexError(key)\n\n    if is_valid_nat_for_dtype(key, self.dtype):\n        key = NaT\n\n    elif isinstance(key, str):\n        try:\n            key = Timedelta(key)\n        except ValueError:\n            raise KeyError(key)\n\n    elif isinstance(key, self._data._recognized_scalars) or key is NaT:\n        key = Timedelta(key)\n\n    else:\n        raise KeyError(key)\n\n    if tolerance is not None:\n        # try converting tolerance now, so errors don't get swallowed by\n        # the try/except clauses below\n        tolerance = self._convert_tolerance(tolerance, np.asarray(key))\n\n    return Index.get_loc(self, key, method, tolerance)",
-                "def _maybe_cast_slice_bound(self, label, side, kind):\n    \"\"\"\n    If label is a string, cast it to timedelta according to resolution.\n\n    Parameters\n    ----------\n    label : object\n    side : {'left', 'right'}\n    kind : {'loc', 'getitem'} or None\n\n    Returns\n    -------\n    label : object\n    \"\"\"\n    assert kind in [\"loc\", \"getitem\", None]\n\n    if isinstance(label, str):\n        parsed = Timedelta(label)\n        lbound = parsed.round(parsed.resolution_string)\n        if side == \"left\":\n            return lbound\n        else:\n            return lbound + to_offset(parsed.resolution_string) - Timedelta(1, \"ns\")\n    elif is_integer(label) or is_float(label):\n        self._invalid_indexer(\"slice\", label)\n\n    return label",
-                "def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):\n    # TODO: Check for non-True use_lhs/use_rhs\n    assert isinstance(key, str), type(key)\n    # given a key, try to figure out a location for a partial slice\n    raise NotImplementedError",
-                "def is_type_compatible(self, typ) -> bool:\n    return typ == self.inferred_type or typ == \"timedelta\"",
-                "@property\ndef inferred_type(self) -> str:\n    return \"timedelta64\""
-            ],
-            "inscope_function_signatures": [
-                "timedelta_range(start=None, end=None, periods=None, freq=None, name=None, closed=None) -> TimedeltaIndex",
-                "__new__(cls, data=None, unit=None, freq=None, closed=None, dtype=_TD_DTYPE, copy=False, name=None)",
-                "_simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE)",
-                "_formatter_func(self)",
-                "astype(self, dtype, copy=True)",
-                "_maybe_promote(self, other)",
-                "get_value(self, series, key)",
-                "get_loc(self, key, method=None, tolerance=None)",
-                "_maybe_cast_slice_bound(self, label, side, kind)",
-                "_get_string_slice(self, key: str, use_lhs: bool=True, use_rhs: bool=True)",
-                "is_type_compatible(self, typ) -> bool",
-                "inferred_type(self) -> str"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [
+                    {
+                        "code": "def timedelta_range(\n    start=None, end=None, periods=None, freq=None, name=None, closed=None\n) -> TimedeltaIndex:\n    \"\"\"\n    Return a fixed frequency TimedeltaIndex, with day as the default\n    frequency.\n\n    Parameters\n    ----------\n    start : str or timedelta-like, default None\n        Left bound for generating timedeltas.\n    end : str or timedelta-like, default None\n        Right bound for generating timedeltas.\n    periods : int, default None\n        Number of periods to generate.\n    freq : str or DateOffset, default 'D'\n        Frequency strings can have multiples, e.g. '5H'.\n    name : str, default None\n        Name of the resulting TimedeltaIndex.\n    closed : str, default None\n        Make the interval closed with respect to the given frequency to\n        the 'left', 'right', or both sides (None).\n\n    Returns\n    -------\n    rng : TimedeltaIndex\n\n    Notes\n    -----\n    Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,\n    exactly three must be specified. If ``freq`` is omitted, the resulting\n    ``TimedeltaIndex`` will have ``periods`` linearly spaced elements between\n    ``start`` and ``end`` (closed on both sides).\n\n    To learn more about the frequency strings, please see `this link\n    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases>`__.\n\n    Examples\n    --------\n\n    >>> pd.timedelta_range(start='1 day', periods=4)\n    TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],\n                   dtype='timedelta64[ns]', freq='D')\n\n    The ``closed`` parameter specifies which endpoint is included.  The default\n    behavior is to include both endpoints.\n\n    >>> pd.timedelta_range(start='1 day', periods=4, closed='right')\n    TimedeltaIndex(['2 days', '3 days', '4 days'],\n                   dtype='timedelta64[ns]', freq='D')\n\n    The ``freq`` parameter specifies the frequency of the TimedeltaIndex.\n    Only fixed frequencies can be passed, non-fixed frequencies such as\n    'M' (month end) will raise.\n\n    >>> pd.timedelta_range(start='1 day', end='2 days', freq='6H')\n    TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00',\n                    '1 days 18:00:00', '2 days 00:00:00'],\n                   dtype='timedelta64[ns]', freq='6H')\n\n    Specify ``start``, ``end``, and ``periods``; the frequency is generated\n    automatically (linearly spaced).\n\n    >>> pd.timedelta_range(start='1 day', end='5 days', periods=4)\n    TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',\n                '5 days 00:00:00'],\n               dtype='timedelta64[ns]', freq=None)\n    \"\"\"\n    if freq is None and com.any_none(periods, start, end):\n        freq = \"D\"\n\n    freq, freq_infer = dtl.maybe_infer_freq(freq)\n    tdarr = TimedeltaArray._generate_range(start, end, periods, freq, closed=closed)\n    return TimedeltaIndex._simple_new(tdarr, name=name)",
+                        "signature": "timedelta_range(start=None, end=None, periods=None, freq=None, name=None, closed=None) -> TimedeltaIndex"
+                    }
+                ],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class TimedeltaDelegateMixin:",
+                        "functions": []
+                    },
+                    {
+                        "class_declaration": "class TimedeltaIndex:",
+                        "functions": [
+                            {
+                                "code": "def __new__(\n    cls,\n    data=None,\n    unit=None,\n    freq=None,\n    closed=None,\n    dtype=_TD_DTYPE,\n    copy=False,\n    name=None,\n):\n    name = maybe_extract_name(name, data, cls)\n\n    if is_scalar(data):\n        raise TypeError(\n            f\"{cls.__name__}() must be called with a \"\n            f\"collection of some kind, {repr(data)} was passed\"\n        )\n\n    if unit in {\"Y\", \"y\", \"M\"}:\n        raise ValueError(\n            \"Units 'M' and 'Y' are no longer supported, as they do not \"\n            \"represent unambiguous timedelta values durations.\"\n        )\n\n    if isinstance(data, TimedeltaArray):\n        if copy:\n            data = data.copy()\n        return cls._simple_new(data, name=name, freq=freq)\n\n    if isinstance(data, TimedeltaIndex) and freq is None and name is None:\n        if copy:\n            return data.copy()\n        else:\n            return data._shallow_copy()\n\n    # - Cases checked above all return/raise before reaching here - #\n\n    tdarr = TimedeltaArray._from_sequence(\n        data, freq=freq, unit=unit, dtype=dtype, copy=copy\n    )\n    return cls._simple_new(tdarr, name=name)",
+                                "signature": "__new__(cls, data=None, unit=None, freq=None, closed=None, dtype=_TD_DTYPE, copy=False, name=None)"
+                            },
+                            {
+                                "code": "@classmethod\ndef _simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE):\n    # `dtype` is passed by _shallow_copy in corner cases, should always\n    #  be timedelta64[ns] if present\n\n    if not isinstance(values, TimedeltaArray):\n        values = TimedeltaArray._simple_new(values, dtype=dtype, freq=freq)\n    else:\n        if freq is None:\n            freq = values.freq\n    assert isinstance(values, TimedeltaArray), type(values)\n    assert dtype == _TD_DTYPE, dtype\n    assert values.dtype == \"m8[ns]\", values.dtype\n\n    tdarr = TimedeltaArray._simple_new(values._data, freq=freq)\n    result = object.__new__(cls)\n    result._data = tdarr\n    result._name = name\n    # For groupby perf. See note in indexes/base about _index_data\n    result._index_data = tdarr._data\n\n    result._reset_identity()\n    return result",
+                                "signature": "_simple_new(cls, values, name=None, freq=None, dtype=_TD_DTYPE)"
+                            },
+                            {
+                                "code": "@property\ndef _formatter_func(self):\n    from pandas.io.formats.format import _get_format_timedelta64\n\n    return _get_format_timedelta64(self, box=True)",
+                                "signature": "_formatter_func(self)"
+                            },
+                            {
+                                "code": "@Appender(_index_shared_docs[\"astype\"])\ndef astype(self, dtype, copy=True):\n    dtype = pandas_dtype(dtype)\n    if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):\n        # Have to repeat the check for 'timedelta64' (not ns) dtype\n        #  so that we can return a numeric index, since pandas will return\n        #  a TimedeltaIndex when dtype='timedelta'\n        result = self._data.astype(dtype, copy=copy)\n        if self.hasnans:\n            return Index(result, name=self.name)\n        return Index(result.astype(\"i8\"), name=self.name)\n    return DatetimeIndexOpsMixin.astype(self, dtype, copy=copy)",
+                                "signature": "astype(self, dtype, copy=True)"
+                            },
+                            {
+                                "code": "def _maybe_promote(self, other):\n    if other.inferred_type == \"timedelta\":\n        other = TimedeltaIndex(other)\n    return self, other",
+                                "signature": "_maybe_promote(self, other)"
+                            },
+                            {
+                                "code": "def get_value(self, series, key):\n    \"\"\"\n    Fast lookup of value from 1-dimensional ndarray. Only use this if you\n    know what you're doing\n    \"\"\"\n    if is_integer(key):\n        loc = key\n    else:\n        loc = self.get_loc(key)\n    return self._get_values_for_loc(series, loc)",
+                                "signature": "get_value(self, series, key)"
+                            },
+                            {
+                                "code": "def get_loc(self, key, method=None, tolerance=None):\n    \"\"\"\n    Get integer location for requested label\n\n    Returns\n    -------\n    loc : int, slice, or ndarray[int]\n    \"\"\"\n    if not is_scalar(key):\n        raise InvalidIndexError(key)\n\n    if is_valid_nat_for_dtype(key, self.dtype):\n        key = NaT\n\n    elif isinstance(key, str):\n        try:\n            key = Timedelta(key)\n        except ValueError:\n            raise KeyError(key)\n\n    elif isinstance(key, self._data._recognized_scalars) or key is NaT:\n        key = Timedelta(key)\n\n    else:\n        raise KeyError(key)\n\n    if tolerance is not None:\n        # try converting tolerance now, so errors don't get swallowed by\n        # the try/except clauses below\n        tolerance = self._convert_tolerance(tolerance, np.asarray(key))\n\n    return Index.get_loc(self, key, method, tolerance)",
+                                "signature": "get_loc(self, key, method=None, tolerance=None)"
+                            },
+                            {
+                                "code": "def _maybe_cast_slice_bound(self, label, side, kind):\n    \"\"\"\n    If label is a string, cast it to timedelta according to resolution.\n\n    Parameters\n    ----------\n    label : object\n    side : {'left', 'right'}\n    kind : {'loc', 'getitem'} or None\n\n    Returns\n    -------\n    label : object\n    \"\"\"\n    assert kind in [\"loc\", \"getitem\", None]\n\n    if isinstance(label, str):\n        parsed = Timedelta(label)\n        lbound = parsed.round(parsed.resolution_string)\n        if side == \"left\":\n            return lbound\n        else:\n            return lbound + to_offset(parsed.resolution_string) - Timedelta(1, \"ns\")\n    elif is_integer(label) or is_float(label):\n        self._invalid_indexer(\"slice\", label)\n\n    return label",
+                                "signature": "_maybe_cast_slice_bound(self, label, side, kind)"
+                            },
+                            {
+                                "code": "def _get_string_slice(self, key: str, use_lhs: bool = True, use_rhs: bool = True):\n    # TODO: Check for non-True use_lhs/use_rhs\n    assert isinstance(key, str), type(key)\n    # given a key, try to figure out a location for a partial slice\n    raise NotImplementedError",
+                                "signature": "_get_string_slice(self, key: str, use_lhs: bool=True, use_rhs: bool=True)"
+                            },
+                            {
+                                "code": "def is_type_compatible(self, typ) -> bool:\n    return typ == self.inferred_type or typ == \"timedelta\"",
+                                "signature": "is_type_compatible(self, typ) -> bool"
+                            },
+                            {
+                                "code": "@property\ndef inferred_type(self) -> str:\n    return \"timedelta64\"",
+                                "signature": "inferred_type(self) -> str"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "DatetimelikeDelegateMixin": [
                     39
@@ -1572,7 +1607,7 @@
                 "test_function": "test_infer_from_tdi_mismatch",
                 "test_function_code": "    def test_infer_from_tdi_mismatch(self):\n        # GH#23539\n        # fast-path for invalidating a frequency if the passed data already\n        #  has one and it does not match the `freq` input\n        tdi = pd.timedelta_range(\"1 second\", periods=100, freq=\"1s\")\n\n        msg = (\n            \"Inferred frequency .* from passed values does \"\n            \"not conform to passed frequency\"\n        )\n        with pytest.raises(ValueError, match=msg):\n            TimedeltaIndex(tdi, freq=\"D\")\n\n        with pytest.raises(ValueError, match=msg):\n            # GH#23789\n            TimedeltaArray(tdi, freq=\"D\")\n\n        with pytest.raises(ValueError, match=msg):\n            TimedeltaIndex(tdi._data, freq=\"D\")\n\n        with pytest.raises(ValueError, match=msg):\n            TimedeltaArray(tdi._data, freq=\"D\")",
                 "test_error": "Failed: DID NOT RAISE <class 'ValueError'>",
-                "full_test_error": "self = <pandas.tests.indexes.timedeltas.test_constructors.TestTimedeltaIndex object at 0x7f7039ea22e0>\n\n    def test_infer_from_tdi_mismatch(self):\n        # GH#23539\n        # fast-path for invalidating a frequency if the passed data already\n        #  has one and it does not match the `freq` input\n        tdi = pd.timedelta_range(\"1 second\", periods=100, freq=\"1s\")\n    \n        msg = (\n            \"Inferred frequency .* from passed values does \"\n            \"not conform to passed frequency\"\n        )\n        with pytest.raises(ValueError, match=msg):\n            TimedeltaIndex(tdi, freq=\"D\")\n    \n        with pytest.raises(ValueError, match=msg):\n            # GH#23789\n            TimedeltaArray(tdi, freq=\"D\")\n    \n        with pytest.raises(ValueError, match=msg):\n>           TimedeltaIndex(tdi._data, freq=\"D\")\nE           Failed: DID NOT RAISE <class 'ValueError'>\n\npandas/tests/indexes/timedeltas/test_constructors.py:51: Failed",
+                "full_test_error": "self = <pandas.tests.indexes.timedeltas.test_constructors.TestTimedeltaIndex object at 0x7f070d7c2160>\n\n    def test_infer_from_tdi_mismatch(self):\n        # GH#23539\n        # fast-path for invalidating a frequency if the passed data already\n        #  has one and it does not match the `freq` input\n        tdi = pd.timedelta_range(\"1 second\", periods=100, freq=\"1s\")\n    \n        msg = (\n            \"Inferred frequency .* from passed values does \"\n            \"not conform to passed frequency\"\n        )\n        with pytest.raises(ValueError, match=msg):\n            TimedeltaIndex(tdi, freq=\"D\")\n    \n        with pytest.raises(ValueError, match=msg):\n            # GH#23789\n            TimedeltaArray(tdi, freq=\"D\")\n    \n        with pytest.raises(ValueError, match=msg):\n>           TimedeltaIndex(tdi._data, freq=\"D\")\nE           Failed: DID NOT RAISE <class 'ValueError'>\n\npandas/tests/indexes/timedeltas/test_constructors.py:51: Failed",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": []

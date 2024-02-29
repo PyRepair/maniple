@@ -8,9 +8,7 @@
     "1.4.1": [
         "__init__(self, input_shape=None, batch_size=None, batch_input_shape=None, dtype=None, input_tensor=None, sparse=False, name=None)"
     ],
-    "1.4.2": [
-        "__init__(self, input_shape=None, batch_size=None, batch_input_shape=None, dtype=None, input_tensor=None, sparse=False, name=None)"
-    ],
+    "1.4.2": null,
     "1.5.1": [
         "@keras_test\ndef test_sequential_as_downstream_of_masking_layer():\n\n    inputs = layers.Input(shape=(3, 4))\n    x = layers.Masking(mask_value=0., input_shape=(3, 4))(inputs)\n    s = Sequential()\n    s.add(layers.Dense(5, input_shape=(4,)))\n    s.add(layers.Activation('relu'))\n    x = layers.wrappers.TimeDistributed(s)(x)\n    model = Model(inputs=inputs, outputs=x)\n    model.compile(optimizer='rmsprop', loss='mse')\n    model_input = np.random.randint(low=1, high=5, size=(10, 3, 4))\n    for i in range(4):\n        model_input[i, i:, :] = 0.\n    model.fit(model_input,\n              np.random.random((10, 3, 5)), epochs=1, batch_size=6)\n\n    mask_outputs = [model.layers[1].compute_mask(model.layers[1].input)]\n    mask_outputs += [model.layers[2].compute_mask(model.layers[2].input, mask_outputs[-1])]\n    func = K.function([model.input], mask_outputs)\n    mask_outputs_val = func([model_input])\n    assert np.array_equal(mask_outputs_val[0], np.any(model_input, axis=-1))\n    assert np.array_equal(mask_outputs_val[1], np.any(model_input, axis=-1))"
     ],
@@ -24,7 +22,7 @@
     ],
     "2.1.2": [
         [
-            "@keras_test\n    def test_sequential_as_downstream_of_masking_layer():\n    \n        inputs = layers.Input(shape=(3, 4))\n        x = layers.Masking(mask_value=0., input_shape=(3, 4))(inputs)\n        s = Sequential()\n        s.add(layers.Dense(5, input_shape=(4,)))\n        s.add(layers.Activation('relu'))\n>       x = layers.wrappers.TimeDistributed(s)(x)\n\ntests/keras/layers/core_test.py:355: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nkeras/engine/base_layer.py:457: in __call__\n    output = self.call(inputs, **kwargs)\nkeras/layers/wrappers.py:248: in call\n    y = self.layer.call(inputs, **kwargs)\nkeras/engine/network.py:570: in call\n    output_tensors, _, _ = self.run_internal_graph(inputs, masks)\nkeras/engine/network.py:726: in run_internal_graph\n    computed_mask)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <keras.engine.input_layer.InputLayer object at 0x7ff457909ad0>\ninputs = <tf.Tensor 'time_distributed_1/Reshape:0' shape=(?, 4) dtype=float32>\nmask = <tf.Tensor 'time_distributed_1/Reshape_1:0' shape=(?,) dtype=bool>\n\n    def compute_mask(self, inputs, mask=None):\n        \"\"\"Computes an output mask tensor.\n    \n        # Arguments\n            inputs: Tensor or list of tensors.\n            mask: Tensor or list of tensors.\n    \n        # Returns\n            None or a tensor (or list of tensors,\n                one per output tensor of the layer).\n        \"\"\"\n        if not self.supports_masking:\n            if mask is not None:\n                if isinstance(mask, list):\n                    if any(m is not None for m in mask):\n                        raise TypeError('Layer ' + self.name +\n                                        ' does not support masking, '\n                                        'but was passed an input_mask: ' +\n                                        str(mask))\n                else:\n                    raise TypeError('Layer ' + self.name +\n                                    ' does not support masking, '\n                                    'but was passed an input_mask: ' +\n>                                   str(mask))",
+            "@keras_test\n    def test_sequential_as_downstream_of_masking_layer():\n    \n        inputs = layers.Input(shape=(3, 4))\n        x = layers.Masking(mask_value=0., input_shape=(3, 4))(inputs)\n        s = Sequential()\n        s.add(layers.Dense(5, input_shape=(4,)))\n        s.add(layers.Activation('relu'))\n>       x = layers.wrappers.TimeDistributed(s)(x)\n\ntests/keras/layers/core_test.py:355: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nkeras/engine/base_layer.py:457: in __call__\n    output = self.call(inputs, **kwargs)\nkeras/layers/wrappers.py:248: in call\n    y = self.layer.call(inputs, **kwargs)\nkeras/engine/network.py:570: in call\n    output_tensors, _, _ = self.run_internal_graph(inputs, masks)\nkeras/engine/network.py:726: in run_internal_graph\n    computed_mask)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <keras.engine.input_layer.InputLayer object at 0x7f7d97b8a9d0>\ninputs = <tf.Tensor 'time_distributed_1/Reshape:0' shape=(?, 4) dtype=float32>\nmask = <tf.Tensor 'time_distributed_1/Reshape_1:0' shape=(?,) dtype=bool>\n\n    def compute_mask(self, inputs, mask=None):\n        \"\"\"Computes an output mask tensor.\n    \n        # Arguments\n            inputs: Tensor or list of tensors.\n            mask: Tensor or list of tensors.\n    \n        # Returns\n            None or a tensor (or list of tensors,\n                one per output tensor of the layer).\n        \"\"\"\n        if not self.supports_masking:\n            if mask is not None:\n                if isinstance(mask, list):\n                    if any(m is not None for m in mask):\n                        raise TypeError('Layer ' + self.name +\n                                        ' does not support masking, '\n                                        'but was passed an input_mask: ' +\n                                        str(mask))\n                else:\n                    raise TypeError('Layer ' + self.name +\n                                    ' does not support masking, '\n                                    'but was passed an input_mask: ' +\n>                                   str(mask))",
             "\nkeras/engine/base_layer.py:616: TypeError"
         ]
     ],
@@ -109,7 +107,7 @@
                     "omitted": false
                 },
                 "input_tensor._keras_history": {
-                    "value": "(<keras.engine.input_layer.InputLayer object at 0x7ff3483e95d0>, 0, 0)",
+                    "value": "(<keras.engine.input_layer.InputLayer object at 0x7ff1588a9510>, 0, 0)",
                     "shape": "3",
                     "omitted": false
                 }
@@ -190,7 +188,7 @@
                     "omitted": false
                 },
                 "input_tensor._keras_history": {
-                    "value": "(<keras.engine.input_layer.InputLayer object at 0x7ff34838a890>, 0, 0)",
+                    "value": "(<keras.engine.input_layer.InputLayer object at 0x7ff1585cb7d0>, 0, 0)",
                     "shape": "3",
                     "omitted": false
                 }
@@ -328,7 +326,7 @@
                     "omitted": false
                 },
                 "input_tensor._keras_history": {
-                    "value": "(<keras.engine.input_layer.InputLayer object at 0x7f53c7ff5a50>, 0, 0)",
+                    "value": "(<keras.engine.input_layer.InputLayer object at 0x7fba4d0f23d0>, 0, 0)",
                     "shape": "3",
                     "omitted": false
                 }
@@ -414,7 +412,7 @@
                     "omitted": false
                 },
                 "input_tensor._keras_history": {
-                    "value": "(<keras.engine.input_layer.InputLayer object at 0x7f53c7fe4b10>, 0, 0)",
+                    "value": "(<keras.engine.input_layer.InputLayer object at 0x7fba4cd90890>, 0, 0)",
                     "shape": "3",
                     "omitted": false
                 }

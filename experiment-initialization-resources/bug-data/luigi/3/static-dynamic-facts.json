@@ -246,176 +246,475 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def _recursively_freeze(value):\n    \"\"\"\n    Recursively walks ``Mapping``s and ``list``s and converts them to ``_FrozenOrderedDict`` and ``tuples``, respectively.\n    \"\"\"\n    if isinstance(value, Mapping):\n        return _FrozenOrderedDict(((k, _recursively_freeze(v)) for k, v in value.items()))\n    elif isinstance(value, list) or isinstance(value, tuple):\n        return tuple(_recursively_freeze(v) for v in value)\n    return value",
-                "@classmethod\ndef has_value(cls, value):\n    return any(value == item.value for item in cls)",
-                "def serialize(self):\n    return self.value",
-                "def __init__(self, default=_no_value, is_global=False, significant=True, description=None,\n             config_path=None, positional=True, always_in_help=False, batch_method=None,\n             visibility=ParameterVisibility.PUBLIC):\n    \"\"\"\n    :param default: the default value for this parameter. This should match the type of the\n                    Parameter, i.e. ``datetime.date`` for ``DateParameter`` or ``int`` for\n                    ``IntParameter``. By default, no default is stored and\n                    the value must be specified at runtime.\n    :param bool significant: specify ``False`` if the parameter should not be treated as part of\n                             the unique identifier for a Task. An insignificant Parameter might\n                             also be used to specify a password or other sensitive information\n                             that should not be made public via the scheduler. Default:\n                             ``True``.\n    :param str description: A human-readable string describing the purpose of this Parameter.\n                            For command-line invocations, this will be used as the `help` string\n                            shown to users. Default: ``None``.\n    :param dict config_path: a dictionary with entries ``section`` and ``name``\n                             specifying a config file entry from which to read the\n                             default value for this parameter. DEPRECATED.\n                             Default: ``None``.\n    :param bool positional: If true, you can set the argument as a\n                            positional argument. It's true by default but we recommend\n                            ``positional=False`` for abstract base classes and similar cases.\n    :param bool always_in_help: For the --help option in the command line\n                                parsing. Set true to always show in --help.\n    :param function(iterable[A])->A batch_method: Method to combine an iterable of parsed\n                                                    parameter values into a single value. Used\n                                                    when receiving batched parameter lists from\n                                                    the scheduler. See :ref:`batch_method`\n\n    :param visibility: A Parameter whose value is a :py:class:`~luigi.parameter.ParameterVisibility`.\n                        Default value is ParameterVisibility.PUBLIC\n\n    \"\"\"\n    self._default = default\n    self._batch_method = batch_method\n    if is_global:\n        warnings.warn(\"is_global support is removed. Assuming positional=False\",\n                      DeprecationWarning,\n                      stacklevel=2)\n        positional = False\n    self.significant = significant  # Whether different values for this parameter will differentiate otherwise equal tasks\n    self.positional = positional\n    self.visibility = visibility if ParameterVisibility.has_value(visibility) else ParameterVisibility.PUBLIC\n\n    self.description = description\n    self.always_in_help = always_in_help\n\n    if config_path is not None and ('section' not in config_path or 'name' not in config_path):\n        raise ParameterException('config_path must be a hash containing entries for section and name')\n    self._config_path = config_path\n\n    self._counter = Parameter._counter  # We need to keep track of this to get the order right (see Task class)\n    Parameter._counter += 1",
-                "def _get_value_from_config(self, section, name):\n    \"\"\"Loads the default from the config. Returns _no_value if it doesn't exist\"\"\"\n\n    conf = configuration.get_config()\n\n    try:\n        value = conf.get(section, name)\n    except (NoSectionError, NoOptionError, KeyError):\n        return _no_value\n\n    return self.parse(value)",
-                "def _get_value(self, task_name, param_name):\n    for value, warn in self._value_iterator(task_name, param_name):\n        if value != _no_value:\n            if warn:\n                warnings.warn(warn, DeprecationWarning)\n            return value\n    return _no_value",
-                "def _value_iterator(self, task_name, param_name):\n    \"\"\"\n    Yield the parameter values, with optional deprecation warning as second tuple value.\n\n    The parameter value will be whatever non-_no_value that is yielded first.\n    \"\"\"\n    cp_parser = CmdlineParser.get_instance()\n    if cp_parser:\n        dest = self._parser_global_dest(param_name, task_name)\n        found = getattr(cp_parser.known_args, dest, None)\n        yield (self._parse_or_no_value(found), None)\n    yield (self._get_value_from_config(task_name, param_name), None)\n    yield (self._get_value_from_config(task_name, param_name.replace('_', '-')),\n           'Configuration [{}] {} (with dashes) should be avoided. Please use underscores.'.format(\n               task_name, param_name))\n    if self._config_path:\n        yield (self._get_value_from_config(self._config_path['section'], self._config_path['name']),\n               'The use of the configuration [{}] {} is deprecated. Please use [{}] {}'.format(\n                   self._config_path['section'], self._config_path['name'], task_name, param_name))\n    yield (self._default, None)",
-                "def has_task_value(self, task_name, param_name):\n    return self._get_value(task_name, param_name) != _no_value",
-                "def task_value(self, task_name, param_name):\n    value = self._get_value(task_name, param_name)\n    if value == _no_value:\n        raise MissingParameterException(\"No default specified\")\n    else:\n        return self.normalize(value)",
-                "def _is_batchable(self):\n    return self._batch_method is not None",
-                "def parse(self, x):\n    \"\"\"\n    Parse an individual value from the input.\n\n    The default implementation is the identity function, but subclasses should override\n    this method for specialized parsing.\n\n    :param str x: the value to parse.\n    :return: the parsed value.\n    \"\"\"\n    return x  # default impl",
-                "def _parse_list(self, xs):\n    \"\"\"\n    Parse a list of values from the scheduler.\n\n    Only possible if this is_batchable() is True. This will combine the list into a single\n    parameter value using batch method. This should never need to be overridden.\n\n    :param xs: list of values to parse and combine\n    :return: the combined parsed values\n    \"\"\"\n    if not self._is_batchable():\n        raise NotImplementedError('No batch method found')\n    elif not xs:\n        raise ValueError('Empty parameter list passed to parse_list')\n    else:\n        return self._batch_method(map(self.parse, xs))",
-                "def serialize(self, x):\n    \"\"\"\n    Opposite of :py:meth:`parse`.\n\n    Converts the value ``x`` to a string.\n\n    :param x: the value to serialize.\n    \"\"\"\n    return str(x)",
-                "def _warn_on_wrong_param_type(self, param_name, param_value):\n    if self.__class__ != Parameter:\n        return\n    if not isinstance(param_value, six.string_types):\n        warnings.warn('Parameter \"{}\" with value \"{}\" is not of type string.'.format(param_name, param_value))",
-                "def normalize(self, x):\n    \"\"\"\n    Given a parsed parameter value, normalizes it.\n\n    The value can either be the result of parse(), the default value or\n    arguments passed into the task's constructor by instantiation.\n\n    This is very implementation defined, but can be used to validate/clamp\n    valid values. For example, if you wanted to only accept even integers,\n    and \"correct\" odd values to the nearest integer, you can implement\n    normalize as ``x // 2 * 2``.\n    \"\"\"\n    return x  # default impl",
-                "def next_in_enumeration(self, _value):\n    \"\"\"\n    If your Parameter type has an enumerable ordering of values. You can\n    choose to override this method. This method is used by the\n    :py:mod:`luigi.execution_summary` module for pretty printing\n    purposes. Enabling it to pretty print tasks like ``MyTask(num=1),\n    MyTask(num=2), MyTask(num=3)`` to ``MyTask(num=1..3)``.\n\n    :param value: The value\n    :return: The next value, like \"value + 1\". Or ``None`` if there's no enumerable ordering.\n    \"\"\"\n    return None",
-                "def _parse_or_no_value(self, x):\n    if not x:\n        return _no_value\n    else:\n        return self.parse(x)",
-                "@staticmethod\ndef _parser_global_dest(param_name, task_name):\n    return task_name + '_' + param_name",
-                "@classmethod\ndef _parser_kwargs(cls, param_name, task_name=None):\n    return {\n        \"action\": \"store\",\n        \"dest\": cls._parser_global_dest(param_name, task_name) if task_name else param_name,\n    }",
-                "def serialize(self, x):\n    if x is None:\n        return ''\n    else:\n        return str(x)",
-                "def parse(self, x):\n    return x or None",
-                "def _warn_on_wrong_param_type(self, param_name, param_value):\n    if self.__class__ != OptionalParameter:\n        return\n    if not isinstance(param_value, six.string_types) and param_value is not None:\n        warnings.warn('OptionalParameter \"{}\" with value \"{}\" is not of type string or None.'.format(\n            param_name, param_value))",
-                "def __init__(self, interval=1, start=None, **kwargs):\n    super(_DateParameterBase, self).__init__(**kwargs)\n    self.interval = interval\n    self.start = start if start is not None else _UNIX_EPOCH.date()",
-                "@abc.abstractproperty\ndef date_format(self):\n    \"\"\"\n    Override me with a :py:meth:`~datetime.date.strftime` string.\n    \"\"\"\n    pass",
-                "def parse(self, s):\n    \"\"\"\n    Parses a date string formatted like ``YYYY-MM-DD``.\n    \"\"\"\n    return datetime.datetime.strptime(s, self.date_format).date()",
-                "def serialize(self, dt):\n    \"\"\"\n    Converts the date to a string using the :py:attr:`~_DateParameterBase.date_format`.\n    \"\"\"\n    if dt is None:\n        return str(dt)\n    return dt.strftime(self.date_format)",
-                "def next_in_enumeration(self, value):\n    return value + datetime.timedelta(days=self.interval)",
-                "def normalize(self, value):\n    if value is None:\n        return None\n\n    if isinstance(value, datetime.datetime):\n        value = value.date()\n\n    delta = (value - self.start).days % self.interval\n    return value - datetime.timedelta(days=delta)",
-                "def _add_months(self, date, months):\n    \"\"\"\n    Add ``months`` months to ``date``.\n\n    Unfortunately we can't use timedeltas to add months because timedelta counts in days\n    and there's no foolproof way to add N months in days without counting the number of\n    days per month.\n    \"\"\"\n    year = date.year + (date.month + months - 1) // 12\n    month = (date.month + months - 1) % 12 + 1\n    return datetime.date(year=year, month=month, day=1)",
-                "def next_in_enumeration(self, value):\n    return self._add_months(value, self.interval)",
-                "def normalize(self, value):\n    if value is None:\n        return None\n\n    if isinstance(value, date_interval.Month):\n        value = value.date_a\n\n    months_since_start = (value.year - self.start.year) * 12 + (value.month - self.start.month)\n    months_since_start -= months_since_start % self.interval\n\n    return self._add_months(self.start, months_since_start)",
-                "def next_in_enumeration(self, value):\n    return value.replace(year=value.year + self.interval)",
-                "def normalize(self, value):\n    if value is None:\n        return None\n\n    if isinstance(value, date_interval.Year):\n        value = value.date_a\n\n    delta = (value.year - self.start.year) % self.interval\n    return datetime.date(year=value.year - delta, month=1, day=1)",
-                "def __init__(self, interval=1, start=None, **kwargs):\n    super(_DatetimeParameterBase, self).__init__(**kwargs)\n    self.interval = interval\n    self.start = start if start is not None else _UNIX_EPOCH",
-                "@abc.abstractproperty\ndef date_format(self):\n    \"\"\"\n    Override me with a :py:meth:`~datetime.date.strftime` string.\n    \"\"\"\n    pass",
-                "@abc.abstractproperty\ndef _timedelta(self):\n    \"\"\"\n    How to move one interval of this type forward (i.e. not counting self.interval).\n    \"\"\"\n    pass",
-                "def parse(self, s):\n    \"\"\"\n    Parses a string to a :py:class:`~datetime.datetime`.\n    \"\"\"\n    return datetime.datetime.strptime(s, self.date_format)",
-                "def serialize(self, dt):\n    \"\"\"\n    Converts the date to a string using the :py:attr:`~_DatetimeParameterBase.date_format`.\n    \"\"\"\n    if dt is None:\n        return str(dt)\n    return dt.strftime(self.date_format)",
-                "@staticmethod\ndef _convert_to_dt(dt):\n    if not isinstance(dt, datetime.datetime):\n        dt = datetime.datetime.combine(dt, datetime.time.min)\n    return dt",
-                "def normalize(self, dt):\n    \"\"\"\n    Clamp dt to every Nth :py:attr:`~_DatetimeParameterBase.interval` starting at\n    :py:attr:`~_DatetimeParameterBase.start`.\n    \"\"\"\n    if dt is None:\n        return None\n\n    dt = self._convert_to_dt(dt)\n\n    dt = dt.replace(microsecond=0)  # remove microseconds, to avoid float rounding issues.\n    delta = (dt - self.start).total_seconds()\n    granularity = (self._timedelta * self.interval).total_seconds()\n    return dt - datetime.timedelta(seconds=delta % granularity)",
-                "def next_in_enumeration(self, value):\n    return value + self._timedelta * self.interval",
-                "def parse(self, s):\n    try:\n        value = datetime.datetime.strptime(s, self.deprecated_date_format)\n        warnings.warn(\n            'Using \"H\" between hours and minutes is deprecated, omit it instead.',\n            DeprecationWarning,\n            stacklevel=2\n        )\n        return value\n    except ValueError:\n        return super(DateMinuteParameter, self).parse(s)",
-                "def parse(self, s):\n    \"\"\"\n    Parses an ``int`` from the string using ``int()``.\n    \"\"\"\n    return int(s)",
-                "def next_in_enumeration(self, value):\n    return value + 1",
-                "def parse(self, s):\n    \"\"\"\n    Parses a ``float`` from the string using ``float()``.\n    \"\"\"\n    return float(s)",
-                "def __init__(self, *args, **kwargs):\n    self.parsing = kwargs.pop(\"parsing\", self.__class__.parsing)\n    super(BoolParameter, self).__init__(*args, **kwargs)\n    if self._default == _no_value:\n        self._default = False",
-                "def parse(self, val):\n    \"\"\"\n    Parses a ``bool`` from the string, matching 'true' or 'false' ignoring case.\n    \"\"\"\n    s = str(val).lower()\n    if s == \"true\":\n        return True\n    elif s == \"false\":\n        return False\n    else:\n        raise ValueError(\"cannot interpret '{}' as boolean\".format(val))",
-                "def normalize(self, value):\n    try:\n        return self.parse(value)\n    except ValueError:\n        return None",
-                "def _parser_kwargs(self, *args, **kwargs):\n    parser_kwargs = super(BoolParameter, self)._parser_kwargs(*args, **kwargs)\n    if self.parsing == self.IMPLICIT_PARSING:\n        parser_kwargs[\"action\"] = \"store_true\"\n    elif self.parsing == self.EXPLICIT_PARSING:\n        parser_kwargs[\"nargs\"] = \"?\"\n        parser_kwargs[\"const\"] = True\n    else:\n        raise ValueError(\"unknown parsing value '{}'\".format(self.parsing))\n    return parser_kwargs",
-                "def parse(self, s):\n    \"\"\"\n    Parses a :py:class:`~luigi.date_interval.DateInterval` from the input.\n\n    see :py:mod:`luigi.date_interval`\n      for details on the parsing of DateIntervals.\n    \"\"\"\n    # TODO: can we use xml.utils.iso8601 or something similar?\n\n    from luigi import date_interval as d\n\n    for cls in [d.Year, d.Month, d.Week, d.Date, d.Custom]:\n        i = cls.parse(s)\n        if i:\n            return i\n\n    raise ValueError('Invalid date interval - could not be parsed')",
-                "def _apply_regex(self, regex, input):\n    import re\n    re_match = re.match(regex, input)\n    if re_match and any(re_match.groups()):\n        kwargs = {}\n        has_val = False\n        for k, v in six.iteritems(re_match.groupdict(default=\"0\")):\n            val = int(v)\n            if val > -1:\n                has_val = True\n                kwargs[k] = val\n        if has_val:\n            return datetime.timedelta(**kwargs)",
-                "def _parseIso8601(self, input):\n    def field(key):\n        return r\"(?P<%s>\\d+)%s\" % (key, key[0].upper())\n\n    def optional_field(key):\n        return \"(%s)?\" % field(key)\n\n    # A little loose: ISO 8601 does not allow weeks in combination with other fields, but this regex does (as does python timedelta)\n    regex = \"P(%s|%s(T%s)?)\" % (field(\"weeks\"), optional_field(\"days\"),\n                                \"\".join([optional_field(key) for key in [\"hours\", \"minutes\", \"seconds\"]]))\n    return self._apply_regex(regex, input)",
-                "def _parseSimple(self, input):\n    keys = [\"weeks\", \"days\", \"hours\", \"minutes\", \"seconds\"]\n    # Give the digits a regex group name from the keys, then look for text with the first letter of the key,\n    # optionally followed by the rest of the word, with final char (the \"s\") optional\n    regex = \"\".join([r\"((?P<%s>\\d+) ?%s(%s)?(%s)? ?)?\" % (k, k[0], k[1:-1], k[-1]) for k in keys])\n    return self._apply_regex(regex, input)",
-                "def parse(self, input):\n    \"\"\"\n    Parses a time delta from the input.\n\n    See :py:class:`TimeDeltaParameter` for details on supported formats.\n    \"\"\"\n    result = self._parseIso8601(input)\n    if not result:\n        result = self._parseSimple(input)\n    if result is not None:\n        return result\n    else:\n        raise ParameterException(\"Invalid time delta - could not parse %s\" % input)",
-                "def serialize(self, x):\n    \"\"\"\n    Converts datetime.timedelta to a string\n\n    :param x: the value to serialize.\n    \"\"\"\n    weeks = x.days // 7\n    days = x.days % 7\n    hours = x.seconds // 3600\n    minutes = (x.seconds % 3600) // 60\n    seconds = (x.seconds % 3600) % 60\n    result = \"{} w {} d {} h {} m {} s\".format(weeks, days, hours, minutes, seconds)\n    return result",
-                "def _warn_on_wrong_param_type(self, param_name, param_value):\n    if self.__class__ != TimeDeltaParameter:\n        return\n    if not isinstance(param_value, datetime.timedelta):\n        warnings.warn('Parameter \"{}\" with value \"{}\" is not of type timedelta.'.format(param_name, param_value))",
-                "def parse(self, input):\n    \"\"\"\n    Parse a task_famly using the :class:`~luigi.task_register.Register`\n    \"\"\"\n    return task_register.Register.get_task_cls(input)",
-                "def serialize(self, cls):\n    \"\"\"\n    Converts the :py:class:`luigi.task.Task` (sub) class to its family name.\n    \"\"\"\n    return cls.get_task_family()",
-                "def __init__(self, *args, **kwargs):\n    if 'enum' not in kwargs:\n        raise ParameterException('An enum class must be specified.')\n    self._enum = kwargs.pop('enum')\n    super(EnumParameter, self).__init__(*args, **kwargs)",
-                "def parse(self, s):\n    try:\n        return self._enum[s]\n    except KeyError:\n        raise ValueError('Invalid enum value - could not be parsed')",
-                "def serialize(self, e):\n    return e.name",
-                "def __init__(self, *args, **kwargs):\n    self.__dict = OrderedDict(*args, **kwargs)\n    self.__hash = None",
-                "def __getitem__(self, key):\n    return self.__dict[key]",
-                "def __iter__(self):\n    return iter(self.__dict)",
-                "def __len__(self):\n    return len(self.__dict)",
-                "def __repr__(self):\n    return '<FrozenOrderedDict %s>' % repr(self.__dict)",
-                "def __hash__(self):\n    if self.__hash is None:\n        hashes = map(hash, self.items())\n        self.__hash = functools.reduce(operator.xor, hashes, 0)\n\n    return self.__hash",
-                "def get_wrapped(self):\n    return self.__dict",
-                "def default(self, obj):\n    if isinstance(obj, _FrozenOrderedDict):\n        return obj.get_wrapped()\n    return json.JSONEncoder.default(self, obj)",
-                "def normalize(self, value):\n    \"\"\"\n    Ensure that dictionary parameter is converted to a _FrozenOrderedDict so it can be hashed.\n    \"\"\"\n    return _recursively_freeze(value)",
-                "def parse(self, s):\n    \"\"\"\n    Parses an immutable and ordered ``dict`` from a JSON string using standard JSON library.\n\n    We need to use an immutable dictionary, to create a hashable parameter and also preserve the internal structure\n    of parsing. The traversal order of standard ``dict`` is undefined, which can result various string\n    representations of this parameter, and therefore a different task id for the task containing this parameter.\n    This is because task id contains the hash of parameters' JSON representation.\n\n    :param s: String to be parse\n    \"\"\"\n    return json.loads(s, object_pairs_hook=_FrozenOrderedDict)",
-                "def serialize(self, x):\n    return json.dumps(x, cls=_DictParamEncoder)",
-                "def normalize(self, x):\n    \"\"\"\n    Ensure that struct is recursively converted to a tuple so it can be hashed.\n\n    :param str x: the value to parse.\n    :return: the normalized (hashable/immutable) value.\n    \"\"\"\n    return _recursively_freeze(x)",
-                "def parse(self, x):\n    \"\"\"\n    Parse an individual value from the input.\n\n    :param str x: the value to parse.\n    :return: the parsed value.\n    \"\"\"\n    return list(json.loads(x, object_pairs_hook=_FrozenOrderedDict))",
-                "def serialize(self, x):\n    \"\"\"\n    Opposite of :py:meth:`parse`.\n\n    Converts the value ``x`` to a string.\n\n    :param x: the value to serialize.\n    \"\"\"\n    return json.dumps(x, cls=_DictParamEncoder)",
-                "def parse(self, x):\n    \"\"\"\n    Parse an individual value from the input.\n\n    :param str x: the value to parse.\n    :return: the parsed value.\n    \"\"\"\n    # Since the result of json.dumps(tuple) differs from a tuple string, we must handle either case.\n    # A tuple string may come from a config file or from cli execution.\n\n    # t = ((1, 2), (3, 4))\n    # t_str = '((1,2),(3,4))'\n    # t_json_str = json.dumps(t)\n    # t_json_str == '[[1, 2], [3, 4]]'\n    # json.loads(t_json_str) == t\n    # json.loads(t_str) == ValueError: No JSON object could be decoded\n\n    # Therefore, if json.loads(x) returns a ValueError, try ast.literal_eval(x).\n    # ast.literal_eval(t_str) == t\n    try:\n        # loop required to parse tuple of tuples\n        return tuple(tuple(x) for x in json.loads(x, object_pairs_hook=_FrozenOrderedDict))\n    except ValueError:\n        return literal_eval(x)  # if this causes an error, let that error be raised.",
-                "def __init__(self, left_op=operator.le, right_op=operator.lt, *args, **kwargs):\n    \"\"\"\n    :param function var_type: The type of the input variable, e.g. int or float.\n    :param min_value: The minimum value permissible in the accepted values\n                      range.  May be inclusive or exclusive based on left_op parameter.\n                      This should be the same type as var_type.\n    :param max_value: The maximum value permissible in the accepted values\n                      range.  May be inclusive or exclusive based on right_op parameter.\n                      This should be the same type as var_type.\n    :param function left_op: The comparison operator for the left-most comparison in\n                             the expression ``min_value left_op value right_op value``.\n                             This operator should generally be either\n                             ``operator.lt`` or ``operator.le``.\n                             Default: ``operator.le``.\n    :param function right_op: The comparison operator for the right-most comparison in\n                              the expression ``min_value left_op value right_op value``.\n                              This operator should generally be either\n                              ``operator.lt`` or ``operator.le``.\n                              Default: ``operator.lt``.\n    \"\"\"\n    if \"var_type\" not in kwargs:\n        raise ParameterException(\"var_type must be specified\")\n    self._var_type = kwargs.pop(\"var_type\")\n    if \"min_value\" not in kwargs:\n        raise ParameterException(\"min_value must be specified\")\n    self._min_value = kwargs.pop(\"min_value\")\n    if \"max_value\" not in kwargs:\n        raise ParameterException(\"max_value must be specified\")\n    self._max_value = kwargs.pop(\"max_value\")\n    self._left_op = left_op\n    self._right_op = right_op\n    self._permitted_range = (\n        \"{var_type} in {left_endpoint}{min_value}, {max_value}{right_endpoint}\".format(\n            var_type=self._var_type.__name__,\n            min_value=self._min_value, max_value=self._max_value,\n            left_endpoint=\"[\" if left_op == operator.le else \"(\",\n            right_endpoint=\")\" if right_op == operator.lt else \"]\"))\n    super(NumericalParameter, self).__init__(*args, **kwargs)\n    if self.description:\n        self.description += \" \"\n    else:\n        self.description = \"\"\n    self.description += \"permitted values: \" + self._permitted_range",
-                "def parse(self, s):\n    value = self._var_type(s)\n    if (self._left_op(self._min_value, value) and self._right_op(value, self._max_value)):\n        return value\n    else:\n        raise ValueError(\n            \"{s} is not in the set of {permitted_range}\".format(\n                s=s, permitted_range=self._permitted_range))",
-                "def __init__(self, var_type=str, *args, **kwargs):\n    \"\"\"\n    :param function var_type: The type of the input variable, e.g. str, int,\n                              float, etc.\n                              Default: str\n    :param choices: An iterable, all of whose elements are of `var_type` to\n                    restrict parameter choices to.\n    \"\"\"\n    if \"choices\" not in kwargs:\n        raise ParameterException(\"A choices iterable must be specified\")\n    self._choices = set(kwargs.pop(\"choices\"))\n    self._var_type = var_type\n    assert all(type(choice) is self._var_type for choice in self._choices), \"Invalid type in choices\"\n    super(ChoiceParameter, self).__init__(*args, **kwargs)\n    if self.description:\n        self.description += \" \"\n    else:\n        self.description = \"\"\n    self.description += (\n        \"Choices: {\" + \", \".join(str(choice) for choice in self._choices) + \"}\")",
-                "def parse(self, s):\n    var = self._var_type(s)\n    return self.normalize(var)",
-                "def normalize(self, var):\n    if var in self._choices:\n        return var\n    else:\n        raise ValueError(\"{var} is not a valid choice from {choices}\".format(\n            var=var, choices=self._choices))",
-                "def field(key):\n    return r\"(?P<%s>\\d+)%s\" % (key, key[0].upper())",
-                "def optional_field(key):\n    return \"(%s)?\" % field(key)"
-            ],
-            "inscope_function_signatures": [
-                "_recursively_freeze(value)",
-                "has_value(cls, value)",
-                "serialize(self)",
-                "__init__(self, default=_no_value, is_global=False, significant=True, description=None, config_path=None, positional=True, always_in_help=False, batch_method=None, visibility=ParameterVisibility.PUBLIC)",
-                "_get_value_from_config(self, section, name)",
-                "_get_value(self, task_name, param_name)",
-                "_value_iterator(self, task_name, param_name)",
-                "has_task_value(self, task_name, param_name)",
-                "task_value(self, task_name, param_name)",
-                "_is_batchable(self)",
-                "parse(self, x)",
-                "_parse_list(self, xs)",
-                "serialize(self, x)",
-                "_warn_on_wrong_param_type(self, param_name, param_value)",
-                "normalize(self, x)",
-                "next_in_enumeration(self, _value)",
-                "_parse_or_no_value(self, x)",
-                "_parser_global_dest(param_name, task_name)",
-                "_parser_kwargs(cls, param_name, task_name=None)",
-                "serialize(self, x)",
-                "parse(self, x)",
-                "_warn_on_wrong_param_type(self, param_name, param_value)",
-                "__init__(self, interval=1, start=None, **kwargs)",
-                "date_format(self)",
-                "parse(self, s)",
-                "serialize(self, dt)",
-                "next_in_enumeration(self, value)",
-                "normalize(self, value)",
-                "_add_months(self, date, months)",
-                "next_in_enumeration(self, value)",
-                "normalize(self, value)",
-                "next_in_enumeration(self, value)",
-                "normalize(self, value)",
-                "__init__(self, interval=1, start=None, **kwargs)",
-                "date_format(self)",
-                "_timedelta(self)",
-                "parse(self, s)",
-                "serialize(self, dt)",
-                "_convert_to_dt(dt)",
-                "normalize(self, dt)",
-                "next_in_enumeration(self, value)",
-                "parse(self, s)",
-                "parse(self, s)",
-                "next_in_enumeration(self, value)",
-                "parse(self, s)",
-                "__init__(self, *args, **kwargs)",
-                "parse(self, val)",
-                "normalize(self, value)",
-                "_parser_kwargs(self, *args, **kwargs)",
-                "parse(self, s)",
-                "_apply_regex(self, regex, input)",
-                "_parseIso8601(self, input)",
-                "_parseSimple(self, input)",
-                "parse(self, input)",
-                "serialize(self, x)",
-                "_warn_on_wrong_param_type(self, param_name, param_value)",
-                "parse(self, input)",
-                "serialize(self, cls)",
-                "__init__(self, *args, **kwargs)",
-                "parse(self, s)",
-                "serialize(self, e)",
-                "__init__(self, *args, **kwargs)",
-                "__getitem__(self, key)",
-                "__iter__(self)",
-                "__len__(self)",
-                "__repr__(self)",
-                "__hash__(self)",
-                "get_wrapped(self)",
-                "default(self, obj)",
-                "normalize(self, value)",
-                "parse(self, s)",
-                "serialize(self, x)",
-                "normalize(self, x)",
-                "parse(self, x)",
-                "serialize(self, x)",
-                "parse(self, x)",
-                "__init__(self, left_op=operator.le, right_op=operator.lt, *args, **kwargs)",
-                "parse(self, s)",
-                "__init__(self, var_type=str, *args, **kwargs)",
-                "parse(self, s)",
-                "normalize(self, var)",
-                "field(key)",
-                "optional_field(key)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [
+                    {
+                        "code": "def _recursively_freeze(value):\n    \"\"\"\n    Recursively walks ``Mapping``s and ``list``s and converts them to ``_FrozenOrderedDict`` and ``tuples``, respectively.\n    \"\"\"\n    if isinstance(value, Mapping):\n        return _FrozenOrderedDict(((k, _recursively_freeze(v)) for k, v in value.items()))\n    elif isinstance(value, list) or isinstance(value, tuple):\n        return tuple(_recursively_freeze(v) for v in value)\n    return value",
+                        "signature": "_recursively_freeze(value)"
+                    }
+                ],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class ParameterVisibility:",
+                        "functions": [
+                            {
+                                "code": "@classmethod\ndef has_value(cls, value):\n    return any(value == item.value for item in cls)",
+                                "signature": "has_value(cls, value)"
+                            },
+                            {
+                                "code": "def serialize(self):\n    return self.value",
+                                "signature": "serialize(self)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class ParameterException:",
+                        "functions": []
+                    },
+                    {
+                        "class_declaration": "class MissingParameterException:",
+                        "functions": []
+                    },
+                    {
+                        "class_declaration": "class UnknownParameterException:",
+                        "functions": []
+                    },
+                    {
+                        "class_declaration": "class DuplicateParameterException:",
+                        "functions": []
+                    },
+                    {
+                        "class_declaration": "class Parameter:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, default=_no_value, is_global=False, significant=True, description=None,\n             config_path=None, positional=True, always_in_help=False, batch_method=None,\n             visibility=ParameterVisibility.PUBLIC):\n    \"\"\"\n    :param default: the default value for this parameter. This should match the type of the\n                    Parameter, i.e. ``datetime.date`` for ``DateParameter`` or ``int`` for\n                    ``IntParameter``. By default, no default is stored and\n                    the value must be specified at runtime.\n    :param bool significant: specify ``False`` if the parameter should not be treated as part of\n                             the unique identifier for a Task. An insignificant Parameter might\n                             also be used to specify a password or other sensitive information\n                             that should not be made public via the scheduler. Default:\n                             ``True``.\n    :param str description: A human-readable string describing the purpose of this Parameter.\n                            For command-line invocations, this will be used as the `help` string\n                            shown to users. Default: ``None``.\n    :param dict config_path: a dictionary with entries ``section`` and ``name``\n                             specifying a config file entry from which to read the\n                             default value for this parameter. DEPRECATED.\n                             Default: ``None``.\n    :param bool positional: If true, you can set the argument as a\n                            positional argument. It's true by default but we recommend\n                            ``positional=False`` for abstract base classes and similar cases.\n    :param bool always_in_help: For the --help option in the command line\n                                parsing. Set true to always show in --help.\n    :param function(iterable[A])->A batch_method: Method to combine an iterable of parsed\n                                                    parameter values into a single value. Used\n                                                    when receiving batched parameter lists from\n                                                    the scheduler. See :ref:`batch_method`\n\n    :param visibility: A Parameter whose value is a :py:class:`~luigi.parameter.ParameterVisibility`.\n                        Default value is ParameterVisibility.PUBLIC\n\n    \"\"\"\n    self._default = default\n    self._batch_method = batch_method\n    if is_global:\n        warnings.warn(\"is_global support is removed. Assuming positional=False\",\n                      DeprecationWarning,\n                      stacklevel=2)\n        positional = False\n    self.significant = significant  # Whether different values for this parameter will differentiate otherwise equal tasks\n    self.positional = positional\n    self.visibility = visibility if ParameterVisibility.has_value(visibility) else ParameterVisibility.PUBLIC\n\n    self.description = description\n    self.always_in_help = always_in_help\n\n    if config_path is not None and ('section' not in config_path or 'name' not in config_path):\n        raise ParameterException('config_path must be a hash containing entries for section and name')\n    self._config_path = config_path\n\n    self._counter = Parameter._counter  # We need to keep track of this to get the order right (see Task class)\n    Parameter._counter += 1",
+                                "signature": "__init__(self, default=_no_value, is_global=False, significant=True, description=None, config_path=None, positional=True, always_in_help=False, batch_method=None, visibility=ParameterVisibility.PUBLIC)"
+                            },
+                            {
+                                "code": "def _get_value_from_config(self, section, name):\n    \"\"\"Loads the default from the config. Returns _no_value if it doesn't exist\"\"\"\n\n    conf = configuration.get_config()\n\n    try:\n        value = conf.get(section, name)\n    except (NoSectionError, NoOptionError, KeyError):\n        return _no_value\n\n    return self.parse(value)",
+                                "signature": "_get_value_from_config(self, section, name)"
+                            },
+                            {
+                                "code": "def _get_value(self, task_name, param_name):\n    for value, warn in self._value_iterator(task_name, param_name):\n        if value != _no_value:\n            if warn:\n                warnings.warn(warn, DeprecationWarning)\n            return value\n    return _no_value",
+                                "signature": "_get_value(self, task_name, param_name)"
+                            },
+                            {
+                                "code": "def _value_iterator(self, task_name, param_name):\n    \"\"\"\n    Yield the parameter values, with optional deprecation warning as second tuple value.\n\n    The parameter value will be whatever non-_no_value that is yielded first.\n    \"\"\"\n    cp_parser = CmdlineParser.get_instance()\n    if cp_parser:\n        dest = self._parser_global_dest(param_name, task_name)\n        found = getattr(cp_parser.known_args, dest, None)\n        yield (self._parse_or_no_value(found), None)\n    yield (self._get_value_from_config(task_name, param_name), None)\n    yield (self._get_value_from_config(task_name, param_name.replace('_', '-')),\n           'Configuration [{}] {} (with dashes) should be avoided. Please use underscores.'.format(\n               task_name, param_name))\n    if self._config_path:\n        yield (self._get_value_from_config(self._config_path['section'], self._config_path['name']),\n               'The use of the configuration [{}] {} is deprecated. Please use [{}] {}'.format(\n                   self._config_path['section'], self._config_path['name'], task_name, param_name))\n    yield (self._default, None)",
+                                "signature": "_value_iterator(self, task_name, param_name)"
+                            },
+                            {
+                                "code": "def has_task_value(self, task_name, param_name):\n    return self._get_value(task_name, param_name) != _no_value",
+                                "signature": "has_task_value(self, task_name, param_name)"
+                            },
+                            {
+                                "code": "def task_value(self, task_name, param_name):\n    value = self._get_value(task_name, param_name)\n    if value == _no_value:\n        raise MissingParameterException(\"No default specified\")\n    else:\n        return self.normalize(value)",
+                                "signature": "task_value(self, task_name, param_name)"
+                            },
+                            {
+                                "code": "def _is_batchable(self):\n    return self._batch_method is not None",
+                                "signature": "_is_batchable(self)"
+                            },
+                            {
+                                "code": "def parse(self, x):\n    \"\"\"\n    Parse an individual value from the input.\n\n    The default implementation is the identity function, but subclasses should override\n    this method for specialized parsing.\n\n    :param str x: the value to parse.\n    :return: the parsed value.\n    \"\"\"\n    return x  # default impl",
+                                "signature": "parse(self, x)"
+                            },
+                            {
+                                "code": "def _parse_list(self, xs):\n    \"\"\"\n    Parse a list of values from the scheduler.\n\n    Only possible if this is_batchable() is True. This will combine the list into a single\n    parameter value using batch method. This should never need to be overridden.\n\n    :param xs: list of values to parse and combine\n    :return: the combined parsed values\n    \"\"\"\n    if not self._is_batchable():\n        raise NotImplementedError('No batch method found')\n    elif not xs:\n        raise ValueError('Empty parameter list passed to parse_list')\n    else:\n        return self._batch_method(map(self.parse, xs))",
+                                "signature": "_parse_list(self, xs)"
+                            },
+                            {
+                                "code": "def serialize(self, x):\n    \"\"\"\n    Opposite of :py:meth:`parse`.\n\n    Converts the value ``x`` to a string.\n\n    :param x: the value to serialize.\n    \"\"\"\n    return str(x)",
+                                "signature": "serialize(self, x)"
+                            },
+                            {
+                                "code": "def _warn_on_wrong_param_type(self, param_name, param_value):\n    if self.__class__ != Parameter:\n        return\n    if not isinstance(param_value, six.string_types):\n        warnings.warn('Parameter \"{}\" with value \"{}\" is not of type string.'.format(param_name, param_value))",
+                                "signature": "_warn_on_wrong_param_type(self, param_name, param_value)"
+                            },
+                            {
+                                "code": "def normalize(self, x):\n    \"\"\"\n    Given a parsed parameter value, normalizes it.\n\n    The value can either be the result of parse(), the default value or\n    arguments passed into the task's constructor by instantiation.\n\n    This is very implementation defined, but can be used to validate/clamp\n    valid values. For example, if you wanted to only accept even integers,\n    and \"correct\" odd values to the nearest integer, you can implement\n    normalize as ``x // 2 * 2``.\n    \"\"\"\n    return x  # default impl",
+                                "signature": "normalize(self, x)"
+                            },
+                            {
+                                "code": "def next_in_enumeration(self, _value):\n    \"\"\"\n    If your Parameter type has an enumerable ordering of values. You can\n    choose to override this method. This method is used by the\n    :py:mod:`luigi.execution_summary` module for pretty printing\n    purposes. Enabling it to pretty print tasks like ``MyTask(num=1),\n    MyTask(num=2), MyTask(num=3)`` to ``MyTask(num=1..3)``.\n\n    :param value: The value\n    :return: The next value, like \"value + 1\". Or ``None`` if there's no enumerable ordering.\n    \"\"\"\n    return None",
+                                "signature": "next_in_enumeration(self, _value)"
+                            },
+                            {
+                                "code": "def _parse_or_no_value(self, x):\n    if not x:\n        return _no_value\n    else:\n        return self.parse(x)",
+                                "signature": "_parse_or_no_value(self, x)"
+                            },
+                            {
+                                "code": "@staticmethod\ndef _parser_global_dest(param_name, task_name):\n    return task_name + '_' + param_name",
+                                "signature": "_parser_global_dest(param_name, task_name)"
+                            },
+                            {
+                                "code": "@classmethod\ndef _parser_kwargs(cls, param_name, task_name=None):\n    return {\n        \"action\": \"store\",\n        \"dest\": cls._parser_global_dest(param_name, task_name) if task_name else param_name,\n    }",
+                                "signature": "_parser_kwargs(cls, param_name, task_name=None)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class OptionalParameter:",
+                        "functions": [
+                            {
+                                "code": "def serialize(self, x):\n    if x is None:\n        return ''\n    else:\n        return str(x)",
+                                "signature": "serialize(self, x)"
+                            },
+                            {
+                                "code": "def parse(self, x):\n    return x or None",
+                                "signature": "parse(self, x)"
+                            },
+                            {
+                                "code": "def _warn_on_wrong_param_type(self, param_name, param_value):\n    if self.__class__ != OptionalParameter:\n        return\n    if not isinstance(param_value, six.string_types) and param_value is not None:\n        warnings.warn('OptionalParameter \"{}\" with value \"{}\" is not of type string or None.'.format(\n            param_name, param_value))",
+                                "signature": "_warn_on_wrong_param_type(self, param_name, param_value)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class _DateParameterBase:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, interval=1, start=None, **kwargs):\n    super(_DateParameterBase, self).__init__(**kwargs)\n    self.interval = interval\n    self.start = start if start is not None else _UNIX_EPOCH.date()",
+                                "signature": "__init__(self, interval=1, start=None, **kwargs)"
+                            },
+                            {
+                                "code": "@abc.abstractproperty\ndef date_format(self):\n    \"\"\"\n    Override me with a :py:meth:`~datetime.date.strftime` string.\n    \"\"\"\n    pass",
+                                "signature": "date_format(self)"
+                            },
+                            {
+                                "code": "def parse(self, s):\n    \"\"\"\n    Parses a date string formatted like ``YYYY-MM-DD``.\n    \"\"\"\n    return datetime.datetime.strptime(s, self.date_format).date()",
+                                "signature": "parse(self, s)"
+                            },
+                            {
+                                "code": "def serialize(self, dt):\n    \"\"\"\n    Converts the date to a string using the :py:attr:`~_DateParameterBase.date_format`.\n    \"\"\"\n    if dt is None:\n        return str(dt)\n    return dt.strftime(self.date_format)",
+                                "signature": "serialize(self, dt)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class DateParameter:",
+                        "functions": [
+                            {
+                                "code": "def next_in_enumeration(self, value):\n    return value + datetime.timedelta(days=self.interval)",
+                                "signature": "next_in_enumeration(self, value)"
+                            },
+                            {
+                                "code": "def normalize(self, value):\n    if value is None:\n        return None\n\n    if isinstance(value, datetime.datetime):\n        value = value.date()\n\n    delta = (value - self.start).days % self.interval\n    return value - datetime.timedelta(days=delta)",
+                                "signature": "normalize(self, value)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class MonthParameter:",
+                        "functions": [
+                            {
+                                "code": "def _add_months(self, date, months):\n    \"\"\"\n    Add ``months`` months to ``date``.\n\n    Unfortunately we can't use timedeltas to add months because timedelta counts in days\n    and there's no foolproof way to add N months in days without counting the number of\n    days per month.\n    \"\"\"\n    year = date.year + (date.month + months - 1) // 12\n    month = (date.month + months - 1) % 12 + 1\n    return datetime.date(year=year, month=month, day=1)",
+                                "signature": "_add_months(self, date, months)"
+                            },
+                            {
+                                "code": "def next_in_enumeration(self, value):\n    return self._add_months(value, self.interval)",
+                                "signature": "next_in_enumeration(self, value)"
+                            },
+                            {
+                                "code": "def normalize(self, value):\n    if value is None:\n        return None\n\n    if isinstance(value, date_interval.Month):\n        value = value.date_a\n\n    months_since_start = (value.year - self.start.year) * 12 + (value.month - self.start.month)\n    months_since_start -= months_since_start % self.interval\n\n    return self._add_months(self.start, months_since_start)",
+                                "signature": "normalize(self, value)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class YearParameter:",
+                        "functions": [
+                            {
+                                "code": "def next_in_enumeration(self, value):\n    return value.replace(year=value.year + self.interval)",
+                                "signature": "next_in_enumeration(self, value)"
+                            },
+                            {
+                                "code": "def normalize(self, value):\n    if value is None:\n        return None\n\n    if isinstance(value, date_interval.Year):\n        value = value.date_a\n\n    delta = (value.year - self.start.year) % self.interval\n    return datetime.date(year=value.year - delta, month=1, day=1)",
+                                "signature": "normalize(self, value)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class _DatetimeParameterBase:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, interval=1, start=None, **kwargs):\n    super(_DatetimeParameterBase, self).__init__(**kwargs)\n    self.interval = interval\n    self.start = start if start is not None else _UNIX_EPOCH",
+                                "signature": "__init__(self, interval=1, start=None, **kwargs)"
+                            },
+                            {
+                                "code": "@abc.abstractproperty\ndef date_format(self):\n    \"\"\"\n    Override me with a :py:meth:`~datetime.date.strftime` string.\n    \"\"\"\n    pass",
+                                "signature": "date_format(self)"
+                            },
+                            {
+                                "code": "@abc.abstractproperty\ndef _timedelta(self):\n    \"\"\"\n    How to move one interval of this type forward (i.e. not counting self.interval).\n    \"\"\"\n    pass",
+                                "signature": "_timedelta(self)"
+                            },
+                            {
+                                "code": "def parse(self, s):\n    \"\"\"\n    Parses a string to a :py:class:`~datetime.datetime`.\n    \"\"\"\n    return datetime.datetime.strptime(s, self.date_format)",
+                                "signature": "parse(self, s)"
+                            },
+                            {
+                                "code": "def serialize(self, dt):\n    \"\"\"\n    Converts the date to a string using the :py:attr:`~_DatetimeParameterBase.date_format`.\n    \"\"\"\n    if dt is None:\n        return str(dt)\n    return dt.strftime(self.date_format)",
+                                "signature": "serialize(self, dt)"
+                            },
+                            {
+                                "code": "@staticmethod\ndef _convert_to_dt(dt):\n    if not isinstance(dt, datetime.datetime):\n        dt = datetime.datetime.combine(dt, datetime.time.min)\n    return dt",
+                                "signature": "_convert_to_dt(dt)"
+                            },
+                            {
+                                "code": "def normalize(self, dt):\n    \"\"\"\n    Clamp dt to every Nth :py:attr:`~_DatetimeParameterBase.interval` starting at\n    :py:attr:`~_DatetimeParameterBase.start`.\n    \"\"\"\n    if dt is None:\n        return None\n\n    dt = self._convert_to_dt(dt)\n\n    dt = dt.replace(microsecond=0)  # remove microseconds, to avoid float rounding issues.\n    delta = (dt - self.start).total_seconds()\n    granularity = (self._timedelta * self.interval).total_seconds()\n    return dt - datetime.timedelta(seconds=delta % granularity)",
+                                "signature": "normalize(self, dt)"
+                            },
+                            {
+                                "code": "def next_in_enumeration(self, value):\n    return value + self._timedelta * self.interval",
+                                "signature": "next_in_enumeration(self, value)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class DateHourParameter:",
+                        "functions": []
+                    },
+                    {
+                        "class_declaration": "class DateMinuteParameter:",
+                        "functions": [
+                            {
+                                "code": "def parse(self, s):\n    try:\n        value = datetime.datetime.strptime(s, self.deprecated_date_format)\n        warnings.warn(\n            'Using \"H\" between hours and minutes is deprecated, omit it instead.',\n            DeprecationWarning,\n            stacklevel=2\n        )\n        return value\n    except ValueError:\n        return super(DateMinuteParameter, self).parse(s)",
+                                "signature": "parse(self, s)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class DateSecondParameter:",
+                        "functions": []
+                    },
+                    {
+                        "class_declaration": "class IntParameter:",
+                        "functions": [
+                            {
+                                "code": "def parse(self, s):\n    \"\"\"\n    Parses an ``int`` from the string using ``int()``.\n    \"\"\"\n    return int(s)",
+                                "signature": "parse(self, s)"
+                            },
+                            {
+                                "code": "def next_in_enumeration(self, value):\n    return value + 1",
+                                "signature": "next_in_enumeration(self, value)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class FloatParameter:",
+                        "functions": [
+                            {
+                                "code": "def parse(self, s):\n    \"\"\"\n    Parses a ``float`` from the string using ``float()``.\n    \"\"\"\n    return float(s)",
+                                "signature": "parse(self, s)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class BoolParameter:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, *args, **kwargs):\n    self.parsing = kwargs.pop(\"parsing\", self.__class__.parsing)\n    super(BoolParameter, self).__init__(*args, **kwargs)\n    if self._default == _no_value:\n        self._default = False",
+                                "signature": "__init__(self, *args, **kwargs)"
+                            },
+                            {
+                                "code": "def parse(self, val):\n    \"\"\"\n    Parses a ``bool`` from the string, matching 'true' or 'false' ignoring case.\n    \"\"\"\n    s = str(val).lower()\n    if s == \"true\":\n        return True\n    elif s == \"false\":\n        return False\n    else:\n        raise ValueError(\"cannot interpret '{}' as boolean\".format(val))",
+                                "signature": "parse(self, val)"
+                            },
+                            {
+                                "code": "def normalize(self, value):\n    try:\n        return self.parse(value)\n    except ValueError:\n        return None",
+                                "signature": "normalize(self, value)"
+                            },
+                            {
+                                "code": "def _parser_kwargs(self, *args, **kwargs):\n    parser_kwargs = super(BoolParameter, self)._parser_kwargs(*args, **kwargs)\n    if self.parsing == self.IMPLICIT_PARSING:\n        parser_kwargs[\"action\"] = \"store_true\"\n    elif self.parsing == self.EXPLICIT_PARSING:\n        parser_kwargs[\"nargs\"] = \"?\"\n        parser_kwargs[\"const\"] = True\n    else:\n        raise ValueError(\"unknown parsing value '{}'\".format(self.parsing))\n    return parser_kwargs",
+                                "signature": "_parser_kwargs(self, *args, **kwargs)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class DateIntervalParameter:",
+                        "functions": [
+                            {
+                                "code": "def parse(self, s):\n    \"\"\"\n    Parses a :py:class:`~luigi.date_interval.DateInterval` from the input.\n\n    see :py:mod:`luigi.date_interval`\n      for details on the parsing of DateIntervals.\n    \"\"\"\n    # TODO: can we use xml.utils.iso8601 or something similar?\n\n    from luigi import date_interval as d\n\n    for cls in [d.Year, d.Month, d.Week, d.Date, d.Custom]:\n        i = cls.parse(s)\n        if i:\n            return i\n\n    raise ValueError('Invalid date interval - could not be parsed')",
+                                "signature": "parse(self, s)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class TimeDeltaParameter:",
+                        "functions": [
+                            {
+                                "code": "def _apply_regex(self, regex, input):\n    import re\n    re_match = re.match(regex, input)\n    if re_match and any(re_match.groups()):\n        kwargs = {}\n        has_val = False\n        for k, v in six.iteritems(re_match.groupdict(default=\"0\")):\n            val = int(v)\n            if val > -1:\n                has_val = True\n                kwargs[k] = val\n        if has_val:\n            return datetime.timedelta(**kwargs)",
+                                "signature": "_apply_regex(self, regex, input)"
+                            },
+                            {
+                                "code": "def _parseIso8601(self, input):\n    def field(key):\n        return r\"(?P<%s>\\d+)%s\" % (key, key[0].upper())\n\n    def optional_field(key):\n        return \"(%s)?\" % field(key)\n\n    # A little loose: ISO 8601 does not allow weeks in combination with other fields, but this regex does (as does python timedelta)\n    regex = \"P(%s|%s(T%s)?)\" % (field(\"weeks\"), optional_field(\"days\"),\n                                \"\".join([optional_field(key) for key in [\"hours\", \"minutes\", \"seconds\"]]))\n    return self._apply_regex(regex, input)",
+                                "signature": "_parseIso8601(self, input)"
+                            },
+                            {
+                                "code": "def _parseSimple(self, input):\n    keys = [\"weeks\", \"days\", \"hours\", \"minutes\", \"seconds\"]\n    # Give the digits a regex group name from the keys, then look for text with the first letter of the key,\n    # optionally followed by the rest of the word, with final char (the \"s\") optional\n    regex = \"\".join([r\"((?P<%s>\\d+) ?%s(%s)?(%s)? ?)?\" % (k, k[0], k[1:-1], k[-1]) for k in keys])\n    return self._apply_regex(regex, input)",
+                                "signature": "_parseSimple(self, input)"
+                            },
+                            {
+                                "code": "def parse(self, input):\n    \"\"\"\n    Parses a time delta from the input.\n\n    See :py:class:`TimeDeltaParameter` for details on supported formats.\n    \"\"\"\n    result = self._parseIso8601(input)\n    if not result:\n        result = self._parseSimple(input)\n    if result is not None:\n        return result\n    else:\n        raise ParameterException(\"Invalid time delta - could not parse %s\" % input)",
+                                "signature": "parse(self, input)"
+                            },
+                            {
+                                "code": "def serialize(self, x):\n    \"\"\"\n    Converts datetime.timedelta to a string\n\n    :param x: the value to serialize.\n    \"\"\"\n    weeks = x.days // 7\n    days = x.days % 7\n    hours = x.seconds // 3600\n    minutes = (x.seconds % 3600) // 60\n    seconds = (x.seconds % 3600) % 60\n    result = \"{} w {} d {} h {} m {} s\".format(weeks, days, hours, minutes, seconds)\n    return result",
+                                "signature": "serialize(self, x)"
+                            },
+                            {
+                                "code": "def _warn_on_wrong_param_type(self, param_name, param_value):\n    if self.__class__ != TimeDeltaParameter:\n        return\n    if not isinstance(param_value, datetime.timedelta):\n        warnings.warn('Parameter \"{}\" with value \"{}\" is not of type timedelta.'.format(param_name, param_value))",
+                                "signature": "_warn_on_wrong_param_type(self, param_name, param_value)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class TaskParameter:",
+                        "functions": [
+                            {
+                                "code": "def parse(self, input):\n    \"\"\"\n    Parse a task_famly using the :class:`~luigi.task_register.Register`\n    \"\"\"\n    return task_register.Register.get_task_cls(input)",
+                                "signature": "parse(self, input)"
+                            },
+                            {
+                                "code": "def serialize(self, cls):\n    \"\"\"\n    Converts the :py:class:`luigi.task.Task` (sub) class to its family name.\n    \"\"\"\n    return cls.get_task_family()",
+                                "signature": "serialize(self, cls)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class EnumParameter:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, *args, **kwargs):\n    if 'enum' not in kwargs:\n        raise ParameterException('An enum class must be specified.')\n    self._enum = kwargs.pop('enum')\n    super(EnumParameter, self).__init__(*args, **kwargs)",
+                                "signature": "__init__(self, *args, **kwargs)"
+                            },
+                            {
+                                "code": "def parse(self, s):\n    try:\n        return self._enum[s]\n    except KeyError:\n        raise ValueError('Invalid enum value - could not be parsed')",
+                                "signature": "parse(self, s)"
+                            },
+                            {
+                                "code": "def serialize(self, e):\n    return e.name",
+                                "signature": "serialize(self, e)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class _FrozenOrderedDict:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, *args, **kwargs):\n    self.__dict = OrderedDict(*args, **kwargs)\n    self.__hash = None",
+                                "signature": "__init__(self, *args, **kwargs)"
+                            },
+                            {
+                                "code": "def __getitem__(self, key):\n    return self.__dict[key]",
+                                "signature": "__getitem__(self, key)"
+                            },
+                            {
+                                "code": "def __iter__(self):\n    return iter(self.__dict)",
+                                "signature": "__iter__(self)"
+                            },
+                            {
+                                "code": "def __len__(self):\n    return len(self.__dict)",
+                                "signature": "__len__(self)"
+                            },
+                            {
+                                "code": "def __repr__(self):\n    return '<FrozenOrderedDict %s>' % repr(self.__dict)",
+                                "signature": "__repr__(self)"
+                            },
+                            {
+                                "code": "def __hash__(self):\n    if self.__hash is None:\n        hashes = map(hash, self.items())\n        self.__hash = functools.reduce(operator.xor, hashes, 0)\n\n    return self.__hash",
+                                "signature": "__hash__(self)"
+                            },
+                            {
+                                "code": "def get_wrapped(self):\n    return self.__dict",
+                                "signature": "get_wrapped(self)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class _DictParamEncoder:",
+                        "functions": [
+                            {
+                                "code": "def default(self, obj):\n    if isinstance(obj, _FrozenOrderedDict):\n        return obj.get_wrapped()\n    return json.JSONEncoder.default(self, obj)",
+                                "signature": "default(self, obj)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class DictParameter:",
+                        "functions": [
+                            {
+                                "code": "def normalize(self, value):\n    \"\"\"\n    Ensure that dictionary parameter is converted to a _FrozenOrderedDict so it can be hashed.\n    \"\"\"\n    return _recursively_freeze(value)",
+                                "signature": "normalize(self, value)"
+                            },
+                            {
+                                "code": "def parse(self, s):\n    \"\"\"\n    Parses an immutable and ordered ``dict`` from a JSON string using standard JSON library.\n\n    We need to use an immutable dictionary, to create a hashable parameter and also preserve the internal structure\n    of parsing. The traversal order of standard ``dict`` is undefined, which can result various string\n    representations of this parameter, and therefore a different task id for the task containing this parameter.\n    This is because task id contains the hash of parameters' JSON representation.\n\n    :param s: String to be parse\n    \"\"\"\n    return json.loads(s, object_pairs_hook=_FrozenOrderedDict)",
+                                "signature": "parse(self, s)"
+                            },
+                            {
+                                "code": "def serialize(self, x):\n    return json.dumps(x, cls=_DictParamEncoder)",
+                                "signature": "serialize(self, x)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class ListParameter:",
+                        "functions": [
+                            {
+                                "code": "def normalize(self, x):\n    \"\"\"\n    Ensure that struct is recursively converted to a tuple so it can be hashed.\n\n    :param str x: the value to parse.\n    :return: the normalized (hashable/immutable) value.\n    \"\"\"\n    return _recursively_freeze(x)",
+                                "signature": "normalize(self, x)"
+                            },
+                            {
+                                "code": "def parse(self, x):\n    \"\"\"\n    Parse an individual value from the input.\n\n    :param str x: the value to parse.\n    :return: the parsed value.\n    \"\"\"\n    return list(json.loads(x, object_pairs_hook=_FrozenOrderedDict))",
+                                "signature": "parse(self, x)"
+                            },
+                            {
+                                "code": "def serialize(self, x):\n    \"\"\"\n    Opposite of :py:meth:`parse`.\n\n    Converts the value ``x`` to a string.\n\n    :param x: the value to serialize.\n    \"\"\"\n    return json.dumps(x, cls=_DictParamEncoder)",
+                                "signature": "serialize(self, x)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class TupleParameter:",
+                        "functions": [
+                            {
+                                "code": "def parse(self, x):\n    \"\"\"\n    Parse an individual value from the input.\n\n    :param str x: the value to parse.\n    :return: the parsed value.\n    \"\"\"\n    # Since the result of json.dumps(tuple) differs from a tuple string, we must handle either case.\n    # A tuple string may come from a config file or from cli execution.\n\n    # t = ((1, 2), (3, 4))\n    # t_str = '((1,2),(3,4))'\n    # t_json_str = json.dumps(t)\n    # t_json_str == '[[1, 2], [3, 4]]'\n    # json.loads(t_json_str) == t\n    # json.loads(t_str) == ValueError: No JSON object could be decoded\n\n    # Therefore, if json.loads(x) returns a ValueError, try ast.literal_eval(x).\n    # ast.literal_eval(t_str) == t\n    try:\n        # loop required to parse tuple of tuples\n        return tuple(tuple(x) for x in json.loads(x, object_pairs_hook=_FrozenOrderedDict))\n    except ValueError:\n        return literal_eval(x)  # if this causes an error, let that error be raised.",
+                                "signature": "parse(self, x)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class NumericalParameter:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, left_op=operator.le, right_op=operator.lt, *args, **kwargs):\n    \"\"\"\n    :param function var_type: The type of the input variable, e.g. int or float.\n    :param min_value: The minimum value permissible in the accepted values\n                      range.  May be inclusive or exclusive based on left_op parameter.\n                      This should be the same type as var_type.\n    :param max_value: The maximum value permissible in the accepted values\n                      range.  May be inclusive or exclusive based on right_op parameter.\n                      This should be the same type as var_type.\n    :param function left_op: The comparison operator for the left-most comparison in\n                             the expression ``min_value left_op value right_op value``.\n                             This operator should generally be either\n                             ``operator.lt`` or ``operator.le``.\n                             Default: ``operator.le``.\n    :param function right_op: The comparison operator for the right-most comparison in\n                              the expression ``min_value left_op value right_op value``.\n                              This operator should generally be either\n                              ``operator.lt`` or ``operator.le``.\n                              Default: ``operator.lt``.\n    \"\"\"\n    if \"var_type\" not in kwargs:\n        raise ParameterException(\"var_type must be specified\")\n    self._var_type = kwargs.pop(\"var_type\")\n    if \"min_value\" not in kwargs:\n        raise ParameterException(\"min_value must be specified\")\n    self._min_value = kwargs.pop(\"min_value\")\n    if \"max_value\" not in kwargs:\n        raise ParameterException(\"max_value must be specified\")\n    self._max_value = kwargs.pop(\"max_value\")\n    self._left_op = left_op\n    self._right_op = right_op\n    self._permitted_range = (\n        \"{var_type} in {left_endpoint}{min_value}, {max_value}{right_endpoint}\".format(\n            var_type=self._var_type.__name__,\n            min_value=self._min_value, max_value=self._max_value,\n            left_endpoint=\"[\" if left_op == operator.le else \"(\",\n            right_endpoint=\")\" if right_op == operator.lt else \"]\"))\n    super(NumericalParameter, self).__init__(*args, **kwargs)\n    if self.description:\n        self.description += \" \"\n    else:\n        self.description = \"\"\n    self.description += \"permitted values: \" + self._permitted_range",
+                                "signature": "__init__(self, left_op=operator.le, right_op=operator.lt, *args, **kwargs)"
+                            },
+                            {
+                                "code": "def parse(self, s):\n    value = self._var_type(s)\n    if (self._left_op(self._min_value, value) and self._right_op(value, self._max_value)):\n        return value\n    else:\n        raise ValueError(\n            \"{s} is not in the set of {permitted_range}\".format(\n                s=s, permitted_range=self._permitted_range))",
+                                "signature": "parse(self, s)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class ChoiceParameter:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, var_type=str, *args, **kwargs):\n    \"\"\"\n    :param function var_type: The type of the input variable, e.g. str, int,\n                              float, etc.\n                              Default: str\n    :param choices: An iterable, all of whose elements are of `var_type` to\n                    restrict parameter choices to.\n    \"\"\"\n    if \"choices\" not in kwargs:\n        raise ParameterException(\"A choices iterable must be specified\")\n    self._choices = set(kwargs.pop(\"choices\"))\n    self._var_type = var_type\n    assert all(type(choice) is self._var_type for choice in self._choices), \"Invalid type in choices\"\n    super(ChoiceParameter, self).__init__(*args, **kwargs)\n    if self.description:\n        self.description += \" \"\n    else:\n        self.description = \"\"\n    self.description += (\n        \"Choices: {\" + \", \".join(str(choice) for choice in self._choices) + \"}\")",
+                                "signature": "__init__(self, var_type=str, *args, **kwargs)"
+                            },
+                            {
+                                "code": "def parse(self, s):\n    var = self._var_type(s)\n    return self.normalize(var)",
+                                "signature": "parse(self, s)"
+                            },
+                            {
+                                "code": "def normalize(self, var):\n    if var in self._choices:\n        return var\n    else:\n        raise ValueError(\"{var} is not a valid choice from {choices}\".format(\n            var=var, choices=self._choices))",
+                                "signature": "normalize(self, var)"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "ImportError": [
                     36
@@ -3038,9 +3337,9 @@
                 "test_function": "testSerialize",
                 "test_function_code": "    def testSerialize(self):\n        date = datetime.date(2013, 2, 3)\n        self.assertEqual(luigi.DateParameter().serialize(date), '2013-02-03')\n        self.assertEqual(luigi.YearParameter().serialize(date), '2013')\n        self.assertEqual(luigi.MonthParameter().serialize(date), '2013-02')\n        dt = datetime.datetime(2013, 2, 3, 4, 5)\n        self.assertEqual(luigi.DateHourParameter().serialize(dt), '2013-02-03T04')",
                 "test_error": "TypeError: 'int' object is not iterable",
-                "full_test_error": "self = <parameter_test.TestSerializeTupleParameter testMethod=testSerialize>\n\n    def testSerialize(self):\n        the_tuple = (1, 2, 3)\n    \n>       self.assertEqual(luigi.TupleParameter().parse(luigi.TupleParameter().serialize(the_tuple)), the_tuple)\n\ntest/parameter_test.py:1106: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/parameter.py:1116: in parse\n    return tuple(tuple(x) for x in json.loads(x, object_pairs_hook=_FrozenOrderedDict))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n.0 = <list_iterator object at 0x7f366602eac0>\n\n>   return tuple(tuple(x) for x in json.loads(x, object_pairs_hook=_FrozenOrderedDict))\nE   TypeError: 'int' object is not iterable\n\nluigi/parameter.py:1116: TypeError",
+                "full_test_error": "self = <parameter_test.TestSerializeTupleParameter testMethod=testSerialize>\n\n    def testSerialize(self):\n        the_tuple = (1, 2, 3)\n    \n>       self.assertEqual(luigi.TupleParameter().parse(luigi.TupleParameter().serialize(the_tuple)), the_tuple)\n\ntest/parameter_test.py:1106: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/parameter.py:1116: in parse\n    return tuple(tuple(x) for x in json.loads(x, object_pairs_hook=_FrozenOrderedDict))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n.0 = <list_iterator object at 0x7f42345eeaf0>\n\n>   return tuple(tuple(x) for x in json.loads(x, object_pairs_hook=_FrozenOrderedDict))\nE   TypeError: 'int' object is not iterable\n\nluigi/parameter.py:1116: TypeError",
                 "traceback": "luigi/parameter.py:1116: in parse\n    return tuple(tuple(x) for x in json.loads(x, object_pairs_hook=_FrozenOrderedDict))",
-                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n.0 = <list_iterator object at 0x7f366602eac0>\n\n>   return tuple(tuple(x) for x in json.loads(x, object_pairs_hook=_FrozenOrderedDict))\nE   TypeError: 'int' object is not iterable\n\nluigi/parameter.py:1116: TypeError",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n.0 = <list_iterator object at 0x7f42345eeaf0>\n\n>   return tuple(tuple(x) for x in json.loads(x, object_pairs_hook=_FrozenOrderedDict))\nE   TypeError: 'int' object is not iterable\n\nluigi/parameter.py:1116: TypeError",
                 "test_function_decorators": []
             }
         ]

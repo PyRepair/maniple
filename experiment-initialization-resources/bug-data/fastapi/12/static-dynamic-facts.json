@@ -148,9 +148,9 @@
                         ],
                         "class_level_variable_names": [],
                         "constructor_variable_names": [
-                            "auto_error",
                             "scheme_name",
-                            "model"
+                            "model",
+                            "auto_error"
                         ]
                     },
                     "used_imports": [
@@ -184,7 +184,7 @@
                                     "variable_shape": null
                                 },
                                 "request": {
-                                    "variable_value": "<starlette.requests.Request object at 0x7fcb5cc50220>",
+                                    "variable_value": "<starlette.requests.Request object at 0x7fae09690280>",
                                     "variable_type": "Request",
                                     "variable_shape": null
                                 },
@@ -209,7 +209,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<fastapi.security.http.HTTPBearer object at 0x7fcb5cc48f70>",
+                                    "variable_value": "<fastapi.security.http.HTTPBearer object at 0x7fae09686fd0>",
                                     "variable_type": "HTTPBearer",
                                     "variable_shape": null
                                 },
@@ -266,7 +266,7 @@
                                     "variable_shape": null
                                 },
                                 "request": {
-                                    "variable_value": "<starlette.requests.Request object at 0x7f23275d5430>",
+                                    "variable_value": "<starlette.requests.Request object at 0x7effd5c96400>",
                                     "variable_type": "Request",
                                     "variable_shape": null
                                 },
@@ -291,7 +291,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<fastapi.security.http.HTTPBearer object at 0x7f23275cdf40>",
+                                    "variable_value": "<fastapi.security.http.HTTPBearer object at 0x7effd5c8ff10>",
                                     "variable_type": "HTTPBearer",
                                     "variable_shape": null
                                 },
@@ -343,7 +343,7 @@
                                     "variable_shape": null
                                 },
                                 "request": {
-                                    "variable_value": "<starlette.requests.Request object at 0x7f23275d5430>",
+                                    "variable_value": "<starlette.requests.Request object at 0x7effd5c96400>",
                                     "variable_type": "Request",
                                     "variable_shape": null
                                 },
@@ -368,7 +368,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<fastapi.security.http.HTTPBearer object at 0x7f23275cdf40>",
+                                    "variable_value": "<fastapi.security.http.HTTPBearer object at 0x7effd5c8ff10>",
                                     "variable_type": "HTTPBearer",
                                     "variable_shape": null
                                 },
@@ -383,7 +383,7 @@
                                     "variable_shape": null
                                 },
                                 "scheme.lower": {
-                                    "variable_value": "<built-in method lower of str object at 0x7f2327590930>",
+                                    "variable_value": "<built-in method lower of str object at 0x7effd5c50c70>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -402,26 +402,71 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def __init__(\n    self, *, scheme: str, scheme_name: str = None, auto_error: bool = True\n):\n    self.model = HTTPBaseModel(scheme=scheme)\n    self.scheme_name = scheme_name or self.__class__.__name__\n    self.auto_error = auto_error",
-                "async def __call__(\n    self, request: Request\n) -> Optional[HTTPAuthorizationCredentials]:\n    authorization: str = request.headers.get(\"Authorization\")\n    scheme, credentials = get_authorization_scheme_param(authorization)\n    if not (authorization and scheme and credentials):\n        if self.auto_error:\n            raise HTTPException(\n                status_code=HTTP_403_FORBIDDEN, detail=\"Not authenticated\"\n            )\n        else:\n            return None\n    return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)",
-                "def __init__(\n    self, *, scheme_name: str = None, realm: str = None, auto_error: bool = True\n):\n    self.model = HTTPBaseModel(scheme=\"basic\")\n    self.scheme_name = scheme_name or self.__class__.__name__\n    self.realm = realm\n    self.auto_error = auto_error",
-                "async def __call__(self, request: Request) -> Optional[HTTPBasicCredentials]:\n    authorization: str = request.headers.get(\"Authorization\")\n    scheme, param = get_authorization_scheme_param(authorization)\n    if self.realm:\n        unauthorized_headers = {\"WWW-Authenticate\": f'Basic realm=\"{self.realm}\"'}\n    else:\n        unauthorized_headers = {\"WWW-Authenticate\": \"Basic\"}\n    invalid_user_credentials_exc = HTTPException(\n        status_code=HTTP_401_UNAUTHORIZED,\n        detail=\"Invalid authentication credentials\",\n        headers=unauthorized_headers,\n    )\n    if not authorization or scheme.lower() != \"basic\":\n        if self.auto_error:\n            raise HTTPException(\n                status_code=HTTP_401_UNAUTHORIZED,\n                detail=\"Not authenticated\",\n                headers=unauthorized_headers,\n            )\n        else:\n            return None\n    try:\n        data = b64decode(param).decode(\"ascii\")\n    except (ValueError, UnicodeDecodeError, binascii.Error):\n        raise invalid_user_credentials_exc\n    username, separator, password = data.partition(\":\")\n    if not (separator):\n        raise invalid_user_credentials_exc\n    return HTTPBasicCredentials(username=username, password=password)",
-                "def __init__(\n    self,\n    *,\n    bearerFormat: str = None,\n    scheme_name: str = None,\n    auto_error: bool = True,\n):\n    self.model = HTTPBearerModel(bearerFormat=bearerFormat)\n    self.scheme_name = scheme_name or self.__class__.__name__\n    self.auto_error = auto_error",
-                "async def __call__(\n    self, request: Request\n) -> Optional[HTTPAuthorizationCredentials]:\n    authorization: str = request.headers.get(\"Authorization\")\n    scheme, credentials = get_authorization_scheme_param(authorization)\n    if not (authorization and scheme and credentials):\n        if self.auto_error:\n            raise HTTPException(\n                status_code=HTTP_403_FORBIDDEN, detail=\"Not authenticated\"\n            )\n        else:\n            return None\n    if scheme.lower() != \"bearer\":\n        raise HTTPException(\n            status_code=HTTP_403_FORBIDDEN,\n            detail=\"Invalid authentication credentials\",\n        )\n    return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)",
-                "def __init__(self, *, scheme_name: str = None, auto_error: bool = True):\n    self.model = HTTPBaseModel(scheme=\"digest\")\n    self.scheme_name = scheme_name or self.__class__.__name__\n    self.auto_error = auto_error",
-                "async def __call__(\n    self, request: Request\n) -> Optional[HTTPAuthorizationCredentials]:\n    authorization: str = request.headers.get(\"Authorization\")\n    scheme, credentials = get_authorization_scheme_param(authorization)\n    if not (authorization and scheme and credentials):\n        if self.auto_error:\n            raise HTTPException(\n                status_code=HTTP_403_FORBIDDEN, detail=\"Not authenticated\"\n            )\n        else:\n            return None\n    if scheme.lower() != \"digest\":\n        raise HTTPException(\n            status_code=HTTP_403_FORBIDDEN,\n            detail=\"Invalid authentication credentials\",\n        )\n    return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)"
-            ],
-            "inscope_function_signatures": [
-                "__init__(self)",
-                "__call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]",
-                "__init__(self)",
-                "__call__(self, request: Request) -> Optional[HTTPBasicCredentials]",
-                "__init__(self)",
-                "__call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]",
-                "__init__(self)",
-                "__call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class HTTPBasicCredentials:",
+                        "functions": []
+                    },
+                    {
+                        "class_declaration": "class HTTPAuthorizationCredentials:",
+                        "functions": []
+                    },
+                    {
+                        "class_declaration": "class HTTPBase:",
+                        "functions": [
+                            {
+                                "code": "def __init__(\n    self, *, scheme: str, scheme_name: str = None, auto_error: bool = True\n):\n    self.model = HTTPBaseModel(scheme=scheme)\n    self.scheme_name = scheme_name or self.__class__.__name__\n    self.auto_error = auto_error",
+                                "signature": "__init__(self)"
+                            },
+                            {
+                                "code": "async def __call__(\n    self, request: Request\n) -> Optional[HTTPAuthorizationCredentials]:\n    authorization: str = request.headers.get(\"Authorization\")\n    scheme, credentials = get_authorization_scheme_param(authorization)\n    if not (authorization and scheme and credentials):\n        if self.auto_error:\n            raise HTTPException(\n                status_code=HTTP_403_FORBIDDEN, detail=\"Not authenticated\"\n            )\n        else:\n            return None\n    return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)",
+                                "signature": "__call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class HTTPBasic:",
+                        "functions": [
+                            {
+                                "code": "def __init__(\n    self, *, scheme_name: str = None, realm: str = None, auto_error: bool = True\n):\n    self.model = HTTPBaseModel(scheme=\"basic\")\n    self.scheme_name = scheme_name or self.__class__.__name__\n    self.realm = realm\n    self.auto_error = auto_error",
+                                "signature": "__init__(self)"
+                            },
+                            {
+                                "code": "async def __call__(self, request: Request) -> Optional[HTTPBasicCredentials]:\n    authorization: str = request.headers.get(\"Authorization\")\n    scheme, param = get_authorization_scheme_param(authorization)\n    if self.realm:\n        unauthorized_headers = {\"WWW-Authenticate\": f'Basic realm=\"{self.realm}\"'}\n    else:\n        unauthorized_headers = {\"WWW-Authenticate\": \"Basic\"}\n    invalid_user_credentials_exc = HTTPException(\n        status_code=HTTP_401_UNAUTHORIZED,\n        detail=\"Invalid authentication credentials\",\n        headers=unauthorized_headers,\n    )\n    if not authorization or scheme.lower() != \"basic\":\n        if self.auto_error:\n            raise HTTPException(\n                status_code=HTTP_401_UNAUTHORIZED,\n                detail=\"Not authenticated\",\n                headers=unauthorized_headers,\n            )\n        else:\n            return None\n    try:\n        data = b64decode(param).decode(\"ascii\")\n    except (ValueError, UnicodeDecodeError, binascii.Error):\n        raise invalid_user_credentials_exc\n    username, separator, password = data.partition(\":\")\n    if not (separator):\n        raise invalid_user_credentials_exc\n    return HTTPBasicCredentials(username=username, password=password)",
+                                "signature": "__call__(self, request: Request) -> Optional[HTTPBasicCredentials]"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class HTTPBearer:",
+                        "functions": [
+                            {
+                                "code": "def __init__(\n    self,\n    *,\n    bearerFormat: str = None,\n    scheme_name: str = None,\n    auto_error: bool = True,\n):\n    self.model = HTTPBearerModel(bearerFormat=bearerFormat)\n    self.scheme_name = scheme_name or self.__class__.__name__\n    self.auto_error = auto_error",
+                                "signature": "__init__(self)"
+                            },
+                            {
+                                "code": "async def __call__(\n    self, request: Request\n) -> Optional[HTTPAuthorizationCredentials]:\n    authorization: str = request.headers.get(\"Authorization\")\n    scheme, credentials = get_authorization_scheme_param(authorization)\n    if not (authorization and scheme and credentials):\n        if self.auto_error:\n            raise HTTPException(\n                status_code=HTTP_403_FORBIDDEN, detail=\"Not authenticated\"\n            )\n        else:\n            return None\n    if scheme.lower() != \"bearer\":\n        raise HTTPException(\n            status_code=HTTP_403_FORBIDDEN,\n            detail=\"Invalid authentication credentials\",\n        )\n    return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)",
+                                "signature": "__call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class HTTPDigest:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, *, scheme_name: str = None, auto_error: bool = True):\n    self.model = HTTPBaseModel(scheme=\"digest\")\n    self.scheme_name = scheme_name or self.__class__.__name__\n    self.auto_error = auto_error",
+                                "signature": "__init__(self)"
+                            },
+                            {
+                                "code": "async def __call__(\n    self, request: Request\n) -> Optional[HTTPAuthorizationCredentials]:\n    authorization: str = request.headers.get(\"Authorization\")\n    scheme, credentials = get_authorization_scheme_param(authorization)\n    if not (authorization and scheme and credentials):\n        if self.auto_error:\n            raise HTTPException(\n                status_code=HTTP_403_FORBIDDEN, detail=\"Not authenticated\"\n            )\n        else:\n            return None\n    if scheme.lower() != \"digest\":\n        raise HTTPException(\n            status_code=HTTP_403_FORBIDDEN,\n            detail=\"Invalid authentication credentials\",\n        )\n    return HTTPAuthorizationCredentials(scheme=scheme, credentials=credentials)",
+                                "signature": "__call__(self, request: Request) -> Optional[HTTPAuthorizationCredentials]"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "BaseModel": [
                     17,

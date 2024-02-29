@@ -259,24 +259,24 @@
                             "query_args"
                         ],
                         "constructor_variable_names": [
-                            "raw_url",
-                            "ctx",
-                            "app",
-                            "headers",
-                            "transport",
                             "parsed_args",
-                            "parsed_files",
-                            "version",
+                            "headers",
                             "parsed_not_grouped_args",
-                            "_cookies",
-                            "stream",
+                            "raw_url",
+                            "uri_template",
                             "_parsed_url",
+                            "app",
                             "parsed_forwarded",
-                            "parsed_form",
+                            "transport",
+                            "parsed_files",
+                            "_cookies",
                             "endpoint",
                             "parsed_json",
-                            "uri_template",
-                            "method"
+                            "method",
+                            "parsed_form",
+                            "ctx",
+                            "stream",
+                            "version"
                         ]
                     },
                     "used_imports": [],
@@ -294,7 +294,7 @@
                                     "variable_shape": null
                                 },
                                 "self.app": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7fb11958ffa0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f7942b8ffa0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -376,7 +376,7 @@
                                     "variable_shape": null
                                 },
                                 "self.app": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7ff8fb63f400>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7fdfa3880430>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -453,7 +453,7 @@
                                     "variable_shape": null
                                 },
                                 "self.app": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7ff8fb63f400>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7fdfa3880430>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -508,7 +508,7 @@
                                     "variable_shape": null
                                 },
                                 "scheme.lower": {
-                                    "variable_value": "<built-in method lower of str object at 0x7ff8ffa8def0>",
+                                    "variable_value": "<built-in method lower of str object at 0x7fdfa7d1be30>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -522,94 +522,195 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def parse_multipart_form(body, boundary):\n    \"\"\"Parse a request body and returns fields and files\n\n    :param body: bytes request body\n    :param boundary: bytes multipart boundary\n    :return: fields (RequestParameters), files (RequestParameters)\n    \"\"\"\n    files = RequestParameters()\n    fields = RequestParameters()\n\n    form_parts = body.split(boundary)\n    for form_part in form_parts[1:-1]:\n        file_name = None\n        content_type = \"text/plain\"\n        content_charset = \"utf-8\"\n        field_name = None\n        line_index = 2\n        line_end_index = 0\n        while not line_end_index == -1:\n            line_end_index = form_part.find(b\"\\r\\n\", line_index)\n            form_line = form_part[line_index:line_end_index].decode(\"utf-8\")\n            line_index = line_end_index + 2\n\n            if not form_line:\n                break\n\n            colon_index = form_line.index(\":\")\n            form_header_field = form_line[0:colon_index].lower()\n            form_header_value, form_parameters = parse_content_header(\n                form_line[colon_index + 2 :]\n            )\n\n            if form_header_field == \"content-disposition\":\n                field_name = form_parameters.get(\"name\")\n                file_name = form_parameters.get(\"filename\")\n\n                # non-ASCII filenames in RFC2231, \"filename*\" format\n                if file_name is None and form_parameters.get(\"filename*\"):\n                    encoding, _, value = email.utils.decode_rfc2231(\n                        form_parameters[\"filename*\"]\n                    )\n                    file_name = unquote(value, encoding=encoding)\n            elif form_header_field == \"content-type\":\n                content_type = form_header_value\n                content_charset = form_parameters.get(\"charset\", \"utf-8\")\n\n        if field_name:\n            post_data = form_part[line_index:-4]\n            if file_name is None:\n                value = post_data.decode(content_charset)\n                if field_name in fields:\n                    fields[field_name].append(value)\n                else:\n                    fields[field_name] = [value]\n            else:\n                form_file = File(\n                    type=content_type, name=file_name, body=post_data\n                )\n                if field_name in files:\n                    files[field_name].append(form_file)\n                else:\n                    files[field_name] = [form_file]\n        else:\n            logger.debug(\n                \"Form-data field does not have a 'name' parameter \"\n                \"in the Content-Disposition header\"\n            )\n\n    return fields, files",
-                "def get(self, name, default=None):\n    \"\"\"Return the first value, either the default or actual\"\"\"\n    return super().get(name, [default])[0]",
-                "def getlist(self, name, default=None):\n    \"\"\"Return the entire list\"\"\"\n    return super().get(name, default)",
-                "def __init__(self, buffer_size=100):\n    self._queue = asyncio.Queue(buffer_size)",
-                "async def read(self):\n    \"\"\" Stop reading when gets None \"\"\"\n    payload = await self._queue.get()\n    self._queue.task_done()\n    return payload",
-                "async def put(self, payload):\n    await self._queue.put(payload)",
-                "def is_full(self):\n    return self._queue.full()",
-                "def __init__(self, url_bytes, headers, version, method, transport, app):\n    self.raw_url = url_bytes\n    # TODO: Content-Encoding detection\n    self._parsed_url = parse_url(url_bytes)\n    self.app = app\n\n    self.headers = headers\n    self.version = version\n    self.method = method\n    self.transport = transport\n\n    # Init but do not inhale\n    self.body_init()\n    self.ctx = SimpleNamespace()\n    self.parsed_forwarded = None\n    self.parsed_json = None\n    self.parsed_form = None\n    self.parsed_files = None\n    self.parsed_args = defaultdict(RequestParameters)\n    self.parsed_not_grouped_args = defaultdict(list)\n    self.uri_template = None\n    self._cookies = None\n    self.stream = None\n    self.endpoint = None",
-                "def __repr__(self):\n    return \"<{0}: {1} {2}>\".format(\n        self.__class__.__name__, self.method, self.path\n    )",
-                "def get(self, key, default=None):\n    \"\"\".. deprecated:: 19.9\n       Custom context is now stored in `request.custom_context.yourkey`\"\"\"\n    return self.ctx.__dict__.get(key, default)",
-                "def __contains__(self, key):\n    \"\"\".. deprecated:: 19.9\n       Custom context is now stored in `request.custom_context.yourkey`\"\"\"\n    return key in self.ctx.__dict__",
-                "def __getitem__(self, key):\n    \"\"\".. deprecated:: 19.9\n       Custom context is now stored in `request.custom_context.yourkey`\"\"\"\n    return self.ctx.__dict__[key]",
-                "def __delitem__(self, key):\n    \"\"\".. deprecated:: 19.9\n       Custom context is now stored in `request.custom_context.yourkey`\"\"\"\n    del self.ctx.__dict__[key]",
-                "def __setitem__(self, key, value):\n    \"\"\".. deprecated:: 19.9\n       Custom context is now stored in `request.custom_context.yourkey`\"\"\"\n    setattr(self.ctx, key, value)",
-                "def body_init(self):\n    self.body = []",
-                "def body_push(self, data):\n    self.body.append(data)",
-                "def body_finish(self):\n    self.body = b\"\".join(self.body)",
-                "@property\ndef json(self):\n    if self.parsed_json is None:\n        self.load_json()\n\n    return self.parsed_json",
-                "def load_json(self, loads=json_loads):\n    try:\n        self.parsed_json = loads(self.body)\n    except Exception:\n        if not self.body:\n            return None\n        raise InvalidUsage(\"Failed when parsing body as json\")\n\n    return self.parsed_json",
-                "@property\ndef token(self):\n    \"\"\"Attempt to return the auth header token.\n\n    :return: token related to request\n    \"\"\"\n    prefixes = (\"Bearer\", \"Token\")\n    auth_header = self.headers.get(\"Authorization\")\n\n    if auth_header is not None:\n        for prefix in prefixes:\n            if prefix in auth_header:\n                return auth_header.partition(prefix)[-1].strip()\n\n    return auth_header",
-                "@property\ndef form(self):\n    if self.parsed_form is None:\n        self.parsed_form = RequestParameters()\n        self.parsed_files = RequestParameters()\n        content_type = self.headers.get(\n            \"Content-Type\", DEFAULT_HTTP_CONTENT_TYPE\n        )\n        content_type, parameters = parse_content_header(content_type)\n        try:\n            if content_type == \"application/x-www-form-urlencoded\":\n                self.parsed_form = RequestParameters(\n                    parse_qs(self.body.decode(\"utf-8\"))\n                )\n            elif content_type == \"multipart/form-data\":\n                # TODO: Stream this instead of reading to/from memory\n                boundary = parameters[\"boundary\"].encode(\"utf-8\")\n                self.parsed_form, self.parsed_files = parse_multipart_form(\n                    self.body, boundary\n                )\n        except Exception:\n            error_logger.exception(\"Failed when parsing form\")\n\n    return self.parsed_form",
-                "@property\ndef files(self):\n    if self.parsed_files is None:\n        self.form  # compute form to get files\n\n    return self.parsed_files",
-                "def get_args(\n    self,\n    keep_blank_values: bool = False,\n    strict_parsing: bool = False,\n    encoding: str = \"utf-8\",\n    errors: str = \"replace\",\n) -> RequestParameters:\n    \"\"\"\n    Method to parse `query_string` using `urllib.parse.parse_qs`.\n    This methods is used by `args` property.\n    Can be used directly if you need to change default parameters.\n\n    :param keep_blank_values:\n        flag indicating whether blank values in\n        percent-encoded queries should be treated as blank strings.\n        A true value indicates that blanks should be retained as blank\n        strings.  The default false value indicates that blank values\n        are to be ignored and treated as if they were  not included.\n    :type keep_blank_values: bool\n    :param strict_parsing:\n        flag indicating what to do with parsing errors.\n        If false (the default), errors are silently ignored. If true,\n        errors raise a ValueError exception.\n    :type strict_parsing: bool\n    :param encoding:\n        specify how to decode percent-encoded sequences\n        into Unicode characters, as accepted by the bytes.decode() method.\n    :type encoding: str\n    :param errors:\n        specify how to decode percent-encoded sequences\n        into Unicode characters, as accepted by the bytes.decode() method.\n    :type errors: str\n    :return: RequestParameters\n    \"\"\"\n    if not self.parsed_args[\n        (keep_blank_values, strict_parsing, encoding, errors)\n    ]:\n        if self.query_string:\n            self.parsed_args[\n                (keep_blank_values, strict_parsing, encoding, errors)\n            ] = RequestParameters(\n                parse_qs(\n                    qs=self.query_string,\n                    keep_blank_values=keep_blank_values,\n                    strict_parsing=strict_parsing,\n                    encoding=encoding,\n                    errors=errors,\n                )\n            )\n\n    return self.parsed_args[\n        (keep_blank_values, strict_parsing, encoding, errors)\n    ]",
-                "@property\ndef raw_args(self) -> dict:\n    if self.app.debug:  # pragma: no cover\n        warnings.simplefilter(\"default\")\n    warnings.warn(\n        \"Use of raw_args will be deprecated in \"\n        \"the future versions. Please use args or query_args \"\n        \"properties instead\",\n        DeprecationWarning,\n    )\n    return {k: v[0] for k, v in self.args.items()}",
-                "def get_query_args(\n    self,\n    keep_blank_values: bool = False,\n    strict_parsing: bool = False,\n    encoding: str = \"utf-8\",\n    errors: str = \"replace\",\n) -> list:\n    \"\"\"\n    Method to parse `query_string` using `urllib.parse.parse_qsl`.\n    This methods is used by `query_args` property.\n    Can be used directly if you need to change default parameters.\n\n    :param keep_blank_values:\n        flag indicating whether blank values in\n        percent-encoded queries should be treated as blank strings.\n        A true value indicates that blanks should be retained as blank\n        strings.  The default false value indicates that blank values\n        are to be ignored and treated as if they were  not included.\n    :type keep_blank_values: bool\n    :param strict_parsing:\n        flag indicating what to do with parsing errors.\n        If false (the default), errors are silently ignored. If true,\n        errors raise a ValueError exception.\n    :type strict_parsing: bool\n    :param encoding:\n        specify how to decode percent-encoded sequences\n        into Unicode characters, as accepted by the bytes.decode() method.\n    :type encoding: str\n    :param errors:\n        specify how to decode percent-encoded sequences\n        into Unicode characters, as accepted by the bytes.decode() method.\n    :type errors: str\n    :return: list\n    \"\"\"\n    if not self.parsed_not_grouped_args[\n        (keep_blank_values, strict_parsing, encoding, errors)\n    ]:\n        if self.query_string:\n            self.parsed_not_grouped_args[\n                (keep_blank_values, strict_parsing, encoding, errors)\n            ] = parse_qsl(\n                qs=self.query_string,\n                keep_blank_values=keep_blank_values,\n                strict_parsing=strict_parsing,\n                encoding=encoding,\n                errors=errors,\n            )\n    return self.parsed_not_grouped_args[\n        (keep_blank_values, strict_parsing, encoding, errors)\n    ]",
-                "@property\ndef cookies(self):\n    if self._cookies is None:\n        cookie = self.headers.get(\"Cookie\")\n        if cookie is not None:\n            cookies = SimpleCookie()\n            cookies.load(cookie)\n            self._cookies = {\n                name: cookie.value for name, cookie in cookies.items()\n            }\n        else:\n            self._cookies = {}\n    return self._cookies",
-                "@property\ndef ip(self):\n    \"\"\"\n    :return: peer ip of the socket\n    \"\"\"\n    if not hasattr(self, \"_socket\"):\n        self._get_address()\n    return self._ip",
-                "@property\ndef port(self):\n    \"\"\"\n    :return: peer port of the socket\n    \"\"\"\n    if not hasattr(self, \"_socket\"):\n        self._get_address()\n    return self._port",
-                "@property\ndef socket(self):\n    if not hasattr(self, \"_socket\"):\n        self._get_address()\n    return self._socket",
-                "def _get_address(self):\n    self._socket = self.transport.get_extra_info(\"peername\") or (\n        None,\n        None,\n    )\n    self._ip = self._socket[0]\n    self._port = self._socket[1]",
-                "@property\ndef server_name(self):\n    \"\"\"\n    Attempt to get the server's external hostname in this order:\n    `config.SERVER_NAME`, proxied or direct Host headers\n    :func:`Request.host`\n\n    :return: the server name without port number\n    :rtype: str\n    \"\"\"\n    server_name = self.app.config.get(\"SERVER_NAME\")\n    if server_name:\n        host = server_name.split(\"//\", 1)[-1].split(\"/\", 1)[0]\n        return parse_host(host)[0]\n    return parse_host(self.host)[0]",
-                "@property\ndef forwarded(self):\n    if self.parsed_forwarded is None:\n        self.parsed_forwarded = (\n            parse_forwarded(self.headers, self.app.config)\n            or parse_xforwarded(self.headers, self.app.config)\n            or {}\n        )\n    return self.parsed_forwarded",
-                "@property\ndef server_port(self):\n    \"\"\"\n    Attempt to get the server's external port number in this order:\n    `config.SERVER_NAME`, proxied or direct Host headers\n    :func:`Request.host`,\n    actual port used by the transport layer socket.\n    :return: server port\n    :rtype: int\n    \"\"\"\n    if self.forwarded:\n        return self.forwarded.get(\"port\") or (\n            80 if self.scheme in (\"http\", \"ws\") else 443\n        )\n    return (\n        parse_host(self.host)[1]\n        or self.transport.get_extra_info(\"sockname\")[1]\n    )",
-                "@property\ndef remote_addr(self):\n    \"\"\"Attempt to return the original client ip based on `forwarded`,\n    `x-forwarded-for` or `x-real-ip`. If HTTP headers are unavailable or\n    untrusted, returns an empty string.\n\n    :return: original client ip.\n    \"\"\"\n    if not hasattr(self, \"_remote_addr\"):\n        self._remote_addr = self.forwarded.get(\"for\", \"\")\n    return self._remote_addr",
-                "@property\ndef scheme(self):\n    \"\"\"\n    Attempt to get the request scheme.\n    Seeking the value in this order:\n    `forwarded` header, `x-forwarded-proto` header,\n    `x-scheme` header, the sanic app itself.\n\n    :return: http|https|ws|wss or arbitrary value given by the headers.\n    :rtype: str\n    \"\"\"\n    forwarded_proto = self.forwarded.get(\"proto\")\n    if forwarded_proto:\n        return forwarded_proto\n\n    if (\n        self.app.websocket_enabled\n        and self.headers.get(\"upgrade\") == \"websocket\"\n    ):\n        scheme = \"ws\"\n    else:\n        scheme = \"http\"\n\n    if self.transport.get_extra_info(\"sslcontext\"):\n        scheme += \"s\"\n\n    return scheme",
-                "@property\ndef host(self):\n    \"\"\"\n    :return: proxied or direct Host header. Hostname and port number may be\n      separated by sanic.headers.parse_host(request.host).\n    \"\"\"\n    return self.forwarded.get(\"host\", self.headers.get(\"Host\", \"\"))",
-                "@property\ndef content_type(self):\n    return self.headers.get(\"Content-Type\", DEFAULT_HTTP_CONTENT_TYPE)",
-                "@property\ndef match_info(self):\n    \"\"\"return matched info after resolving route\"\"\"\n    return self.app.router.get(self)[2]",
-                "@property\ndef path(self):\n    return self._parsed_url.path.decode(\"utf-8\")",
-                "@property\ndef query_string(self):\n    if self._parsed_url.query:\n        return self._parsed_url.query.decode(\"utf-8\")\n    else:\n        return \"\"",
-                "@property\ndef url(self):\n    return urlunparse(\n        (self.scheme, self.host, self.path, None, self.query_string, None)\n    )",
-                "def url_for(self, view_name, **kwargs):\n    \"\"\"\n    Same as :func:`sanic.Sanic.url_for`, but automatically determine\n    `scheme` and `netloc` base on the request. Since this method is aiming\n    to generate correct schema & netloc, `_external` is implied.\n\n    :param kwargs: takes same parameters as in :func:`sanic.Sanic.url_for`\n    :return: an absolute url to the given view\n    :rtype: str\n    \"\"\"\n    # Full URL SERVER_NAME can only be handled in app.url_for\n    if \"//\" in self.app.config.SERVER_NAME:\n        return self.app.url_for(view_name, _external=True, **kwargs)\n\n    scheme = self.scheme\n    host = self.server_name\n    port = self.server_port\n\n    if (scheme.lower() in (\"http\", \"ws\") and port == 80) or (\n        scheme.lower() in (\"https\", \"wss\") and port == 443\n    ):\n        netloc = host\n    else:\n        netloc = \"{}:{}\".format(host, port)\n\n    return self.app.url_for(\n        view_name, _external=True, _scheme=scheme, _server=netloc, **kwargs\n    )"
-            ],
-            "inscope_function_signatures": [
-                "parse_multipart_form(body, boundary)",
-                "get(self, name, default=None)",
-                "getlist(self, name, default=None)",
-                "__init__(self, buffer_size=100)",
-                "read(self)",
-                "put(self, payload)",
-                "is_full(self)",
-                "__init__(self, url_bytes, headers, version, method, transport, app)",
-                "__repr__(self)",
-                "get(self, key, default=None)",
-                "__contains__(self, key)",
-                "__getitem__(self, key)",
-                "__delitem__(self, key)",
-                "__setitem__(self, key, value)",
-                "body_init(self)",
-                "body_push(self, data)",
-                "body_finish(self)",
-                "json(self)",
-                "load_json(self, loads=json_loads)",
-                "token(self)",
-                "form(self)",
-                "files(self)",
-                "get_args(self, keep_blank_values: bool=False, strict_parsing: bool=False, encoding: str='utf-8', errors: str='replace') -> RequestParameters",
-                "raw_args(self) -> dict",
-                "get_query_args(self, keep_blank_values: bool=False, strict_parsing: bool=False, encoding: str='utf-8', errors: str='replace') -> list",
-                "cookies(self)",
-                "ip(self)",
-                "port(self)",
-                "socket(self)",
-                "_get_address(self)",
-                "server_name(self)",
-                "forwarded(self)",
-                "server_port(self)",
-                "remote_addr(self)",
-                "scheme(self)",
-                "host(self)",
-                "content_type(self)",
-                "match_info(self)",
-                "path(self)",
-                "query_string(self)",
-                "url(self)",
-                "url_for(self, view_name, **kwargs)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [
+                    {
+                        "code": "def parse_multipart_form(body, boundary):\n    \"\"\"Parse a request body and returns fields and files\n\n    :param body: bytes request body\n    :param boundary: bytes multipart boundary\n    :return: fields (RequestParameters), files (RequestParameters)\n    \"\"\"\n    files = RequestParameters()\n    fields = RequestParameters()\n\n    form_parts = body.split(boundary)\n    for form_part in form_parts[1:-1]:\n        file_name = None\n        content_type = \"text/plain\"\n        content_charset = \"utf-8\"\n        field_name = None\n        line_index = 2\n        line_end_index = 0\n        while not line_end_index == -1:\n            line_end_index = form_part.find(b\"\\r\\n\", line_index)\n            form_line = form_part[line_index:line_end_index].decode(\"utf-8\")\n            line_index = line_end_index + 2\n\n            if not form_line:\n                break\n\n            colon_index = form_line.index(\":\")\n            form_header_field = form_line[0:colon_index].lower()\n            form_header_value, form_parameters = parse_content_header(\n                form_line[colon_index + 2 :]\n            )\n\n            if form_header_field == \"content-disposition\":\n                field_name = form_parameters.get(\"name\")\n                file_name = form_parameters.get(\"filename\")\n\n                # non-ASCII filenames in RFC2231, \"filename*\" format\n                if file_name is None and form_parameters.get(\"filename*\"):\n                    encoding, _, value = email.utils.decode_rfc2231(\n                        form_parameters[\"filename*\"]\n                    )\n                    file_name = unquote(value, encoding=encoding)\n            elif form_header_field == \"content-type\":\n                content_type = form_header_value\n                content_charset = form_parameters.get(\"charset\", \"utf-8\")\n\n        if field_name:\n            post_data = form_part[line_index:-4]\n            if file_name is None:\n                value = post_data.decode(content_charset)\n                if field_name in fields:\n                    fields[field_name].append(value)\n                else:\n                    fields[field_name] = [value]\n            else:\n                form_file = File(\n                    type=content_type, name=file_name, body=post_data\n                )\n                if field_name in files:\n                    files[field_name].append(form_file)\n                else:\n                    files[field_name] = [form_file]\n        else:\n            logger.debug(\n                \"Form-data field does not have a 'name' parameter \"\n                \"in the Content-Disposition header\"\n            )\n\n    return fields, files",
+                        "signature": "parse_multipart_form(body, boundary)"
+                    }
+                ],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class RequestParameters:",
+                        "functions": [
+                            {
+                                "code": "def get(self, name, default=None):\n    \"\"\"Return the first value, either the default or actual\"\"\"\n    return super().get(name, [default])[0]",
+                                "signature": "get(self, name, default=None)"
+                            },
+                            {
+                                "code": "def getlist(self, name, default=None):\n    \"\"\"Return the entire list\"\"\"\n    return super().get(name, default)",
+                                "signature": "getlist(self, name, default=None)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class StreamBuffer:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, buffer_size=100):\n    self._queue = asyncio.Queue(buffer_size)",
+                                "signature": "__init__(self, buffer_size=100)"
+                            },
+                            {
+                                "code": "async def read(self):\n    \"\"\" Stop reading when gets None \"\"\"\n    payload = await self._queue.get()\n    self._queue.task_done()\n    return payload",
+                                "signature": "read(self)"
+                            },
+                            {
+                                "code": "async def put(self, payload):\n    await self._queue.put(payload)",
+                                "signature": "put(self, payload)"
+                            },
+                            {
+                                "code": "def is_full(self):\n    return self._queue.full()",
+                                "signature": "is_full(self)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class Request:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, url_bytes, headers, version, method, transport, app):\n    self.raw_url = url_bytes\n    # TODO: Content-Encoding detection\n    self._parsed_url = parse_url(url_bytes)\n    self.app = app\n\n    self.headers = headers\n    self.version = version\n    self.method = method\n    self.transport = transport\n\n    # Init but do not inhale\n    self.body_init()\n    self.ctx = SimpleNamespace()\n    self.parsed_forwarded = None\n    self.parsed_json = None\n    self.parsed_form = None\n    self.parsed_files = None\n    self.parsed_args = defaultdict(RequestParameters)\n    self.parsed_not_grouped_args = defaultdict(list)\n    self.uri_template = None\n    self._cookies = None\n    self.stream = None\n    self.endpoint = None",
+                                "signature": "__init__(self, url_bytes, headers, version, method, transport, app)"
+                            },
+                            {
+                                "code": "def __repr__(self):\n    return \"<{0}: {1} {2}>\".format(\n        self.__class__.__name__, self.method, self.path\n    )",
+                                "signature": "__repr__(self)"
+                            },
+                            {
+                                "code": "def get(self, key, default=None):\n    \"\"\".. deprecated:: 19.9\n       Custom context is now stored in `request.custom_context.yourkey`\"\"\"\n    return self.ctx.__dict__.get(key, default)",
+                                "signature": "get(self, key, default=None)"
+                            },
+                            {
+                                "code": "def __contains__(self, key):\n    \"\"\".. deprecated:: 19.9\n       Custom context is now stored in `request.custom_context.yourkey`\"\"\"\n    return key in self.ctx.__dict__",
+                                "signature": "__contains__(self, key)"
+                            },
+                            {
+                                "code": "def __getitem__(self, key):\n    \"\"\".. deprecated:: 19.9\n       Custom context is now stored in `request.custom_context.yourkey`\"\"\"\n    return self.ctx.__dict__[key]",
+                                "signature": "__getitem__(self, key)"
+                            },
+                            {
+                                "code": "def __delitem__(self, key):\n    \"\"\".. deprecated:: 19.9\n       Custom context is now stored in `request.custom_context.yourkey`\"\"\"\n    del self.ctx.__dict__[key]",
+                                "signature": "__delitem__(self, key)"
+                            },
+                            {
+                                "code": "def __setitem__(self, key, value):\n    \"\"\".. deprecated:: 19.9\n       Custom context is now stored in `request.custom_context.yourkey`\"\"\"\n    setattr(self.ctx, key, value)",
+                                "signature": "__setitem__(self, key, value)"
+                            },
+                            {
+                                "code": "def body_init(self):\n    self.body = []",
+                                "signature": "body_init(self)"
+                            },
+                            {
+                                "code": "def body_push(self, data):\n    self.body.append(data)",
+                                "signature": "body_push(self, data)"
+                            },
+                            {
+                                "code": "def body_finish(self):\n    self.body = b\"\".join(self.body)",
+                                "signature": "body_finish(self)"
+                            },
+                            {
+                                "code": "@property\ndef json(self):\n    if self.parsed_json is None:\n        self.load_json()\n\n    return self.parsed_json",
+                                "signature": "json(self)"
+                            },
+                            {
+                                "code": "def load_json(self, loads=json_loads):\n    try:\n        self.parsed_json = loads(self.body)\n    except Exception:\n        if not self.body:\n            return None\n        raise InvalidUsage(\"Failed when parsing body as json\")\n\n    return self.parsed_json",
+                                "signature": "load_json(self, loads=json_loads)"
+                            },
+                            {
+                                "code": "@property\ndef token(self):\n    \"\"\"Attempt to return the auth header token.\n\n    :return: token related to request\n    \"\"\"\n    prefixes = (\"Bearer\", \"Token\")\n    auth_header = self.headers.get(\"Authorization\")\n\n    if auth_header is not None:\n        for prefix in prefixes:\n            if prefix in auth_header:\n                return auth_header.partition(prefix)[-1].strip()\n\n    return auth_header",
+                                "signature": "token(self)"
+                            },
+                            {
+                                "code": "@property\ndef form(self):\n    if self.parsed_form is None:\n        self.parsed_form = RequestParameters()\n        self.parsed_files = RequestParameters()\n        content_type = self.headers.get(\n            \"Content-Type\", DEFAULT_HTTP_CONTENT_TYPE\n        )\n        content_type, parameters = parse_content_header(content_type)\n        try:\n            if content_type == \"application/x-www-form-urlencoded\":\n                self.parsed_form = RequestParameters(\n                    parse_qs(self.body.decode(\"utf-8\"))\n                )\n            elif content_type == \"multipart/form-data\":\n                # TODO: Stream this instead of reading to/from memory\n                boundary = parameters[\"boundary\"].encode(\"utf-8\")\n                self.parsed_form, self.parsed_files = parse_multipart_form(\n                    self.body, boundary\n                )\n        except Exception:\n            error_logger.exception(\"Failed when parsing form\")\n\n    return self.parsed_form",
+                                "signature": "form(self)"
+                            },
+                            {
+                                "code": "@property\ndef files(self):\n    if self.parsed_files is None:\n        self.form  # compute form to get files\n\n    return self.parsed_files",
+                                "signature": "files(self)"
+                            },
+                            {
+                                "code": "def get_args(\n    self,\n    keep_blank_values: bool = False,\n    strict_parsing: bool = False,\n    encoding: str = \"utf-8\",\n    errors: str = \"replace\",\n) -> RequestParameters:\n    \"\"\"\n    Method to parse `query_string` using `urllib.parse.parse_qs`.\n    This methods is used by `args` property.\n    Can be used directly if you need to change default parameters.\n\n    :param keep_blank_values:\n        flag indicating whether blank values in\n        percent-encoded queries should be treated as blank strings.\n        A true value indicates that blanks should be retained as blank\n        strings.  The default false value indicates that blank values\n        are to be ignored and treated as if they were  not included.\n    :type keep_blank_values: bool\n    :param strict_parsing:\n        flag indicating what to do with parsing errors.\n        If false (the default), errors are silently ignored. If true,\n        errors raise a ValueError exception.\n    :type strict_parsing: bool\n    :param encoding:\n        specify how to decode percent-encoded sequences\n        into Unicode characters, as accepted by the bytes.decode() method.\n    :type encoding: str\n    :param errors:\n        specify how to decode percent-encoded sequences\n        into Unicode characters, as accepted by the bytes.decode() method.\n    :type errors: str\n    :return: RequestParameters\n    \"\"\"\n    if not self.parsed_args[\n        (keep_blank_values, strict_parsing, encoding, errors)\n    ]:\n        if self.query_string:\n            self.parsed_args[\n                (keep_blank_values, strict_parsing, encoding, errors)\n            ] = RequestParameters(\n                parse_qs(\n                    qs=self.query_string,\n                    keep_blank_values=keep_blank_values,\n                    strict_parsing=strict_parsing,\n                    encoding=encoding,\n                    errors=errors,\n                )\n            )\n\n    return self.parsed_args[\n        (keep_blank_values, strict_parsing, encoding, errors)\n    ]",
+                                "signature": "get_args(self, keep_blank_values: bool=False, strict_parsing: bool=False, encoding: str='utf-8', errors: str='replace') -> RequestParameters"
+                            },
+                            {
+                                "code": "@property\ndef raw_args(self) -> dict:\n    if self.app.debug:  # pragma: no cover\n        warnings.simplefilter(\"default\")\n    warnings.warn(\n        \"Use of raw_args will be deprecated in \"\n        \"the future versions. Please use args or query_args \"\n        \"properties instead\",\n        DeprecationWarning,\n    )\n    return {k: v[0] for k, v in self.args.items()}",
+                                "signature": "raw_args(self) -> dict"
+                            },
+                            {
+                                "code": "def get_query_args(\n    self,\n    keep_blank_values: bool = False,\n    strict_parsing: bool = False,\n    encoding: str = \"utf-8\",\n    errors: str = \"replace\",\n) -> list:\n    \"\"\"\n    Method to parse `query_string` using `urllib.parse.parse_qsl`.\n    This methods is used by `query_args` property.\n    Can be used directly if you need to change default parameters.\n\n    :param keep_blank_values:\n        flag indicating whether blank values in\n        percent-encoded queries should be treated as blank strings.\n        A true value indicates that blanks should be retained as blank\n        strings.  The default false value indicates that blank values\n        are to be ignored and treated as if they were  not included.\n    :type keep_blank_values: bool\n    :param strict_parsing:\n        flag indicating what to do with parsing errors.\n        If false (the default), errors are silently ignored. If true,\n        errors raise a ValueError exception.\n    :type strict_parsing: bool\n    :param encoding:\n        specify how to decode percent-encoded sequences\n        into Unicode characters, as accepted by the bytes.decode() method.\n    :type encoding: str\n    :param errors:\n        specify how to decode percent-encoded sequences\n        into Unicode characters, as accepted by the bytes.decode() method.\n    :type errors: str\n    :return: list\n    \"\"\"\n    if not self.parsed_not_grouped_args[\n        (keep_blank_values, strict_parsing, encoding, errors)\n    ]:\n        if self.query_string:\n            self.parsed_not_grouped_args[\n                (keep_blank_values, strict_parsing, encoding, errors)\n            ] = parse_qsl(\n                qs=self.query_string,\n                keep_blank_values=keep_blank_values,\n                strict_parsing=strict_parsing,\n                encoding=encoding,\n                errors=errors,\n            )\n    return self.parsed_not_grouped_args[\n        (keep_blank_values, strict_parsing, encoding, errors)\n    ]",
+                                "signature": "get_query_args(self, keep_blank_values: bool=False, strict_parsing: bool=False, encoding: str='utf-8', errors: str='replace') -> list"
+                            },
+                            {
+                                "code": "@property\ndef cookies(self):\n    if self._cookies is None:\n        cookie = self.headers.get(\"Cookie\")\n        if cookie is not None:\n            cookies = SimpleCookie()\n            cookies.load(cookie)\n            self._cookies = {\n                name: cookie.value for name, cookie in cookies.items()\n            }\n        else:\n            self._cookies = {}\n    return self._cookies",
+                                "signature": "cookies(self)"
+                            },
+                            {
+                                "code": "@property\ndef ip(self):\n    \"\"\"\n    :return: peer ip of the socket\n    \"\"\"\n    if not hasattr(self, \"_socket\"):\n        self._get_address()\n    return self._ip",
+                                "signature": "ip(self)"
+                            },
+                            {
+                                "code": "@property\ndef port(self):\n    \"\"\"\n    :return: peer port of the socket\n    \"\"\"\n    if not hasattr(self, \"_socket\"):\n        self._get_address()\n    return self._port",
+                                "signature": "port(self)"
+                            },
+                            {
+                                "code": "@property\ndef socket(self):\n    if not hasattr(self, \"_socket\"):\n        self._get_address()\n    return self._socket",
+                                "signature": "socket(self)"
+                            },
+                            {
+                                "code": "def _get_address(self):\n    self._socket = self.transport.get_extra_info(\"peername\") or (\n        None,\n        None,\n    )\n    self._ip = self._socket[0]\n    self._port = self._socket[1]",
+                                "signature": "_get_address(self)"
+                            },
+                            {
+                                "code": "@property\ndef server_name(self):\n    \"\"\"\n    Attempt to get the server's external hostname in this order:\n    `config.SERVER_NAME`, proxied or direct Host headers\n    :func:`Request.host`\n\n    :return: the server name without port number\n    :rtype: str\n    \"\"\"\n    server_name = self.app.config.get(\"SERVER_NAME\")\n    if server_name:\n        host = server_name.split(\"//\", 1)[-1].split(\"/\", 1)[0]\n        return parse_host(host)[0]\n    return parse_host(self.host)[0]",
+                                "signature": "server_name(self)"
+                            },
+                            {
+                                "code": "@property\ndef forwarded(self):\n    if self.parsed_forwarded is None:\n        self.parsed_forwarded = (\n            parse_forwarded(self.headers, self.app.config)\n            or parse_xforwarded(self.headers, self.app.config)\n            or {}\n        )\n    return self.parsed_forwarded",
+                                "signature": "forwarded(self)"
+                            },
+                            {
+                                "code": "@property\ndef server_port(self):\n    \"\"\"\n    Attempt to get the server's external port number in this order:\n    `config.SERVER_NAME`, proxied or direct Host headers\n    :func:`Request.host`,\n    actual port used by the transport layer socket.\n    :return: server port\n    :rtype: int\n    \"\"\"\n    if self.forwarded:\n        return self.forwarded.get(\"port\") or (\n            80 if self.scheme in (\"http\", \"ws\") else 443\n        )\n    return (\n        parse_host(self.host)[1]\n        or self.transport.get_extra_info(\"sockname\")[1]\n    )",
+                                "signature": "server_port(self)"
+                            },
+                            {
+                                "code": "@property\ndef remote_addr(self):\n    \"\"\"Attempt to return the original client ip based on `forwarded`,\n    `x-forwarded-for` or `x-real-ip`. If HTTP headers are unavailable or\n    untrusted, returns an empty string.\n\n    :return: original client ip.\n    \"\"\"\n    if not hasattr(self, \"_remote_addr\"):\n        self._remote_addr = self.forwarded.get(\"for\", \"\")\n    return self._remote_addr",
+                                "signature": "remote_addr(self)"
+                            },
+                            {
+                                "code": "@property\ndef scheme(self):\n    \"\"\"\n    Attempt to get the request scheme.\n    Seeking the value in this order:\n    `forwarded` header, `x-forwarded-proto` header,\n    `x-scheme` header, the sanic app itself.\n\n    :return: http|https|ws|wss or arbitrary value given by the headers.\n    :rtype: str\n    \"\"\"\n    forwarded_proto = self.forwarded.get(\"proto\")\n    if forwarded_proto:\n        return forwarded_proto\n\n    if (\n        self.app.websocket_enabled\n        and self.headers.get(\"upgrade\") == \"websocket\"\n    ):\n        scheme = \"ws\"\n    else:\n        scheme = \"http\"\n\n    if self.transport.get_extra_info(\"sslcontext\"):\n        scheme += \"s\"\n\n    return scheme",
+                                "signature": "scheme(self)"
+                            },
+                            {
+                                "code": "@property\ndef host(self):\n    \"\"\"\n    :return: proxied or direct Host header. Hostname and port number may be\n      separated by sanic.headers.parse_host(request.host).\n    \"\"\"\n    return self.forwarded.get(\"host\", self.headers.get(\"Host\", \"\"))",
+                                "signature": "host(self)"
+                            },
+                            {
+                                "code": "@property\ndef content_type(self):\n    return self.headers.get(\"Content-Type\", DEFAULT_HTTP_CONTENT_TYPE)",
+                                "signature": "content_type(self)"
+                            },
+                            {
+                                "code": "@property\ndef match_info(self):\n    \"\"\"return matched info after resolving route\"\"\"\n    return self.app.router.get(self)[2]",
+                                "signature": "match_info(self)"
+                            },
+                            {
+                                "code": "@property\ndef path(self):\n    return self._parsed_url.path.decode(\"utf-8\")",
+                                "signature": "path(self)"
+                            },
+                            {
+                                "code": "@property\ndef query_string(self):\n    if self._parsed_url.query:\n        return self._parsed_url.query.decode(\"utf-8\")\n    else:\n        return \"\"",
+                                "signature": "query_string(self)"
+                            },
+                            {
+                                "code": "@property\ndef url(self):\n    return urlunparse(\n        (self.scheme, self.host, self.path, None, self.query_string, None)\n    )",
+                                "signature": "url(self)"
+                            },
+                            {
+                                "code": "def url_for(self, view_name, **kwargs):\n    \"\"\"\n    Same as :func:`sanic.Sanic.url_for`, but automatically determine\n    `scheme` and `netloc` base on the request. Since this method is aiming\n    to generate correct schema & netloc, `_external` is implied.\n\n    :param kwargs: takes same parameters as in :func:`sanic.Sanic.url_for`\n    :return: an absolute url to the given view\n    :rtype: str\n    \"\"\"\n    # Full URL SERVER_NAME can only be handled in app.url_for\n    if \"//\" in self.app.config.SERVER_NAME:\n        return self.app.url_for(view_name, _external=True, **kwargs)\n\n    scheme = self.scheme\n    host = self.server_name\n    port = self.server_port\n\n    if (scheme.lower() in (\"http\", \"ws\") and port == 80) or (\n        scheme.lower() in (\"https\", \"wss\") and port == 443\n    ):\n        netloc = host\n    else:\n        netloc = \"{}:{}\".format(host, port)\n\n    return self.app.url_for(\n        view_name, _external=True, _scheme=scheme, _server=netloc, **kwargs\n    )",
+                                "signature": "url_for(self, view_name, **kwargs)"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "ImportError": [
                     24
@@ -2490,7 +2591,7 @@
                 "test_function": "test_url_for_without_server_name",
                 "test_function_code": "def test_url_for_without_server_name(app):\n    @app.route(\"/sample\")\n    def sample(request):\n        return json({\"url\": request.url_for(\"url_for\")})\n\n    @app.route(\"/url-for\")\n    def url_for(request):\n        return text(\"url-for\")\n\n    request, response = app.test_client.get(\"/sample\")\n    assert (\n        response.json[\"url\"]\n        == f\"http://127.0.0.1:{app.test_client.port}/url-for\"\n    )",
                 "test_error": "TypeError: 'NoneType' object is not subscriptable",
-                "full_test_error": "app = <sanic.app.Sanic object at 0x7fb44100ce80>\n\n    def test_url_for_without_server_name(app):\n        @app.route(\"/sample\")\n        def sample(request):\n            return json({\"url\": request.url_for(\"url_for\")})\n    \n        @app.route(\"/url-for\")\n        def url_for(request):\n            return text(\"url-for\")\n    \n        request, response = app.test_client.get(\"/sample\")\n>       assert (\n            response.json[\"url\"]\n            == f\"http://127.0.0.1:{app.test_client.port}/url-for\"\n        )\nE       TypeError: 'NoneType' object is not subscriptable\n\ntests/test_requests.py:2118: TypeError",
+                "full_test_error": "app = <sanic.app.Sanic object at 0x7fdb473bb490>\n\n    def test_url_for_without_server_name(app):\n        @app.route(\"/sample\")\n        def sample(request):\n            return json({\"url\": request.url_for(\"url_for\")})\n    \n        @app.route(\"/url-for\")\n        def url_for(request):\n            return text(\"url-for\")\n    \n        request, response = app.test_client.get(\"/sample\")\n>       assert (\n            response.json[\"url\"]\n            == f\"http://127.0.0.1:{app.test_client.port}/url-for\"\n        )\nE       TypeError: 'NoneType' object is not subscriptable\n\ntests/test_requests.py:2118: TypeError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": []

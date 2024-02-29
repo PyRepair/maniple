@@ -189,7 +189,7 @@
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.file.LocalFileSystem object at 0x7f48e139a700>",
+                                    "variable_value": "<luigi.file.LocalFileSystem object at 0x7fbe5fe1b6a0>",
                                     "variable_type": "LocalFileSystem",
                                     "variable_shape": null
                                 },
@@ -246,12 +246,12 @@
                                     "variable_shape": null
                                 },
                                 "self.mkdir": {
-                                    "variable_value": "<bound method LocalFileSystem.mkdir of <luigi.file.LocalFileSystem object at 0x7f58b4843340>>",
+                                    "variable_value": "<bound method LocalFileSystem.mkdir of <luigi.file.LocalFileSystem object at 0x7ff84cc5e6d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.file.LocalFileSystem object at 0x7f58b4843340>",
+                                    "variable_value": "<luigi.file.LocalFileSystem object at 0x7ff84cc5e6d0>",
                                     "variable_type": "LocalFileSystem",
                                     "variable_shape": null
                                 },
@@ -303,12 +303,12 @@
                                     "variable_shape": null
                                 },
                                 "self.mkdir": {
-                                    "variable_value": "<bound method LocalFileSystem.mkdir of <luigi.file.LocalFileSystem object at 0x7f58b4843340>>",
+                                    "variable_value": "<bound method LocalFileSystem.mkdir of <luigi.file.LocalFileSystem object at 0x7ff84cc5e6d0>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
                                 "self": {
-                                    "variable_value": "<luigi.file.LocalFileSystem object at 0x7f58b4843340>",
+                                    "variable_value": "<luigi.file.LocalFileSystem object at 0x7ff84cc5e6d0>",
                                     "variable_type": "LocalFileSystem",
                                     "variable_shape": null
                                 },
@@ -327,46 +327,103 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def move_to_final_destination(self):\n    os.rename(self.tmp_path, self.path)",
-                "def generate_tmp_path(self, path):\n    return path + '-luigi-tmp-%09d' % random.randrange(0, 1e10)",
-                "def exists(self, path):\n    return os.path.exists(path)",
-                "def mkdir(self, path, parents=True, raise_if_exists=False):\n    if self.exists(path):\n        if raise_if_exists:\n            raise FileAlreadyExists()\n        elif not self.isdir(path):\n            raise NotADirectory()\n        else:\n            return\n\n    if parents:\n        os.makedirs(path)\n    else:\n        if not os.path.exists(os.path.dirname(path)):\n            raise MissingParentDirectory()\n        os.mkdir(path)",
-                "def isdir(self, path):\n    return os.path.isdir(path)",
-                "def listdir(self, path):\n    for dir_, _, files in os.walk(path):\n        assert dir_.startswith(path)\n        for name in files:\n            yield os.path.join(dir_, name)",
-                "def remove(self, path, recursive=True):\n    if recursive and self.isdir(path):\n        shutil.rmtree(path)\n    else:\n        os.remove(path)",
-                "def move(self, old_path, new_path, raise_if_exists=False):\n    if raise_if_exists and os.path.exists(new_path):\n        raise RuntimeError('Destination exists: %s' % new_path)\n    d = os.path.dirname(new_path)\n    if d and not os.path.exists(d):\n        self.fs.mkdir(d)\n    os.rename(old_path, new_path)",
-                "def __init__(self, path=None, format=None, is_tmp=False):\n    if format is None:\n        format = get_default_format()\n\n    if not path:\n        if not is_tmp:\n            raise Exception('path or is_tmp must be set')\n        path = os.path.join(tempfile.gettempdir(), 'luigi-tmp-%09d' % random.randint(0, 999999999))\n    super(LocalTarget, self).__init__(path)\n    self.format = format\n    self.is_tmp = is_tmp",
-                "def makedirs(self):\n    \"\"\"\n    Create all parent folders if they do not exist.\n    \"\"\"\n    normpath = os.path.normpath(self.path)\n    parentfolder = os.path.dirname(normpath)\n    if parentfolder:\n        try:\n            os.makedirs(parentfolder)\n        except OSError:\n            pass",
-                "def open(self, mode='r'):\n    rwmode = mode.replace('b', '').replace('t', '')\n    if rwmode == 'w':\n        self.makedirs()\n        return self.format.pipe_writer(atomic_file(self.path))\n\n    elif rwmode == 'r':\n        fileobj = FileWrapper(io.BufferedReader(io.FileIO(self.path, mode)))\n        return self.format.pipe_reader(fileobj)\n\n    else:\n        raise Exception('mode must be r/w (got:%s)' % mode)",
-                "def move(self, new_path, raise_if_exists=False):\n    self.fs.move(self.path, new_path, raise_if_exists=raise_if_exists)",
-                "def move_dir(self, new_path):\n    self.move(new_path)",
-                "def remove(self):\n    self.fs.remove(self.path)",
-                "def copy(self, new_path, raise_if_exists=False):\n    if raise_if_exists and os.path.exists(new_path):\n        raise RuntimeError('Destination exists: %s' % new_path)\n    tmp = LocalTarget(new_path + '-luigi-tmp-%09d' % random.randrange(0, 1e10), is_tmp=True)\n    tmp.makedirs()\n    shutil.copy(self.path, tmp.fn)\n    tmp.move(new_path)",
-                "@property\ndef fn(self):\n    return self.path",
-                "def __del__(self):\n    if self.is_tmp and self.exists():\n        self.remove()",
-                "def __init__(self, *args, **kwargs):\n    warnings.warn(\"File has been renamed LocalTarget\", DeprecationWarning, stacklevel=2)\n    super(File, self).__init__(*args, **kwargs)"
-            ],
-            "inscope_function_signatures": [
-                "move_to_final_destination(self)",
-                "generate_tmp_path(self, path)",
-                "exists(self, path)",
-                "mkdir(self, path, parents=True, raise_if_exists=False)",
-                "isdir(self, path)",
-                "listdir(self, path)",
-                "remove(self, path, recursive=True)",
-                "move(self, old_path, new_path, raise_if_exists=False)",
-                "__init__(self, path=None, format=None, is_tmp=False)",
-                "makedirs(self)",
-                "open(self, mode='r')",
-                "move(self, new_path, raise_if_exists=False)",
-                "move_dir(self, new_path)",
-                "remove(self)",
-                "copy(self, new_path, raise_if_exists=False)",
-                "fn(self)",
-                "__del__(self)",
-                "__init__(self, *args, **kwargs)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class atomic_file:",
+                        "functions": [
+                            {
+                                "code": "def move_to_final_destination(self):\n    os.rename(self.tmp_path, self.path)",
+                                "signature": "move_to_final_destination(self)"
+                            },
+                            {
+                                "code": "def generate_tmp_path(self, path):\n    return path + '-luigi-tmp-%09d' % random.randrange(0, 1e10)",
+                                "signature": "generate_tmp_path(self, path)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class LocalFileSystem:",
+                        "functions": [
+                            {
+                                "code": "def exists(self, path):\n    return os.path.exists(path)",
+                                "signature": "exists(self, path)"
+                            },
+                            {
+                                "code": "def mkdir(self, path, parents=True, raise_if_exists=False):\n    if self.exists(path):\n        if raise_if_exists:\n            raise FileAlreadyExists()\n        elif not self.isdir(path):\n            raise NotADirectory()\n        else:\n            return\n\n    if parents:\n        os.makedirs(path)\n    else:\n        if not os.path.exists(os.path.dirname(path)):\n            raise MissingParentDirectory()\n        os.mkdir(path)",
+                                "signature": "mkdir(self, path, parents=True, raise_if_exists=False)"
+                            },
+                            {
+                                "code": "def isdir(self, path):\n    return os.path.isdir(path)",
+                                "signature": "isdir(self, path)"
+                            },
+                            {
+                                "code": "def listdir(self, path):\n    for dir_, _, files in os.walk(path):\n        assert dir_.startswith(path)\n        for name in files:\n            yield os.path.join(dir_, name)",
+                                "signature": "listdir(self, path)"
+                            },
+                            {
+                                "code": "def remove(self, path, recursive=True):\n    if recursive and self.isdir(path):\n        shutil.rmtree(path)\n    else:\n        os.remove(path)",
+                                "signature": "remove(self, path, recursive=True)"
+                            },
+                            {
+                                "code": "def move(self, old_path, new_path, raise_if_exists=False):\n    if raise_if_exists and os.path.exists(new_path):\n        raise RuntimeError('Destination exists: %s' % new_path)\n    d = os.path.dirname(new_path)\n    if d and not os.path.exists(d):\n        self.fs.mkdir(d)\n    os.rename(old_path, new_path)",
+                                "signature": "move(self, old_path, new_path, raise_if_exists=False)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class LocalTarget:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, path=None, format=None, is_tmp=False):\n    if format is None:\n        format = get_default_format()\n\n    if not path:\n        if not is_tmp:\n            raise Exception('path or is_tmp must be set')\n        path = os.path.join(tempfile.gettempdir(), 'luigi-tmp-%09d' % random.randint(0, 999999999))\n    super(LocalTarget, self).__init__(path)\n    self.format = format\n    self.is_tmp = is_tmp",
+                                "signature": "__init__(self, path=None, format=None, is_tmp=False)"
+                            },
+                            {
+                                "code": "def makedirs(self):\n    \"\"\"\n    Create all parent folders if they do not exist.\n    \"\"\"\n    normpath = os.path.normpath(self.path)\n    parentfolder = os.path.dirname(normpath)\n    if parentfolder:\n        try:\n            os.makedirs(parentfolder)\n        except OSError:\n            pass",
+                                "signature": "makedirs(self)"
+                            },
+                            {
+                                "code": "def open(self, mode='r'):\n    rwmode = mode.replace('b', '').replace('t', '')\n    if rwmode == 'w':\n        self.makedirs()\n        return self.format.pipe_writer(atomic_file(self.path))\n\n    elif rwmode == 'r':\n        fileobj = FileWrapper(io.BufferedReader(io.FileIO(self.path, mode)))\n        return self.format.pipe_reader(fileobj)\n\n    else:\n        raise Exception('mode must be r/w (got:%s)' % mode)",
+                                "signature": "open(self, mode='r')"
+                            },
+                            {
+                                "code": "def move(self, new_path, raise_if_exists=False):\n    self.fs.move(self.path, new_path, raise_if_exists=raise_if_exists)",
+                                "signature": "move(self, new_path, raise_if_exists=False)"
+                            },
+                            {
+                                "code": "def move_dir(self, new_path):\n    self.move(new_path)",
+                                "signature": "move_dir(self, new_path)"
+                            },
+                            {
+                                "code": "def remove(self):\n    self.fs.remove(self.path)",
+                                "signature": "remove(self)"
+                            },
+                            {
+                                "code": "def copy(self, new_path, raise_if_exists=False):\n    if raise_if_exists and os.path.exists(new_path):\n        raise RuntimeError('Destination exists: %s' % new_path)\n    tmp = LocalTarget(new_path + '-luigi-tmp-%09d' % random.randrange(0, 1e10), is_tmp=True)\n    tmp.makedirs()\n    shutil.copy(self.path, tmp.fn)\n    tmp.move(new_path)",
+                                "signature": "copy(self, new_path, raise_if_exists=False)"
+                            },
+                            {
+                                "code": "@property\ndef fn(self):\n    return self.path",
+                                "signature": "fn(self)"
+                            },
+                            {
+                                "code": "def __del__(self):\n    if self.is_tmp and self.exists():\n        self.remove()",
+                                "signature": "__del__(self)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class File:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, *args, **kwargs):\n    warnings.warn(\"File has been renamed LocalTarget\", DeprecationWarning, stacklevel=2)\n    super(File, self).__init__(*args, **kwargs)",
+                                "signature": "__init__(self, *args, **kwargs)"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "AtomicLocalFile": [
                     33
@@ -1134,7 +1191,7 @@
                 "test_function": "test_move_to_new_dir",
                 "test_function_code": "    def test_move_to_new_dir(self):\n        # Regression test for a bug in LocalFileSystem.move\n        src = os.path.join(self.path, 'src.txt')\n        dest = os.path.join(self.path, 'newdir', 'dest.txt')\n\n        LocalTarget(src).open('w').close()\n        self.fs.move(src, dest)\n        self.assertTrue(os.path.exists(dest))",
                 "test_error": "AttributeError: 'LocalFileSystem' object has no attribute 'fs'",
-                "full_test_error": "self = <file_test.FileSystemTest testMethod=test_move_to_new_dir>\n\n    def test_move_to_new_dir(self):\n        # Regression test for a bug in LocalFileSystem.move\n        src = os.path.join(self.path, 'src.txt')\n        dest = os.path.join(self.path, 'newdir', 'dest.txt')\n    \n        LocalTarget(src).open('w').close()\n>       self.fs.move(src, dest)\n\ntest/file_test.py:308: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <luigi.file.LocalFileSystem object at 0x7f74a691d700>\nold_path = '/tmp/luigi-test-dir/src.txt'\nnew_path = '/tmp/luigi-test-dir/newdir/dest.txt', raise_if_exists = False\n\n    def move(self, old_path, new_path, raise_if_exists=False):\n        if raise_if_exists and os.path.exists(new_path):\n            raise RuntimeError('Destination exists: %s' % new_path)\n        d = os.path.dirname(new_path)\n        if d and not os.path.exists(d):\n>           self.fs.mkdir(d)\nE           AttributeError: 'LocalFileSystem' object has no attribute 'fs'\n\nluigi/file.py:91: AttributeError",
+                "full_test_error": "self = <file_test.FileSystemTest testMethod=test_move_to_new_dir>\n\n    def test_move_to_new_dir(self):\n        # Regression test for a bug in LocalFileSystem.move\n        src = os.path.join(self.path, 'src.txt')\n        dest = os.path.join(self.path, 'newdir', 'dest.txt')\n    \n        LocalTarget(src).open('w').close()\n>       self.fs.move(src, dest)\n\ntest/file_test.py:308: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <luigi.file.LocalFileSystem object at 0x7f36dc9c2370>\nold_path = '/tmp/luigi-test-dir/src.txt'\nnew_path = '/tmp/luigi-test-dir/newdir/dest.txt', raise_if_exists = False\n\n    def move(self, old_path, new_path, raise_if_exists=False):\n        if raise_if_exists and os.path.exists(new_path):\n            raise RuntimeError('Destination exists: %s' % new_path)\n        d = os.path.dirname(new_path)\n        if d and not os.path.exists(d):\n>           self.fs.mkdir(d)\nE           AttributeError: 'LocalFileSystem' object has no attribute 'fs'\n\nluigi/file.py:91: AttributeError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": []

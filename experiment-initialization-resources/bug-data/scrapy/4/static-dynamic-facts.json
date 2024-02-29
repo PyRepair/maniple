@@ -187,9 +187,7 @@
                             "def extract_contracts(self, method):\n    contracts = []\n    for line in method.__doc__.split('\\n'):\n        line = line.strip()\n        if line.startswith('@'):\n            (name, args) = re.match('@(\\\\w+)\\\\s*(.*)', line).groups()\n            args = re.split('\\\\s+', args)\n            contracts.append(self.contracts[name](method, *args))\n    return contracts",
                             "def from_spider(self, spider, results):\n    requests = []\n    for method in self.tested_methods_from_spidercls(type(spider)):\n        bound_method = spider.__getattribute__(method)\n        requests.append(self.from_method(bound_method, results))\n    return requests",
                             "def from_method(self, method, results):\n    contracts = self.extract_contracts(method)\n    if contracts:\n        (args, kwargs) = get_spec(Request.__init__)\n        kwargs['callback'] = method\n        for contract in contracts:\n            kwargs = contract.adjust_request_args(kwargs)\n        args.remove('self')\n        if set(args).issubset(set(kwargs)):\n            request = Request(**kwargs)\n            for contract in reversed(contracts):\n                request = contract.add_pre_hook(request, results)\n            for contract in contracts:\n                request = contract.add_post_hook(request, results)\n            self._clean_req(request, method, results)\n            return request",
-                            "def _clean_req(self, request, method, results):\n    \"\"\" stop the request from returning objects and records any errors \"\"\"\n    cb = request.callback\n\n    @wraps(cb)\n    def cb_wrapper(response):\n        try:\n            output = cb(response)\n            output = list(iterate_spider_output(output))\n        except:\n            case = _create_testcase(method, 'callback')\n            results.addError(case, sys.exc_info())\n\n    def eb_wrapper(failure):\n        case = _create_testcase(method, 'errback')\n        exc_info = (failure.value, failure.type, failure.getTracebackObject())\n        results.addError(case, exc_info)\n    request.callback = cb_wrapper\n    request.errback = eb_wrapper",
-                            "@wraps(cb)\ndef cb_wrapper(response):\n    try:\n        output = cb(response)\n        output = list(iterate_spider_output(output))\n    except:\n        case = _create_testcase(method, 'callback')\n        results.addError(case, sys.exc_info())",
-                            "def eb_wrapper(failure):\n    case = _create_testcase(method, 'errback')\n    exc_info = (failure.value, failure.type, failure.getTracebackObject())\n    results.addError(case, exc_info)"
+                            "def _clean_req(self, request, method, results):\n    \"\"\" stop the request from returning objects and records any errors \"\"\"\n    cb = request.callback\n\n    @wraps(cb)\n    def cb_wrapper(response):\n        try:\n            output = cb(response)\n            output = list(iterate_spider_output(output))\n        except:\n            case = _create_testcase(method, 'callback')\n            results.addError(case, sys.exc_info())\n\n    def eb_wrapper(failure):\n        case = _create_testcase(method, 'errback')\n        exc_info = (failure.value, failure.type, failure.getTracebackObject())\n        results.addError(case, exc_info)\n    request.callback = cb_wrapper\n    request.errback = eb_wrapper"
                         ],
                         "constructor_variables": [],
                         "class_level_variables": [
@@ -202,9 +200,7 @@
                             "extract_contracts(self, method)",
                             "from_spider(self, spider, results)",
                             "from_method(self, method, results)",
-                            "_clean_req(self, request, method, results)",
-                            "cb_wrapper(response)",
-                            "eb_wrapper(failure)"
+                            "_clean_req(self, request, method, results)"
                         ],
                         "class_level_variable_names": [
                             "contracts"
@@ -225,7 +221,7 @@
                                     "variable_shape": null
                                 },
                                 "request.callback": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x7f9154ea8ee0>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f08b6e69ee0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -260,7 +256,7 @@
                                     "variable_shape": null
                                 },
                                 "method": {
-                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x7f91553afb20>>",
+                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x7f08b736e820>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -332,12 +328,12 @@
                             },
                             {
                                 "cb": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x7f9154ea8ee0>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f08b6e69ee0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "request.callback": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x7f9154e43280>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f08b6bc3280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -372,7 +368,7 @@
                                     "variable_shape": null
                                 },
                                 "method": {
-                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x7f91553afb20>>",
+                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x7f08b736e820>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -427,17 +423,17 @@
                                     "variable_shape": null
                                 },
                                 "cb_wrapper": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x7f9154e43280>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f08b6bc3280>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "request.errback": {
-                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x7f9154e43310>",
+                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x7f08b6bc3310>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "eb_wrapper": {
-                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x7f9154e43310>",
+                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x7f08b6bc3310>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 }
@@ -453,7 +449,7 @@
                                     "variable_shape": null
                                 },
                                 "request.callback": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x7f1e8776cf70>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f83832abf70>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -488,7 +484,7 @@
                                     "variable_shape": null
                                 },
                                 "method": {
-                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x7f1e880aa9d0>>",
+                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x7f8383beaa60>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -560,12 +556,12 @@
                             },
                             {
                                 "cb": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x7f1e8776cf70>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f83832abf70>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "request.callback": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x7f1e87703310>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f8383243310>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -600,7 +596,7 @@
                                     "variable_shape": null
                                 },
                                 "method": {
-                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x7f1e880aa9d0>>",
+                                    "variable_value": "<bound method TestSpider.returns_request of <TestSpider 'demo_spider' at 0x7f8383beaa60>>",
                                     "variable_type": "method",
                                     "variable_shape": null
                                 },
@@ -655,17 +651,17 @@
                                     "variable_shape": null
                                 },
                                 "cb_wrapper": {
-                                    "variable_value": "<function TestSpider.returns_request at 0x7f1e87703310>",
+                                    "variable_value": "<function TestSpider.returns_request at 0x7f8383243310>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "request.errback": {
-                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x7f1e877033a0>",
+                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x7f83832433a0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
                                 "eb_wrapper": {
-                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x7f1e877033a0>",
+                                    "variable_value": "<function ContractsManager._clean_req.<locals>.eb_wrapper at 0x7f83832433a0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 }
@@ -674,42 +670,83 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def _create_testcase(method, desc):\n    spider = method.__self__.name\n\n    class ContractTestCase(TestCase):\n        def __str__(_self):\n            return \"[%s] %s (%s)\" % (spider, method.__name__, desc)\n\n    name = '%s_%s' % (spider, method.__name__)\n    setattr(ContractTestCase, name, lambda x: x)\n    return ContractTestCase(name)",
-                "def __init__(self, contracts):\n    for contract in contracts:\n        self.contracts[contract.name] = contract",
-                "def tested_methods_from_spidercls(self, spidercls):\n    methods = []\n    for key, value in vars(spidercls).items():\n        if (callable(value) and value.__doc__ and\n                re.search(r'^\\s*@', value.__doc__, re.MULTILINE)):\n            methods.append(key)\n\n    return methods",
-                "def extract_contracts(self, method):\n    contracts = []\n    for line in method.__doc__.split('\\n'):\n        line = line.strip()\n\n        if line.startswith('@'):\n            name, args = re.match(r'@(\\w+)\\s*(.*)', line).groups()\n            args = re.split(r'\\s+', args)\n\n            contracts.append(self.contracts[name](method, *args))\n\n    return contracts",
-                "def from_spider(self, spider, results):\n    requests = []\n    for method in self.tested_methods_from_spidercls(type(spider)):\n        bound_method = spider.__getattribute__(method)\n        requests.append(self.from_method(bound_method, results))\n\n    return requests",
-                "def from_method(self, method, results):\n    contracts = self.extract_contracts(method)\n    if contracts:\n        # calculate request args\n        args, kwargs = get_spec(Request.__init__)\n        kwargs['callback'] = method\n        for contract in contracts:\n            kwargs = contract.adjust_request_args(kwargs)\n\n        # create and prepare request\n        args.remove('self')\n        if set(args).issubset(set(kwargs)):\n            request = Request(**kwargs)\n\n            # execute pre and post hooks in order\n            for contract in reversed(contracts):\n                request = contract.add_pre_hook(request, results)\n            for contract in contracts:\n                request = contract.add_post_hook(request, results)\n\n            self._clean_req(request, method, results)\n            return request",
-                "def _clean_req(self, request, method, results):\n    \"\"\" stop the request from returning objects and records any errors \"\"\"\n\n    cb = request.callback\n\n    @wraps(cb)\n    def cb_wrapper(response):\n        try:\n            output = cb(response)\n            output = list(iterate_spider_output(output))\n        except:\n            case = _create_testcase(method, 'callback')\n            results.addError(case, sys.exc_info())\n\n    def eb_wrapper(failure):\n        case = _create_testcase(method, 'errback')\n        exc_info = failure.value, failure.type, failure.getTracebackObject()\n        results.addError(case, exc_info)\n\n    request.callback = cb_wrapper\n    request.errback = eb_wrapper",
-                "def __init__(self, method, *args):\n    self.testcase_pre = _create_testcase(method, '@%s pre-hook' % self.name)\n    self.testcase_post = _create_testcase(method, '@%s post-hook' % self.name)\n    self.args = args",
-                "def add_pre_hook(self, request, results):\n    if hasattr(self, 'pre_process'):\n        cb = request.callback\n\n        @wraps(cb)\n        def wrapper(response):\n            try:\n                results.startTest(self.testcase_pre)\n                self.pre_process(response)\n                results.stopTest(self.testcase_pre)\n            except AssertionError:\n                results.addFailure(self.testcase_pre, sys.exc_info())\n            except Exception:\n                results.addError(self.testcase_pre, sys.exc_info())\n            else:\n                results.addSuccess(self.testcase_pre)\n            finally:\n                return list(iterate_spider_output(cb(response)))\n\n        request.callback = wrapper\n\n    return request",
-                "def add_post_hook(self, request, results):\n    if hasattr(self, 'post_process'):\n        cb = request.callback\n\n        @wraps(cb)\n        def wrapper(response):\n            output = list(iterate_spider_output(cb(response)))\n            try:\n                results.startTest(self.testcase_post)\n                self.post_process(output)\n                results.stopTest(self.testcase_post)\n            except AssertionError:\n                results.addFailure(self.testcase_post, sys.exc_info())\n            except Exception:\n                results.addError(self.testcase_post, sys.exc_info())\n            else:\n                results.addSuccess(self.testcase_post)\n            finally:\n                return output\n\n        request.callback = wrapper\n\n    return request",
-                "def adjust_request_args(self, args):\n    return args",
-                "@wraps(cb)\ndef cb_wrapper(response):\n    try:\n        output = cb(response)\n        output = list(iterate_spider_output(output))\n    except:\n        case = _create_testcase(method, 'callback')\n        results.addError(case, sys.exc_info())",
-                "def eb_wrapper(failure):\n    case = _create_testcase(method, 'errback')\n    exc_info = failure.value, failure.type, failure.getTracebackObject()\n    results.addError(case, exc_info)",
-                "def __str__(_self):\n    return \"[%s] %s (%s)\" % (spider, method.__name__, desc)",
-                "@wraps(cb)\ndef wrapper(response):\n    try:\n        results.startTest(self.testcase_pre)\n        self.pre_process(response)\n        results.stopTest(self.testcase_pre)\n    except AssertionError:\n        results.addFailure(self.testcase_pre, sys.exc_info())\n    except Exception:\n        results.addError(self.testcase_pre, sys.exc_info())\n    else:\n        results.addSuccess(self.testcase_pre)\n    finally:\n        return list(iterate_spider_output(cb(response)))",
-                "@wraps(cb)\ndef wrapper(response):\n    output = list(iterate_spider_output(cb(response)))\n    try:\n        results.startTest(self.testcase_post)\n        self.post_process(output)\n        results.stopTest(self.testcase_post)\n    except AssertionError:\n        results.addFailure(self.testcase_post, sys.exc_info())\n    except Exception:\n        results.addError(self.testcase_post, sys.exc_info())\n    else:\n        results.addSuccess(self.testcase_post)\n    finally:\n        return output"
-            ],
-            "inscope_function_signatures": [
-                "_create_testcase(method, desc)",
-                "__init__(self, contracts)",
-                "tested_methods_from_spidercls(self, spidercls)",
-                "extract_contracts(self, method)",
-                "from_spider(self, spider, results)",
-                "from_method(self, method, results)",
-                "_clean_req(self, request, method, results)",
-                "__init__(self, method, *args)",
-                "add_pre_hook(self, request, results)",
-                "add_post_hook(self, request, results)",
-                "adjust_request_args(self, args)",
-                "cb_wrapper(response)",
-                "eb_wrapper(failure)",
-                "__str__(_self)",
-                "wrapper(response)",
-                "wrapper(response)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [
+                    {
+                        "code": "def _create_testcase(method, desc):\n    spider = method.__self__.name\n\n    class ContractTestCase(TestCase):\n        def __str__(_self):\n            return \"[%s] %s (%s)\" % (spider, method.__name__, desc)\n\n    name = '%s_%s' % (spider, method.__name__)\n    setattr(ContractTestCase, name, lambda x: x)\n    return ContractTestCase(name)",
+                        "signature": "_create_testcase(method, desc)"
+                    },
+                    {
+                        "code": "@wraps(cb)\ndef wrapper(response):\n    try:\n        results.startTest(self.testcase_pre)\n        self.pre_process(response)\n        results.stopTest(self.testcase_pre)\n    except AssertionError:\n        results.addFailure(self.testcase_pre, sys.exc_info())\n    except Exception:\n        results.addError(self.testcase_pre, sys.exc_info())\n    else:\n        results.addSuccess(self.testcase_pre)\n    finally:\n        return list(iterate_spider_output(cb(response)))",
+                        "signature": "wrapper(response)"
+                    },
+                    {
+                        "code": "@wraps(cb)\ndef wrapper(response):\n    output = list(iterate_spider_output(cb(response)))\n    try:\n        results.startTest(self.testcase_post)\n        self.post_process(output)\n        results.stopTest(self.testcase_post)\n    except AssertionError:\n        results.addFailure(self.testcase_post, sys.exc_info())\n    except Exception:\n        results.addError(self.testcase_post, sys.exc_info())\n    else:\n        results.addSuccess(self.testcase_post)\n    finally:\n        return output",
+                        "signature": "wrapper(response)"
+                    }
+                ],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class ContractsManager:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, contracts):\n    for contract in contracts:\n        self.contracts[contract.name] = contract",
+                                "signature": "__init__(self, contracts)"
+                            },
+                            {
+                                "code": "def tested_methods_from_spidercls(self, spidercls):\n    methods = []\n    for key, value in vars(spidercls).items():\n        if (callable(value) and value.__doc__ and\n                re.search(r'^\\s*@', value.__doc__, re.MULTILINE)):\n            methods.append(key)\n\n    return methods",
+                                "signature": "tested_methods_from_spidercls(self, spidercls)"
+                            },
+                            {
+                                "code": "def extract_contracts(self, method):\n    contracts = []\n    for line in method.__doc__.split('\\n'):\n        line = line.strip()\n\n        if line.startswith('@'):\n            name, args = re.match(r'@(\\w+)\\s*(.*)', line).groups()\n            args = re.split(r'\\s+', args)\n\n            contracts.append(self.contracts[name](method, *args))\n\n    return contracts",
+                                "signature": "extract_contracts(self, method)"
+                            },
+                            {
+                                "code": "def from_spider(self, spider, results):\n    requests = []\n    for method in self.tested_methods_from_spidercls(type(spider)):\n        bound_method = spider.__getattribute__(method)\n        requests.append(self.from_method(bound_method, results))\n\n    return requests",
+                                "signature": "from_spider(self, spider, results)"
+                            },
+                            {
+                                "code": "def from_method(self, method, results):\n    contracts = self.extract_contracts(method)\n    if contracts:\n        # calculate request args\n        args, kwargs = get_spec(Request.__init__)\n        kwargs['callback'] = method\n        for contract in contracts:\n            kwargs = contract.adjust_request_args(kwargs)\n\n        # create and prepare request\n        args.remove('self')\n        if set(args).issubset(set(kwargs)):\n            request = Request(**kwargs)\n\n            # execute pre and post hooks in order\n            for contract in reversed(contracts):\n                request = contract.add_pre_hook(request, results)\n            for contract in contracts:\n                request = contract.add_post_hook(request, results)\n\n            self._clean_req(request, method, results)\n            return request",
+                                "signature": "from_method(self, method, results)"
+                            },
+                            {
+                                "code": "def _clean_req(self, request, method, results):\n    \"\"\" stop the request from returning objects and records any errors \"\"\"\n\n    cb = request.callback\n\n    @wraps(cb)\n    def cb_wrapper(response):\n        try:\n            output = cb(response)\n            output = list(iterate_spider_output(output))\n        except:\n            case = _create_testcase(method, 'callback')\n            results.addError(case, sys.exc_info())\n\n    def eb_wrapper(failure):\n        case = _create_testcase(method, 'errback')\n        exc_info = failure.value, failure.type, failure.getTracebackObject()\n        results.addError(case, exc_info)\n\n    request.callback = cb_wrapper\n    request.errback = eb_wrapper",
+                                "signature": "_clean_req(self, request, method, results)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class Contract:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, method, *args):\n    self.testcase_pre = _create_testcase(method, '@%s pre-hook' % self.name)\n    self.testcase_post = _create_testcase(method, '@%s post-hook' % self.name)\n    self.args = args",
+                                "signature": "__init__(self, method, *args)"
+                            },
+                            {
+                                "code": "def add_pre_hook(self, request, results):\n    if hasattr(self, 'pre_process'):\n        cb = request.callback\n\n        @wraps(cb)\n        def wrapper(response):\n            try:\n                results.startTest(self.testcase_pre)\n                self.pre_process(response)\n                results.stopTest(self.testcase_pre)\n            except AssertionError:\n                results.addFailure(self.testcase_pre, sys.exc_info())\n            except Exception:\n                results.addError(self.testcase_pre, sys.exc_info())\n            else:\n                results.addSuccess(self.testcase_pre)\n            finally:\n                return list(iterate_spider_output(cb(response)))\n\n        request.callback = wrapper\n\n    return request",
+                                "signature": "add_pre_hook(self, request, results)"
+                            },
+                            {
+                                "code": "def add_post_hook(self, request, results):\n    if hasattr(self, 'post_process'):\n        cb = request.callback\n\n        @wraps(cb)\n        def wrapper(response):\n            output = list(iterate_spider_output(cb(response)))\n            try:\n                results.startTest(self.testcase_post)\n                self.post_process(output)\n                results.stopTest(self.testcase_post)\n            except AssertionError:\n                results.addFailure(self.testcase_post, sys.exc_info())\n            except Exception:\n                results.addError(self.testcase_post, sys.exc_info())\n            else:\n                results.addSuccess(self.testcase_post)\n            finally:\n                return output\n\n        request.callback = wrapper\n\n    return request",
+                                "signature": "add_post_hook(self, request, results)"
+                            },
+                            {
+                                "code": "def adjust_request_args(self, args):\n    return args",
+                                "signature": "adjust_request_args(self, args)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class ContractTestCase:",
+                        "functions": [
+                            {
+                                "code": "def __str__(_self):\n    return \"[%s] %s (%s)\" % (spider, method.__name__, desc)",
+                                "signature": "__str__(_self)"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "object": [
                     11,
@@ -1612,9 +1649,9 @@
                 "test_function": "test_errback",
                 "test_function_code": "    def test_errback(self):\n        spider = TestSpider()\n        response = ResponseMock()\n\n        try:\n            raise HttpError(response, 'Ignoring non-200 response')\n        except HttpError:\n            failure_mock = failure.Failure()\n\n        request = self.conman.from_method(spider.returns_request, self.results)\n        request.errback(failure_mock)\n\n        self.assertFalse(self.results.failures)\n        self.assertTrue(self.results.errors)",
                 "test_error": "AttributeError: 'getset_descriptor' object has no attribute '__traceback__'",
-                "full_test_error": "self = <tests.test_contracts.ContractsManagerTest testMethod=test_errback>\n\n    def test_errback(self):\n        spider = TestSpider()\n        response = ResponseMock()\n    \n        try:\n            raise HttpError(response, 'Ignoring non-200 response')\n        except HttpError:\n            failure_mock = failure.Failure()\n    \n        request = self.conman.from_method(spider.returns_request, self.results)\n>       request.errback(failure_mock)\n\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_4/tests/test_contracts.py:201: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_4/scrapy/contracts/__init__.py:88: in eb_wrapper\n    results.addError(case, exc_info)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <traceback.TracebackException object at 0x7f923a0b3100>\nexc_type = HttpError('Ignoring non-200 response')\nexc_value = <class 'scrapy.spidermiddlewares.httperror.HttpError'>\nexc_traceback = <traceback object at 0x7f923a0a5880>\n\n    def __init__(self, exc_type, exc_value, exc_traceback, *, limit=None,\n            lookup_lines=True, capture_locals=False, _seen=None):\n        # NB: we need to accept exc_traceback, exc_value, exc_traceback to\n        # permit backwards compat with the existing API, otherwise we\n        # need stub thunk objects just to glue it together.\n        # Handle loops in __cause__ or __context__.\n        if _seen is None:\n            _seen = set()\n        _seen.add(id(exc_value))\n        # Gracefully handle (the way Python 2.4 and earlier did) the case of\n        # being called with no type or value (None, None, None).\n        if (exc_value and exc_value.__cause__ is not None\n            and id(exc_value.__cause__) not in _seen):\n            cause = TracebackException(\n                type(exc_value.__cause__),\n                exc_value.__cause__,\n>               exc_value.__cause__.__traceback__,\n                limit=limit,\n                lookup_lines=False,\n                capture_locals=capture_locals,\n                _seen=_seen)\nE           AttributeError: 'getset_descriptor' object has no attribute '__traceback__'\n\n/usr/local/lib/python3.8/traceback.py:484: AttributeError",
+                "full_test_error": "self = <tests.test_contracts.ContractsManagerTest testMethod=test_errback>\n\n    def test_errback(self):\n        spider = TestSpider()\n        response = ResponseMock()\n    \n        try:\n            raise HttpError(response, 'Ignoring non-200 response')\n        except HttpError:\n            failure_mock = failure.Failure()\n    \n        request = self.conman.from_method(spider.returns_request, self.results)\n>       request.errback(failure_mock)\n\n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_4/tests/test_contracts.py:201: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_4/scrapy/contracts/__init__.py:88: in eb_wrapper\n    results.addError(case, exc_info)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <traceback.TracebackException object at 0x7f340c3e4dc0>\nexc_type = HttpError('Ignoring non-200 response')\nexc_value = <class 'scrapy.spidermiddlewares.httperror.HttpError'>\nexc_traceback = <traceback object at 0x7f340c3e5e40>\n\n    def __init__(self, exc_type, exc_value, exc_traceback, *, limit=None,\n            lookup_lines=True, capture_locals=False, _seen=None):\n        # NB: we need to accept exc_traceback, exc_value, exc_traceback to\n        # permit backwards compat with the existing API, otherwise we\n        # need stub thunk objects just to glue it together.\n        # Handle loops in __cause__ or __context__.\n        if _seen is None:\n            _seen = set()\n        _seen.add(id(exc_value))\n        # Gracefully handle (the way Python 2.4 and earlier did) the case of\n        # being called with no type or value (None, None, None).\n        if (exc_value and exc_value.__cause__ is not None\n            and id(exc_value.__cause__) not in _seen):\n            cause = TracebackException(\n                type(exc_value.__cause__),\n                exc_value.__cause__,\n>               exc_value.__cause__.__traceback__,\n                limit=limit,\n                lookup_lines=False,\n                capture_locals=capture_locals,\n                _seen=_seen)\nE           AttributeError: 'getset_descriptor' object has no attribute '__traceback__'\n\n/usr/local/lib/python3.8/traceback.py:484: AttributeError",
                 "traceback": "/home/ubuntu/Desktop/bgp_envs_local/repos/scrapy_4/scrapy/contracts/__init__.py:88: in eb_wrapper\n    results.addError(case, exc_info)",
-                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <traceback.TracebackException object at 0x7f923a0b3100>\nexc_type = HttpError('Ignoring non-200 response')\nexc_value = <class 'scrapy.spidermiddlewares.httperror.HttpError'>\nexc_traceback = <traceback object at 0x7f923a0a5880>\n\n    def __init__(self, exc_type, exc_value, exc_traceback, *, limit=None,\n            lookup_lines=True, capture_locals=False, _seen=None):\n        # NB: we need to accept exc_traceback, exc_value, exc_traceback to\n        # permit backwards compat with the existing API, otherwise we\n        # need stub thunk objects just to glue it together.\n        # Handle loops in __cause__ or __context__.\n        if _seen is None:\n            _seen = set()\n        _seen.add(id(exc_value))\n        # Gracefully handle (the way Python 2.4 and earlier did) the case of\n        # being called with no type or value (None, None, None).\n        if (exc_value and exc_value.__cause__ is not None\n            and id(exc_value.__cause__) not in _seen):\n            cause = TracebackException(\n                type(exc_value.__cause__),\n                exc_value.__cause__,\n>               exc_value.__cause__.__traceback__,\n                limit=limit,\n                lookup_lines=False,\n                capture_locals=capture_locals,\n                _seen=_seen)\nE           AttributeError: 'getset_descriptor' object has no attribute '__traceback__'\n\n/usr/local/lib/python3.8/traceback.py:484: AttributeError",
+                "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <traceback.TracebackException object at 0x7f340c3e4dc0>\nexc_type = HttpError('Ignoring non-200 response')\nexc_value = <class 'scrapy.spidermiddlewares.httperror.HttpError'>\nexc_traceback = <traceback object at 0x7f340c3e5e40>\n\n    def __init__(self, exc_type, exc_value, exc_traceback, *, limit=None,\n            lookup_lines=True, capture_locals=False, _seen=None):\n        # NB: we need to accept exc_traceback, exc_value, exc_traceback to\n        # permit backwards compat with the existing API, otherwise we\n        # need stub thunk objects just to glue it together.\n        # Handle loops in __cause__ or __context__.\n        if _seen is None:\n            _seen = set()\n        _seen.add(id(exc_value))\n        # Gracefully handle (the way Python 2.4 and earlier did) the case of\n        # being called with no type or value (None, None, None).\n        if (exc_value and exc_value.__cause__ is not None\n            and id(exc_value.__cause__) not in _seen):\n            cause = TracebackException(\n                type(exc_value.__cause__),\n                exc_value.__cause__,\n>               exc_value.__cause__.__traceback__,\n                limit=limit,\n                lookup_lines=False,\n                capture_locals=capture_locals,\n                _seen=_seen)\nE           AttributeError: 'getset_descriptor' object has no attribute '__traceback__'\n\n/usr/local/lib/python3.8/traceback.py:484: AttributeError",
                 "test_function_decorators": []
             }
         ]

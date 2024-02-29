@@ -87,8 +87,7 @@
                             "def _reduce(self, name, skipna=True, **kwargs):\n    raise TypeError(f\"Cannot perform reduction '{name}' with string dtype\")",
                             "def value_counts(self, dropna=False):\n    from pandas import value_counts\n    return value_counts(self._ndarray, dropna=dropna).astype('Int64')",
                             "@classmethod\ndef _create_arithmetic_method(cls, op):\n\n    def method(self, other):\n        from pandas.arrays import BooleanArray\n        assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS\n        if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):\n            return NotImplemented\n        elif isinstance(other, cls):\n            other = other._ndarray\n        mask = isna(self) | isna(other)\n        valid = ~mask\n        if not lib.is_scalar(other):\n            if len(other) != len(self):\n                raise ValueError(f'Lengths of operands do not match: {len(self)} != {len(other)}')\n            other = np.asarray(other)\n            other = other[valid]\n        if op.__name__ in ops.ARITHMETIC_BINOPS:\n            result = np.empty_like(self._ndarray, dtype='object')\n            result[mask] = StringDtype.na_value\n            result[valid] = op(self._ndarray[valid], other)\n            return StringArray(result)\n        else:\n            result = np.zeros(len(self._ndarray), dtype='bool')\n            result[valid] = op(self._ndarray[valid], other)\n            return BooleanArray(result, mask)\n    return compat.set_function_name(method, f'__{op.__name__}__', cls)",
-                            "@classmethod\ndef _add_arithmetic_ops(cls):\n    cls.__add__ = cls._create_arithmetic_method(operator.add)\n    cls.__radd__ = cls._create_arithmetic_method(ops.radd)\n    cls.__mul__ = cls._create_arithmetic_method(operator.mul)\n    cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)",
-                            "def method(self, other):\n    from pandas.arrays import BooleanArray\n    assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS\n    if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):\n        return NotImplemented\n    elif isinstance(other, cls):\n        other = other._ndarray\n    mask = isna(self) | isna(other)\n    valid = ~mask\n    if not lib.is_scalar(other):\n        if len(other) != len(self):\n            raise ValueError(f'Lengths of operands do not match: {len(self)} != {len(other)}')\n        other = np.asarray(other)\n        other = other[valid]\n    if op.__name__ in ops.ARITHMETIC_BINOPS:\n        result = np.empty_like(self._ndarray, dtype='object')\n        result[mask] = StringDtype.na_value\n        result[valid] = op(self._ndarray[valid], other)\n        return StringArray(result)\n    else:\n        result = np.zeros(len(self._ndarray), dtype='bool')\n        result[valid] = op(self._ndarray[valid], other)\n        return BooleanArray(result, mask)"
+                            "@classmethod\ndef _add_arithmetic_ops(cls):\n    cls.__add__ = cls._create_arithmetic_method(operator.add)\n    cls.__radd__ = cls._create_arithmetic_method(ops.radd)\n    cls.__mul__ = cls._create_arithmetic_method(operator.mul)\n    cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)"
                         ],
                         "constructor_variables": [
                             "self._dtype = StringDtype()"
@@ -111,17 +110,16 @@
                             "_reduce(self, name, skipna=True, **kwargs)",
                             "value_counts(self, dropna=False)",
                             "_create_arithmetic_method(cls, op)",
-                            "_add_arithmetic_ops(cls)",
-                            "method(self, other)"
+                            "_add_arithmetic_ops(cls)"
                         ],
                         "class_level_variable_names": [
                             "_typ",
                             "_create_comparison_method"
                         ],
                         "constructor_variable_names": [
-                            "values",
                             "_dtype",
-                            "skip_validation"
+                            "skip_validation",
+                            "values"
                         ]
                     },
                     "used_imports": [
@@ -361,7 +359,7 @@
                                     "variable_shape": "(3,)"
                                 },
                                 "arr.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7f749de01210>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7f39d5e41b20>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -392,46 +390,89 @@
                     "end_line": 17
                 }
             ],
-            "inscope_functions": [
-                "@property\ndef type(self) -> Type[str]:\n    return str",
-                "@classmethod\ndef construct_array_type(cls) -> Type[\"StringArray\"]:\n    \"\"\"\n    Return the array type associated with this dtype.\n\n    Returns\n    -------\n    type\n    \"\"\"\n    return StringArray",
-                "def __repr__(self) -> str:\n    return \"StringDtype\"",
-                "def __from_arrow__(\n    self, array: Union[\"pyarrow.Array\", \"pyarrow.ChunkedArray\"]\n) -> \"StringArray\":\n    \"\"\"\n    Construct StringArray from pyarrow Array/ChunkedArray.\n    \"\"\"\n    import pyarrow  # noqa: F811\n\n    if isinstance(array, pyarrow.Array):\n        chunks = [array]\n    else:\n        # pyarrow.ChunkedArray\n        chunks = array.chunks\n\n    results = []\n    for arr in chunks:\n        # using _from_sequence to ensure None is converted to NA\n        str_arr = StringArray._from_sequence(np.array(arr))\n        results.append(str_arr)\n\n    return StringArray._concat_same_type(results)",
-                "def __init__(self, values, copy=False):\n    values = extract_array(values)\n    skip_validation = isinstance(values, type(self))\n\n    super().__init__(values, copy=copy)\n    self._dtype = StringDtype()\n    if not skip_validation:\n        self._validate()",
-                "def _validate(self):\n    \"\"\"Validate that we only store NA or strings.\"\"\"\n    if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):\n        raise ValueError(\"StringArray requires a sequence of strings or pandas.NA\")\n    if self._ndarray.dtype != \"object\":\n        raise ValueError(\n            \"StringArray requires a sequence of strings or pandas.NA. Got \"\n            f\"'{self._ndarray.dtype}' dtype instead.\"\n        )",
-                "@classmethod\ndef _from_sequence(cls, scalars, dtype=None, copy=False):\n    if dtype:\n        assert dtype == \"string\"\n\n    result = np.asarray(scalars, dtype=\"object\")\n    if copy and result is scalars:\n        result = result.copy()\n\n    # Standardize all missing-like values to NA\n    # TODO: it would be nice to do this in _validate / lib.is_string_array\n    # We are already doing a scan over the values there.\n    na_values = isna(result)\n    if na_values.any():\n        if result is scalars:\n            # force a copy now, if we haven't already\n            result = result.copy()\n        result[na_values] = StringDtype.na_value\n\n    return cls(result)",
-                "@classmethod\ndef _from_sequence_of_strings(cls, strings, dtype=None, copy=False):\n    return cls._from_sequence(strings, dtype=dtype, copy=copy)",
-                "def __arrow_array__(self, type=None):\n    \"\"\"\n    Convert myself into a pyarrow Array.\n    \"\"\"\n    import pyarrow as pa\n\n    if type is None:\n        type = pa.string()\n\n    values = self._ndarray.copy()\n    values[self.isna()] = None\n    return pa.array(values, type=type, from_pandas=True)",
-                "def _values_for_factorize(self):\n    arr = self._ndarray.copy()\n    mask = self.isna()\n    arr[mask] = -1\n    return arr, -1",
-                "def __setitem__(self, key, value):\n    value = extract_array(value, extract_numpy=True)\n    if isinstance(value, type(self)):\n        # extract_array doesn't extract PandasArray subclasses\n        value = value._ndarray\n\n    key = check_array_indexer(self, key)\n    scalar_key = lib.is_scalar(key)\n    scalar_value = lib.is_scalar(value)\n    if scalar_key and not scalar_value:\n        raise ValueError(\"setting an array element with a sequence.\")\n\n    # validate new items\n    if scalar_value:\n        if isna(value):\n            value = StringDtype.na_value\n        elif not isinstance(value, str):\n            raise ValueError(\n                f\"Cannot set non-string value '{value}' into a StringArray.\"\n            )\n    else:\n        if not is_array_like(value):\n            value = np.asarray(value, dtype=object)\n        if len(value) and not lib.is_string_array(value, skipna=True):\n            raise ValueError(\"Must provide strings.\")\n\n    super().__setitem__(key, value)",
-                "def fillna(self, value=None, method=None, limit=None):\n    # TODO: validate dtype\n    return super().fillna(value, method, limit)",
-                "def astype(self, dtype, copy=True):\n    dtype = pandas_dtype(dtype)\n    if isinstance(dtype, StringDtype):\n        if copy:\n            return self.copy()\n        return self\n    return super().astype(dtype, copy)",
-                "def _reduce(self, name, skipna=True, **kwargs):\n    raise TypeError(f\"Cannot perform reduction '{name}' with string dtype\")",
-                "def value_counts(self, dropna=False):\n    from pandas import value_counts\n\n    return value_counts(self._ndarray, dropna=dropna).astype(\"Int64\")",
-                "@classmethod\ndef _create_arithmetic_method(cls, op):\n    # Note: this handles both arithmetic and comparison methods.\n    def method(self, other):\n        from pandas.arrays import BooleanArray\n\n        assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS\n\n        if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):\n            return NotImplemented\n\n        elif isinstance(other, cls):\n            other = other._ndarray\n\n        mask = isna(self) | isna(other)\n        valid = ~mask\n\n        if not lib.is_scalar(other):\n            if len(other) != len(self):\n                # prevent improper broadcasting when other is 2D\n                raise ValueError(\n                    f\"Lengths of operands do not match: {len(self)} != {len(other)}\"\n                )\n\n            other = np.asarray(other)\n            other = other[valid]\n\n        if op.__name__ in ops.ARITHMETIC_BINOPS:\n            result = np.empty_like(self._ndarray, dtype=\"object\")\n            result[mask] = StringDtype.na_value\n            result[valid] = op(self._ndarray[valid], other)\n            return StringArray(result)\n        else:\n            # logical\n            result = np.zeros(len(self._ndarray), dtype=\"bool\")\n            result[valid] = op(self._ndarray[valid], other)\n            return BooleanArray(result, mask)\n\n    return compat.set_function_name(method, f\"__{op.__name__}__\", cls)",
-                "@classmethod\ndef _add_arithmetic_ops(cls):\n    cls.__add__ = cls._create_arithmetic_method(operator.add)\n    cls.__radd__ = cls._create_arithmetic_method(ops.radd)\n\n    cls.__mul__ = cls._create_arithmetic_method(operator.mul)\n    cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)",
-                "def method(self, other):\n    from pandas.arrays import BooleanArray\n\n    assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS\n\n    if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):\n        return NotImplemented\n\n    elif isinstance(other, cls):\n        other = other._ndarray\n\n    mask = isna(self) | isna(other)\n    valid = ~mask\n\n    if not lib.is_scalar(other):\n        if len(other) != len(self):\n            # prevent improper broadcasting when other is 2D\n            raise ValueError(\n                f\"Lengths of operands do not match: {len(self)} != {len(other)}\"\n            )\n\n        other = np.asarray(other)\n        other = other[valid]\n\n    if op.__name__ in ops.ARITHMETIC_BINOPS:\n        result = np.empty_like(self._ndarray, dtype=\"object\")\n        result[mask] = StringDtype.na_value\n        result[valid] = op(self._ndarray[valid], other)\n        return StringArray(result)\n    else:\n        # logical\n        result = np.zeros(len(self._ndarray), dtype=\"bool\")\n        result[valid] = op(self._ndarray[valid], other)\n        return BooleanArray(result, mask)"
-            ],
-            "inscope_function_signatures": [
-                "type(self) -> Type[str]",
-                "construct_array_type(cls) -> Type['StringArray']",
-                "__repr__(self) -> str",
-                "__from_arrow__(self, array: Union['pyarrow.Array', 'pyarrow.ChunkedArray']) -> 'StringArray'",
-                "__init__(self, values, copy=False)",
-                "_validate(self)",
-                "_from_sequence(cls, scalars, dtype=None, copy=False)",
-                "_from_sequence_of_strings(cls, strings, dtype=None, copy=False)",
-                "__arrow_array__(self, type=None)",
-                "_values_for_factorize(self)",
-                "__setitem__(self, key, value)",
-                "fillna(self, value=None, method=None, limit=None)",
-                "astype(self, dtype, copy=True)",
-                "_reduce(self, name, skipna=True, **kwargs)",
-                "value_counts(self, dropna=False)",
-                "_create_arithmetic_method(cls, op)",
-                "_add_arithmetic_ops(cls)",
-                "method(self, other)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class StringDtype:",
+                        "functions": [
+                            {
+                                "code": "@property\ndef type(self) -> Type[str]:\n    return str",
+                                "signature": "type(self) -> Type[str]"
+                            },
+                            {
+                                "code": "@classmethod\ndef construct_array_type(cls) -> Type[\"StringArray\"]:\n    \"\"\"\n    Return the array type associated with this dtype.\n\n    Returns\n    -------\n    type\n    \"\"\"\n    return StringArray",
+                                "signature": "construct_array_type(cls) -> Type['StringArray']"
+                            },
+                            {
+                                "code": "def __repr__(self) -> str:\n    return \"StringDtype\"",
+                                "signature": "__repr__(self) -> str"
+                            },
+                            {
+                                "code": "def __from_arrow__(\n    self, array: Union[\"pyarrow.Array\", \"pyarrow.ChunkedArray\"]\n) -> \"StringArray\":\n    \"\"\"\n    Construct StringArray from pyarrow Array/ChunkedArray.\n    \"\"\"\n    import pyarrow  # noqa: F811\n\n    if isinstance(array, pyarrow.Array):\n        chunks = [array]\n    else:\n        # pyarrow.ChunkedArray\n        chunks = array.chunks\n\n    results = []\n    for arr in chunks:\n        # using _from_sequence to ensure None is converted to NA\n        str_arr = StringArray._from_sequence(np.array(arr))\n        results.append(str_arr)\n\n    return StringArray._concat_same_type(results)",
+                                "signature": "__from_arrow__(self, array: Union['pyarrow.Array', 'pyarrow.ChunkedArray']) -> 'StringArray'"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class StringArray:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, values, copy=False):\n    values = extract_array(values)\n    skip_validation = isinstance(values, type(self))\n\n    super().__init__(values, copy=copy)\n    self._dtype = StringDtype()\n    if not skip_validation:\n        self._validate()",
+                                "signature": "__init__(self, values, copy=False)"
+                            },
+                            {
+                                "code": "def _validate(self):\n    \"\"\"Validate that we only store NA or strings.\"\"\"\n    if len(self._ndarray) and not lib.is_string_array(self._ndarray, skipna=True):\n        raise ValueError(\"StringArray requires a sequence of strings or pandas.NA\")\n    if self._ndarray.dtype != \"object\":\n        raise ValueError(\n            \"StringArray requires a sequence of strings or pandas.NA. Got \"\n            f\"'{self._ndarray.dtype}' dtype instead.\"\n        )",
+                                "signature": "_validate(self)"
+                            },
+                            {
+                                "code": "@classmethod\ndef _from_sequence(cls, scalars, dtype=None, copy=False):\n    if dtype:\n        assert dtype == \"string\"\n\n    result = np.asarray(scalars, dtype=\"object\")\n    if copy and result is scalars:\n        result = result.copy()\n\n    # Standardize all missing-like values to NA\n    # TODO: it would be nice to do this in _validate / lib.is_string_array\n    # We are already doing a scan over the values there.\n    na_values = isna(result)\n    if na_values.any():\n        if result is scalars:\n            # force a copy now, if we haven't already\n            result = result.copy()\n        result[na_values] = StringDtype.na_value\n\n    return cls(result)",
+                                "signature": "_from_sequence(cls, scalars, dtype=None, copy=False)"
+                            },
+                            {
+                                "code": "@classmethod\ndef _from_sequence_of_strings(cls, strings, dtype=None, copy=False):\n    return cls._from_sequence(strings, dtype=dtype, copy=copy)",
+                                "signature": "_from_sequence_of_strings(cls, strings, dtype=None, copy=False)"
+                            },
+                            {
+                                "code": "def __arrow_array__(self, type=None):\n    \"\"\"\n    Convert myself into a pyarrow Array.\n    \"\"\"\n    import pyarrow as pa\n\n    if type is None:\n        type = pa.string()\n\n    values = self._ndarray.copy()\n    values[self.isna()] = None\n    return pa.array(values, type=type, from_pandas=True)",
+                                "signature": "__arrow_array__(self, type=None)"
+                            },
+                            {
+                                "code": "def _values_for_factorize(self):\n    arr = self._ndarray.copy()\n    mask = self.isna()\n    arr[mask] = -1\n    return arr, -1",
+                                "signature": "_values_for_factorize(self)"
+                            },
+                            {
+                                "code": "def __setitem__(self, key, value):\n    value = extract_array(value, extract_numpy=True)\n    if isinstance(value, type(self)):\n        # extract_array doesn't extract PandasArray subclasses\n        value = value._ndarray\n\n    key = check_array_indexer(self, key)\n    scalar_key = lib.is_scalar(key)\n    scalar_value = lib.is_scalar(value)\n    if scalar_key and not scalar_value:\n        raise ValueError(\"setting an array element with a sequence.\")\n\n    # validate new items\n    if scalar_value:\n        if isna(value):\n            value = StringDtype.na_value\n        elif not isinstance(value, str):\n            raise ValueError(\n                f\"Cannot set non-string value '{value}' into a StringArray.\"\n            )\n    else:\n        if not is_array_like(value):\n            value = np.asarray(value, dtype=object)\n        if len(value) and not lib.is_string_array(value, skipna=True):\n            raise ValueError(\"Must provide strings.\")\n\n    super().__setitem__(key, value)",
+                                "signature": "__setitem__(self, key, value)"
+                            },
+                            {
+                                "code": "def fillna(self, value=None, method=None, limit=None):\n    # TODO: validate dtype\n    return super().fillna(value, method, limit)",
+                                "signature": "fillna(self, value=None, method=None, limit=None)"
+                            },
+                            {
+                                "code": "def astype(self, dtype, copy=True):\n    dtype = pandas_dtype(dtype)\n    if isinstance(dtype, StringDtype):\n        if copy:\n            return self.copy()\n        return self\n    return super().astype(dtype, copy)",
+                                "signature": "astype(self, dtype, copy=True)"
+                            },
+                            {
+                                "code": "def _reduce(self, name, skipna=True, **kwargs):\n    raise TypeError(f\"Cannot perform reduction '{name}' with string dtype\")",
+                                "signature": "_reduce(self, name, skipna=True, **kwargs)"
+                            },
+                            {
+                                "code": "def value_counts(self, dropna=False):\n    from pandas import value_counts\n\n    return value_counts(self._ndarray, dropna=dropna).astype(\"Int64\")",
+                                "signature": "value_counts(self, dropna=False)"
+                            },
+                            {
+                                "code": "@classmethod\ndef _create_arithmetic_method(cls, op):\n    # Note: this handles both arithmetic and comparison methods.\n    def method(self, other):\n        from pandas.arrays import BooleanArray\n\n        assert op.__name__ in ops.ARITHMETIC_BINOPS | ops.COMPARISON_BINOPS\n\n        if isinstance(other, (ABCIndexClass, ABCSeries, ABCDataFrame)):\n            return NotImplemented\n\n        elif isinstance(other, cls):\n            other = other._ndarray\n\n        mask = isna(self) | isna(other)\n        valid = ~mask\n\n        if not lib.is_scalar(other):\n            if len(other) != len(self):\n                # prevent improper broadcasting when other is 2D\n                raise ValueError(\n                    f\"Lengths of operands do not match: {len(self)} != {len(other)}\"\n                )\n\n            other = np.asarray(other)\n            other = other[valid]\n\n        if op.__name__ in ops.ARITHMETIC_BINOPS:\n            result = np.empty_like(self._ndarray, dtype=\"object\")\n            result[mask] = StringDtype.na_value\n            result[valid] = op(self._ndarray[valid], other)\n            return StringArray(result)\n        else:\n            # logical\n            result = np.zeros(len(self._ndarray), dtype=\"bool\")\n            result[valid] = op(self._ndarray[valid], other)\n            return BooleanArray(result, mask)\n\n    return compat.set_function_name(method, f\"__{op.__name__}__\", cls)",
+                                "signature": "_create_arithmetic_method(cls, op)"
+                            },
+                            {
+                                "code": "@classmethod\ndef _add_arithmetic_ops(cls):\n    cls.__add__ = cls._create_arithmetic_method(operator.add)\n    cls.__radd__ = cls._create_arithmetic_method(ops.radd)\n\n    cls.__mul__ = cls._create_arithmetic_method(operator.mul)\n    cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)",
+                                "signature": "_add_arithmetic_ops(cls)"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "TYPE_CHECKING": [
                     21

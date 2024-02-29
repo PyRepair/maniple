@@ -722,28 +722,62 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def fix_paths(job):\n    \"\"\"\n    Coerce input arguments to use temporary files when used for output.\n\n    Return a list of temporary file pairs (tmpfile, destination path) and\n    a list of arguments.\n\n    Converts each HdfsTarget to a string for the path.\n    \"\"\"\n    tmp_files = []\n    args = []\n    for x in job.args():\n        if isinstance(x, luigi.contrib.hdfs.HdfsTarget):  # input/output\n            if x.exists() or not job.atomic_output():  # input\n                args.append(x.path)\n            else:  # output\n                x_path_no_slash = x.path[:-1] if x.path[-1] == '/' else x.path\n                y = luigi.contrib.hdfs.HdfsTarget(x_path_no_slash + '-luigi-tmp-%09d' % random.randrange(0, 1e10))\n                tmp_files.append((y, x_path_no_slash))\n                logger.info('Using temp path: %s for path %s', y.path, x.path)\n                args.append(y.path)\n        else:\n            args.append(str(x))\n\n    return (tmp_files, args)",
-                "def __init__(self):\n    pass",
-                "def run_job(self, job):\n    ssh_config = job.ssh()\n    if ssh_config:\n        host = ssh_config.get(\"host\", None)\n        key_file = ssh_config.get(\"key_file\", None)\n        username = ssh_config.get(\"username\", None)\n        if not host or not key_file or not username or not job.jar():\n            raise HadoopJarJobError(\"missing some config for HadoopRemoteJarJobRunner\")\n        arglist = ['ssh', '-i', key_file,\n                   '-o', 'BatchMode=yes']  # no password prompts etc\n        if ssh_config.get(\"no_host_key_check\", False):\n            arglist += ['-o', 'UserKnownHostsFile=/dev/null',\n                        '-o', 'StrictHostKeyChecking=no']\n        arglist.append('{}@{}'.format(username, host))\n    else:\n        arglist = []\n        if not job.jar() or not os.path.exists(job.jar()):\n            logger.error(\"Can't find jar: %s, full path %s\", job.jar(), os.path.abspath(job.jar()))\n            raise HadoopJarJobError(\"job jar does not exist\")\n\n    # TODO(jcrobak): libjars, files, etc. Can refactor out of\n    # hadoop.HadoopJobRunner\n    hadoop_arglist = luigi.contrib.hdfs.load_hadoop_cmd() + ['jar', job.jar()]\n    if job.main():\n        hadoop_arglist.append(job.main())\n\n    jobconfs = job.jobconfs()\n\n    for jc in jobconfs:\n        hadoop_arglist += ['-D' + jc]\n\n    (tmp_files, job_args) = fix_paths(job)\n\n    hadoop_arglist += job_args\n    arglist.extend(hadoop_arglist)\n\n    luigi.contrib.hadoop.run_and_track_hadoop_job(arglist)\n\n    for a, b in tmp_files:\n        a.move(b)",
-                "def jar(self):\n    \"\"\"\n    Path to the jar for this Hadoop Job.\n    \"\"\"\n    return None",
-                "def main(self):\n    \"\"\"\n    optional main method for this Hadoop Job.\n    \"\"\"\n    return None",
-                "def job_runner(self):\n    # We recommend that you define a subclass, override this method and set up your own config\n    return HadoopJarJobRunner()",
-                "def atomic_output(self):\n    \"\"\"\n    If True, then rewrite output arguments to be temp locations and\n    atomically move them into place after the job finishes.\n    \"\"\"\n    return True",
-                "def ssh(self):\n    \"\"\"\n    Set this to run hadoop command remotely via ssh. It needs to be a dict that looks like\n    {\"host\": \"myhost\", \"key_file\": None, \"username\": None, [\"no_host_key_check\": False]}\n    \"\"\"\n    return None",
-                "def args(self):\n    \"\"\"\n    Returns an array of args to pass to the job (after hadoop jar <jar> <main>).\n    \"\"\"\n    return []"
-            ],
-            "inscope_function_signatures": [
-                "fix_paths(job)",
-                "__init__(self)",
-                "run_job(self, job)",
-                "jar(self)",
-                "main(self)",
-                "job_runner(self)",
-                "atomic_output(self)",
-                "ssh(self)",
-                "args(self)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [
+                    {
+                        "code": "def fix_paths(job):\n    \"\"\"\n    Coerce input arguments to use temporary files when used for output.\n\n    Return a list of temporary file pairs (tmpfile, destination path) and\n    a list of arguments.\n\n    Converts each HdfsTarget to a string for the path.\n    \"\"\"\n    tmp_files = []\n    args = []\n    for x in job.args():\n        if isinstance(x, luigi.contrib.hdfs.HdfsTarget):  # input/output\n            if x.exists() or not job.atomic_output():  # input\n                args.append(x.path)\n            else:  # output\n                x_path_no_slash = x.path[:-1] if x.path[-1] == '/' else x.path\n                y = luigi.contrib.hdfs.HdfsTarget(x_path_no_slash + '-luigi-tmp-%09d' % random.randrange(0, 1e10))\n                tmp_files.append((y, x_path_no_slash))\n                logger.info('Using temp path: %s for path %s', y.path, x.path)\n                args.append(y.path)\n        else:\n            args.append(str(x))\n\n    return (tmp_files, args)",
+                        "signature": "fix_paths(job)"
+                    }
+                ],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class HadoopJarJobError:",
+                        "functions": []
+                    },
+                    {
+                        "class_declaration": "class HadoopJarJobRunner:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self):\n    pass",
+                                "signature": "__init__(self)"
+                            },
+                            {
+                                "code": "def run_job(self, job):\n    ssh_config = job.ssh()\n    if ssh_config:\n        host = ssh_config.get(\"host\", None)\n        key_file = ssh_config.get(\"key_file\", None)\n        username = ssh_config.get(\"username\", None)\n        if not host or not key_file or not username or not job.jar():\n            raise HadoopJarJobError(\"missing some config for HadoopRemoteJarJobRunner\")\n        arglist = ['ssh', '-i', key_file,\n                   '-o', 'BatchMode=yes']  # no password prompts etc\n        if ssh_config.get(\"no_host_key_check\", False):\n            arglist += ['-o', 'UserKnownHostsFile=/dev/null',\n                        '-o', 'StrictHostKeyChecking=no']\n        arglist.append('{}@{}'.format(username, host))\n    else:\n        arglist = []\n        if not job.jar() or not os.path.exists(job.jar()):\n            logger.error(\"Can't find jar: %s, full path %s\", job.jar(), os.path.abspath(job.jar()))\n            raise HadoopJarJobError(\"job jar does not exist\")\n\n    # TODO(jcrobak): libjars, files, etc. Can refactor out of\n    # hadoop.HadoopJobRunner\n    hadoop_arglist = luigi.contrib.hdfs.load_hadoop_cmd() + ['jar', job.jar()]\n    if job.main():\n        hadoop_arglist.append(job.main())\n\n    jobconfs = job.jobconfs()\n\n    for jc in jobconfs:\n        hadoop_arglist += ['-D' + jc]\n\n    (tmp_files, job_args) = fix_paths(job)\n\n    hadoop_arglist += job_args\n    arglist.extend(hadoop_arglist)\n\n    luigi.contrib.hadoop.run_and_track_hadoop_job(arglist)\n\n    for a, b in tmp_files:\n        a.move(b)",
+                                "signature": "run_job(self, job)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class HadoopJarJobTask:",
+                        "functions": [
+                            {
+                                "code": "def jar(self):\n    \"\"\"\n    Path to the jar for this Hadoop Job.\n    \"\"\"\n    return None",
+                                "signature": "jar(self)"
+                            },
+                            {
+                                "code": "def main(self):\n    \"\"\"\n    optional main method for this Hadoop Job.\n    \"\"\"\n    return None",
+                                "signature": "main(self)"
+                            },
+                            {
+                                "code": "def job_runner(self):\n    # We recommend that you define a subclass, override this method and set up your own config\n    return HadoopJarJobRunner()",
+                                "signature": "job_runner(self)"
+                            },
+                            {
+                                "code": "def atomic_output(self):\n    \"\"\"\n    If True, then rewrite output arguments to be temp locations and\n    atomically move them into place after the job finishes.\n    \"\"\"\n    return True",
+                                "signature": "atomic_output(self)"
+                            },
+                            {
+                                "code": "def ssh(self):\n    \"\"\"\n    Set this to run hadoop command remotely via ssh. It needs to be a dict that looks like\n    {\"host\": \"myhost\", \"key_file\": None, \"username\": None, [\"no_host_key_check\": False]}\n    \"\"\"\n    return None",
+                                "signature": "ssh(self)"
+                            },
+                            {
+                                "code": "def args(self):\n    \"\"\"\n    Returns an array of args to pass to the job (after hadoop jar <jar> <main>).\n    \"\"\"\n    return []",
+                                "signature": "args(self)"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "logger": [
                     50,
@@ -1275,7 +1309,7 @@
                 "test_function": "test_missing_jar",
                 "test_function_code": "    @patch('luigi.contrib.hadoop.run_and_track_hadoop_job')\n    def test_missing_jar(self, mock_job):\n        mock_job.return_value = None\n        task = TestMissingJarJob()\n        self.assertRaises(HadoopJarJobError, task.run)",
                 "test_error": "TypeError: expected str, bytes or os.PathLike object, not NoneType",
-                "full_test_error": "self = <contrib.hadoop_jar_test.HadoopJarJobTaskTest testMethod=test_missing_jar>\nmock_job = <MagicMock name='run_and_track_hadoop_job' id='139620915505808'>\n\n    @patch('luigi.contrib.hadoop.run_and_track_hadoop_job')\n    def test_missing_jar(self, mock_job):\n        mock_job.return_value = None\n        task = TestMissingJarJob()\n>       self.assertRaises(HadoopJarJobError, task.run)\n\ntest/contrib/hadoop_jar_test.py:58: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/contrib/hadoop.py:651: in run\n    self.job_runner().run_job(self)\nluigi/contrib/hadoop_jar.py:87: in run_job\n    logger.error(\"Can't find jar: %s, full path %s\", job.jar(), os.path.abspath(job.jar()))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def abspath(path):\n        \"\"\"Return an absolute path.\"\"\"\n>       path = os.fspath(path)\nE       TypeError: expected str, bytes or os.PathLike object, not NoneType\n\n/usr/local/lib/python3.8/posixpath.py:374: TypeError",
+                "full_test_error": "self = <contrib.hadoop_jar_test.HadoopJarJobTaskTest testMethod=test_missing_jar>\nmock_job = <MagicMock name='run_and_track_hadoop_job' id='140201793314048'>\n\n    @patch('luigi.contrib.hadoop.run_and_track_hadoop_job')\n    def test_missing_jar(self, mock_job):\n        mock_job.return_value = None\n        task = TestMissingJarJob()\n>       self.assertRaises(HadoopJarJobError, task.run)\n\ntest/contrib/hadoop_jar_test.py:58: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nluigi/contrib/hadoop.py:651: in run\n    self.job_runner().run_job(self)\nluigi/contrib/hadoop_jar.py:87: in run_job\n    logger.error(\"Can't find jar: %s, full path %s\", job.jar(), os.path.abspath(job.jar()))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def abspath(path):\n        \"\"\"Return an absolute path.\"\"\"\n>       path = os.fspath(path)\nE       TypeError: expected str, bytes or os.PathLike object, not NoneType\n\n/usr/local/lib/python3.8/posixpath.py:374: TypeError",
                 "traceback": "luigi/contrib/hadoop.py:651: in run\n    self.job_runner().run_job(self)\nluigi/contrib/hadoop_jar.py:87: in run_job\n    logger.error(\"Can't find jar: %s, full path %s\", job.jar(), os.path.abspath(job.jar()))",
                 "test_error_location": "_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n    def abspath(path):\n        \"\"\"Return an absolute path.\"\"\"\n>       path = os.fspath(path)\nE       TypeError: expected str, bytes or os.PathLike object, not NoneType\n\n/usr/local/lib/python3.8/posixpath.py:374: TypeError",
                 "test_function_decorators": [

@@ -5,16 +5,8 @@
     "1.2.2": "from ..utils.generic_utils import unpack_singleton\nfrom ..layers import deserialize as deserialize_layer",
     "1.3.1": "class Network(Layer)",
     "1.3.2": "A Network is a directed acyclic graph of layers.\n\nIt is the topological form of a \"model\". A Model\nis simply a Network with added training routines.\n\n# Properties\n    name\n    inputs\n    outputs\n    layers\n    input_spec (list of class instances)\n        each entry describes one required input:\n            - ndim\n            - dtype\n    trainable (boolean)\n    input_shape\n    output_shape\n    weights (list of variables)\n    trainable_weights (list of variables)\n    non_trainable_weights (list of variables)\n    losses\n    updates\n    state_updates\n    stateful\n\n# Methods\n    __call__\n    summary\n    get_layer\n    get_weights\n    set_weights\n    get_config\n    compute_output_shape\n    save\n    add_loss\n    add_update\n    get_losses_for\n    get_updates_for\n    to_json\n    to_yaml\n    reset_states\n\n# Class Methods\n    from_config\n\n# Raises\n    TypeError: if input tensors are not Keras tensors\n        (tensors returned by `Input`).",
-    "1.4.1": [
-        "add_unprocessed_node(layer, node_data)",
-        "process_node(layer, node_data)",
-        "process_layer(layer_data)"
-    ],
-    "1.4.2": [
-        "add_unprocessed_node(layer, node_data)",
-        "process_node(layer, node_data)",
-        "process_layer(layer_data)"
-    ],
+    "1.4.1": null,
+    "1.4.2": null,
     "1.5.1": [
         "def test_layer_sharing_at_heterogeneous_depth_order():\n    # This tests for the bug in this issue\n    # https://github.com/keras-team/keras/issues/11159\n    # It occurs with layer sharing at heterogeneous depth when\n    # the layers need to be applied in an order that differs from\n    # the order that occurs in the config.\n\n    input_shape = (1, 12)\n    input_layer = Input(shape=input_shape)\n\n    A = Dense(12, name='layer_a')\n    r1 = layers.Reshape((12,))(input_layer)\n    Aout1 = A(r1)\n\n    r2 = layers.Reshape((12,))(A(input_layer))\n    Aout2 = A(r2)\n\n    # Note: if the order of the layers in the concat is\n    # changed to ([Aout1, Aout2]) the bug doesn't trigger\n    c1 = layers.concatenate([Aout2, Aout1])\n    output = Dense(2, name='layer_b')(c1)\n\n    M = Model(inputs=input_layer, outputs=output)\n\n    x_val = np.random.random((10,) + input_shape)\n    output_val = M.predict(x_val)\n\n    config = M.get_config()\n    weights = M.get_weights()\n\n    M2 = Model.from_config(config)\n    M2.set_weights(weights)\n\n    output_val_2 = M2.predict(x_val)\n    np.testing.assert_allclose(output_val, output_val_2, atol=1e-6)"
     ],
@@ -28,7 +20,7 @@
     ],
     "2.1.2": [
         [
-            "def test_layer_sharing_at_heterogeneous_depth_order():\n        # This tests for the bug in this issue\n        # https://github.com/keras-team/keras/issues/11159\n        # It occurs with layer sharing at heterogeneous depth when\n        # the layers need to be applied in an order that differs from\n        # the order that occurs in the config.\n    \n        input_shape = (1, 12)\n        input_layer = Input(shape=input_shape)\n    \n        A = Dense(12, name='layer_a')\n        r1 = layers.Reshape((12,))(input_layer)\n        Aout1 = A(r1)\n    \n        r2 = layers.Reshape((12,))(A(input_layer))\n        Aout2 = A(r2)\n    \n        # Note: if the order of the layers in the concat is\n        # changed to ([Aout1, Aout2]) the bug doesn't trigger\n        c1 = layers.concatenate([Aout2, Aout1])\n        output = Dense(2, name='layer_b')(c1)\n    \n        M = Model(inputs=input_layer, outputs=output)\n    \n        x_val = np.random.random((10,) + input_shape)\n        output_val = M.predict(x_val)\n    \n        config = M.get_config()\n        weights = M.get_weights()\n    \n>       M2 = Model.from_config(config)\n\ntests/keras/engine/test_topology.py:793: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nkeras/engine/network.py:1029: in from_config\n    process_node(layer, node_data)\nkeras/engine/network.py:988: in process_node\n    layer(unpack_singleton(input_tensors), **kwargs)\nkeras/engine/base_layer.py:431: in __call__\n    self.build(unpack_singleton(input_shapes))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <keras.layers.merge.Concatenate object at 0x7f856793a690>\ninput_shape = [(None, 12), (None, 1, 12)]\n\n    def build(self, input_shape):\n        # Used purely for shape validation.\n        if not isinstance(input_shape, list) or len(input_shape) < 2:\n            raise ValueError('A `Concatenate` layer should be called '\n                             'on a list of at least 2 inputs')\n        if all([shape is None for shape in input_shape]):\n            return\n        reduced_inputs_shapes = [list(shape) for shape in input_shape]\n        shape_set = set()\n        for i in range(len(reduced_inputs_shapes)):\n            del reduced_inputs_shapes[i][self.axis]\n            shape_set.add(tuple(reduced_inputs_shapes[i]))\n        if len(shape_set) > 1:\n            raise ValueError('A `Concatenate` layer requires '\n                             'inputs with matching shapes '\n                             'except for the concat axis. '\n>                            'Got inputs shapes: %s' % (input_shape))",
+            "def test_layer_sharing_at_heterogeneous_depth_order():\n        # This tests for the bug in this issue\n        # https://github.com/keras-team/keras/issues/11159\n        # It occurs with layer sharing at heterogeneous depth when\n        # the layers need to be applied in an order that differs from\n        # the order that occurs in the config.\n    \n        input_shape = (1, 12)\n        input_layer = Input(shape=input_shape)\n    \n        A = Dense(12, name='layer_a')\n        r1 = layers.Reshape((12,))(input_layer)\n        Aout1 = A(r1)\n    \n        r2 = layers.Reshape((12,))(A(input_layer))\n        Aout2 = A(r2)\n    \n        # Note: if the order of the layers in the concat is\n        # changed to ([Aout1, Aout2]) the bug doesn't trigger\n        c1 = layers.concatenate([Aout2, Aout1])\n        output = Dense(2, name='layer_b')(c1)\n    \n        M = Model(inputs=input_layer, outputs=output)\n    \n        x_val = np.random.random((10,) + input_shape)\n        output_val = M.predict(x_val)\n    \n        config = M.get_config()\n        weights = M.get_weights()\n    \n>       M2 = Model.from_config(config)\n\ntests/keras/engine/test_topology.py:793: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nkeras/engine/network.py:1029: in from_config\n    process_node(layer, node_data)\nkeras/engine/network.py:988: in process_node\n    layer(unpack_singleton(input_tensors), **kwargs)\nkeras/engine/base_layer.py:431: in __call__\n    self.build(unpack_singleton(input_shapes))\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <keras.layers.merge.Concatenate object at 0x7eff87cff490>\ninput_shape = [(None, 12), (None, 1, 12)]\n\n    def build(self, input_shape):\n        # Used purely for shape validation.\n        if not isinstance(input_shape, list) or len(input_shape) < 2:\n            raise ValueError('A `Concatenate` layer should be called '\n                             'on a list of at least 2 inputs')\n        if all([shape is None for shape in input_shape]):\n            return\n        reduced_inputs_shapes = [list(shape) for shape in input_shape]\n        shape_set = set()\n        for i in range(len(reduced_inputs_shapes)):\n            del reduced_inputs_shapes[i][self.axis]\n            shape_set.add(tuple(reduced_inputs_shapes[i]))\n        if len(shape_set) > 1:\n            raise ValueError('A `Concatenate` layer requires '\n                             'inputs with matching shapes '\n                             'except for the concat axis. '\n>                            'Got inputs shapes: %s' % (input_shape))",
             "\nkeras/layers/merge.py:362: ValueError"
         ]
     ],
@@ -43,12 +35,12 @@
             },
             {
                 "created_layers": {
-                    "value": "{'input_1': <keras.engine.input_layer.InputLayer object at 0x7f6af457aa90>, 'layer_a': <keras.layers.core.Dense object at 0x7f6af45ee090>, 'reshape_2': <keras.layers.core.Reshape object at 0x7f6af45ee150>, 'reshape_1': <keras.layers.core.Reshape object at 0x7f6af45eea90>, 'concatenate_1': <keras.layers.merge.Concatenate object at 0x7f6af45ee890>, 'layer_b': <keras.layers.core.Dense object at 0x7f6af45eea50>}",
+                    "value": "{'input_1': <keras.engine.input_layer.InputLayer object at 0x7f8d4bcfba50>, 'layer_a': <keras.layers.core.Dense object at 0x7f8d4bd6f050>, 'reshape_2': <keras.layers.core.Reshape object at 0x7f8d4bd6f110>, 'reshape_1': <keras.layers.core.Reshape object at 0x7f8d4bd6fa50>, 'concatenate_1': <keras.layers.merge.Concatenate object at 0x7f8d4bd6f850>, 'layer_b': <keras.layers.core.Dense object at 0x7f8d4bd6fa10>}",
                     "shape": "6",
                     "omitted": false
                 },
                 "unprocessed_nodes": {
-                    "value": "{<keras.layers.core.Reshape object at 0x7f6af45ee150>: [[['layer_a', 1, 0, {}]]], <keras.layers.core.Reshape object at 0x7f6af45eea90>: [[['input_1', 0, 0, {}]]], <keras.layers.merge.Concatenate object at 0x7f6af45ee890>: [[['layer_a', 2, 0, {}], ['layer_a', 0, 0, {}]]], <keras.layers.core.Dense object at 0x7f6af45eea50>: [[['concatenate_1', 0, 0, {}]]], <keras.layers.core.Dense object at 0x7f6af45ee090>: [[['reshape_1', 0, 0, {}]]]}",
+                    "value": "{<keras.layers.core.Reshape object at 0x7f8d4bd6f110>: [[['layer_a', 1, 0, {}]]], <keras.layers.core.Reshape object at 0x7f8d4bd6fa50>: [[['input_1', 0, 0, {}]]], <keras.layers.merge.Concatenate object at 0x7f8d4bd6f850>: [[['layer_a', 2, 0, {}], ['layer_a', 0, 0, {}]]], <keras.layers.core.Dense object at 0x7f8d4bd6fa10>: [[['concatenate_1', 0, 0, {}]]], <keras.layers.core.Dense object at 0x7f8d4bd6f050>: [[['reshape_1', 0, 0, {}]]]}",
                     "shape": "5",
                     "omitted": false
                 },
@@ -137,7 +129,7 @@
             },
             {
                 "created_layers": {
-                    "value": "{'input_1': <keras.engine.input_layer.InputLayer object at 0x7f56bb0ffe50>, 'layer_a': <keras.layers.core.Dense object at 0x7f56bb0ff650>, 'reshape_2': <keras.layers.core.Reshape object at 0x7f56bb0fff50>, 'reshape_1': <keras.layers.core.Reshape object at 0x7f56bb0ff910>, 'concatenate_1': <keras.layers.merge.Concatenate object at 0x7f56bb0ff7d0>, 'layer_b': <keras.layers.core.Dense object at 0x7f56bb0ffed0>}",
+                    "value": "{'input_1': <keras.engine.input_layer.InputLayer object at 0x7f6b3693fb50>, 'layer_a': <keras.layers.core.Dense object at 0x7f6b3693f5d0>, 'reshape_2': <keras.layers.core.Reshape object at 0x7f6b3693fed0>, 'reshape_1': <keras.layers.core.Reshape object at 0x7f6b3693fe10>, 'concatenate_1': <keras.layers.merge.Concatenate object at 0x7f6b3693fe50>, 'layer_b': <keras.layers.core.Dense object at 0x7f6b3693fdd0>}",
                     "shape": "6",
                     "omitted": false
                 },
@@ -197,7 +189,7 @@
                     "omitted": false
                 },
                 "layer._inbound_nodes": {
-                    "value": "[<keras.engine.base_layer.Node object at 0x7f56bb0e1190>]",
+                    "value": "[<keras.engine.base_layer.Node object at 0x7f6b36924bd0>]",
                     "shape": "1",
                     "omitted": false
                 }

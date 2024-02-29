@@ -155,7 +155,7 @@
                                     "variable_shape": null
                                 },
                                 "request_headers.items": {
-                                    "variable_value": "<built-in method items of dict object at 0x7f1c4e95d960>",
+                                    "variable_value": "<built-in method items of dict object at 0x7f51ee7a05f0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -222,7 +222,7 @@
                                     "variable_shape": null
                                 },
                                 "request_headers.items": {
-                                    "variable_value": "<built-in method items of dict object at 0x7f8d73723b40>",
+                                    "variable_value": "<built-in method items of dict object at 0x7fb55a7f7a00>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -284,7 +284,7 @@
                                     "variable_shape": null
                                 },
                                 "request_headers.items": {
-                                    "variable_value": "<built-in method items of dict object at 0x7f8d73723b40>",
+                                    "variable_value": "<built-in method items of dict object at 0x7fb55a7f7a00>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -319,7 +319,7 @@
                                     "variable_shape": null
                                 },
                                 "name.lower": {
-                                    "variable_value": "<built-in method lower of str object at 0x7f8d73661630>",
+                                    "variable_value": "<built-in method lower of str object at 0x7fb55a72e7b0>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -338,28 +338,53 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def get_response(requests_session, session_name,\n                 config_dir, args, read_only=False):\n    \"\"\"Like `client.get_response`, but applies permanent\n    aspects of the session to the request.\n\n    \"\"\"\n    from .client import get_requests_kwargs, dump_request\n    if os.path.sep in session_name:\n        path = os.path.expanduser(session_name)\n    else:\n        hostname = (args.headers.get('Host', None)\n                    or urlsplit(args.url).netloc.split('@')[-1])\n        if not hostname:\n            # HACK/FIXME: httpie-unixsocket's URLs have no hostname.\n            hostname = 'localhost'\n\n        # host:port => host_port\n        hostname = hostname.replace(':', '_')\n        path = os.path.join(config_dir,\n                            SESSIONS_DIR_NAME,\n                            hostname,\n                            session_name + '.json')\n\n    session = Session(path)\n    session.load()\n\n    kwargs = get_requests_kwargs(args, base_headers=session.headers)\n    if args.debug:\n        dump_request(kwargs)\n    session.update_headers(kwargs['headers'])\n\n    if args.auth:\n        session.auth = {\n            'type': args.auth_type,\n            'username': args.auth.key,\n            'password': args.auth.value,\n        }\n    elif session.auth:\n        kwargs['auth'] = session.auth\n\n    requests_session.cookies = session.cookies\n\n    try:\n        response = requests_session.request(**kwargs)\n    except Exception:\n        raise\n    else:\n        # Existing sessions with `read_only=True` don't get updated.\n        if session.is_new() or not read_only:\n            session.cookies = requests_session.cookies\n            session.save()\n        return response",
-                "def __init__(self, path, *args, **kwargs):\n    super(Session, self).__init__(*args, **kwargs)\n    self._path = path\n    self['headers'] = {}\n    self['cookies'] = {}\n    self['auth'] = {\n        'type': None,\n        'username': None,\n        'password': None\n    }",
-                "def _get_path(self):\n    return self._path",
-                "def update_headers(self, request_headers):\n    \"\"\"\n    Update the session headers with the request ones while ignoring\n    certain name prefixes.\n\n    :type request_headers: dict\n\n    \"\"\"\n    for name, value in request_headers.items():\n        value = value.decode('utf8')\n        if name == 'User-Agent' and value.startswith('HTTPie/'):\n            continue\n\n        for prefix in SESSION_IGNORED_HEADER_PREFIXES:\n            if name.lower().startswith(prefix.lower()):\n                break\n        else:\n            self['headers'][name] = value",
-                "@property\ndef headers(self):\n    return self['headers']",
-                "@property\ndef cookies(self):\n    jar = RequestsCookieJar()\n    for name, cookie_dict in self['cookies'].items():\n        jar.set_cookie(create_cookie(\n            name, cookie_dict.pop('value'), **cookie_dict))\n    jar.clear_expired_cookies()\n    return jar",
-                "@cookies.setter\ndef cookies(self, jar):\n    \"\"\"\n    :type jar: CookieJar\n    \"\"\"\n    # http://docs.python.org/2/library/cookielib.html#cookie-objects\n    stored_attrs = ['value', 'path', 'secure', 'expires']\n    self['cookies'] = {}\n    for cookie in jar:\n        self['cookies'][cookie.name] = dict(\n            (attname, getattr(cookie, attname))\n            for attname in stored_attrs\n        )",
-                "@property\ndef auth(self):\n    auth = self.get('auth', None)\n    if not auth or not auth['type']:\n        return\n    auth_plugin = plugin_manager.get_auth_plugin(auth['type'])()\n    return auth_plugin.get_auth(auth['username'], auth['password'])",
-                "@auth.setter\ndef auth(self, auth):\n    assert set(['type', 'username', 'password']) == set(auth.keys())\n    self['auth'] = auth"
-            ],
-            "inscope_function_signatures": [
-                "get_response(requests_session, session_name, config_dir, args, read_only=False)",
-                "__init__(self, path, *args, **kwargs)",
-                "_get_path(self)",
-                "update_headers(self, request_headers)",
-                "headers(self)",
-                "cookies(self)",
-                "cookies(self, jar)",
-                "auth(self)",
-                "auth(self, auth)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [
+                    {
+                        "code": "def get_response(requests_session, session_name,\n                 config_dir, args, read_only=False):\n    \"\"\"Like `client.get_response`, but applies permanent\n    aspects of the session to the request.\n\n    \"\"\"\n    from .client import get_requests_kwargs, dump_request\n    if os.path.sep in session_name:\n        path = os.path.expanduser(session_name)\n    else:\n        hostname = (args.headers.get('Host', None)\n                    or urlsplit(args.url).netloc.split('@')[-1])\n        if not hostname:\n            # HACK/FIXME: httpie-unixsocket's URLs have no hostname.\n            hostname = 'localhost'\n\n        # host:port => host_port\n        hostname = hostname.replace(':', '_')\n        path = os.path.join(config_dir,\n                            SESSIONS_DIR_NAME,\n                            hostname,\n                            session_name + '.json')\n\n    session = Session(path)\n    session.load()\n\n    kwargs = get_requests_kwargs(args, base_headers=session.headers)\n    if args.debug:\n        dump_request(kwargs)\n    session.update_headers(kwargs['headers'])\n\n    if args.auth:\n        session.auth = {\n            'type': args.auth_type,\n            'username': args.auth.key,\n            'password': args.auth.value,\n        }\n    elif session.auth:\n        kwargs['auth'] = session.auth\n\n    requests_session.cookies = session.cookies\n\n    try:\n        response = requests_session.request(**kwargs)\n    except Exception:\n        raise\n    else:\n        # Existing sessions with `read_only=True` don't get updated.\n        if session.is_new() or not read_only:\n            session.cookies = requests_session.cookies\n            session.save()\n        return response",
+                        "signature": "get_response(requests_session, session_name, config_dir, args, read_only=False)"
+                    }
+                ],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class Session:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, path, *args, **kwargs):\n    super(Session, self).__init__(*args, **kwargs)\n    self._path = path\n    self['headers'] = {}\n    self['cookies'] = {}\n    self['auth'] = {\n        'type': None,\n        'username': None,\n        'password': None\n    }",
+                                "signature": "__init__(self, path, *args, **kwargs)"
+                            },
+                            {
+                                "code": "def _get_path(self):\n    return self._path",
+                                "signature": "_get_path(self)"
+                            },
+                            {
+                                "code": "def update_headers(self, request_headers):\n    \"\"\"\n    Update the session headers with the request ones while ignoring\n    certain name prefixes.\n\n    :type request_headers: dict\n\n    \"\"\"\n    for name, value in request_headers.items():\n        value = value.decode('utf8')\n        if name == 'User-Agent' and value.startswith('HTTPie/'):\n            continue\n\n        for prefix in SESSION_IGNORED_HEADER_PREFIXES:\n            if name.lower().startswith(prefix.lower()):\n                break\n        else:\n            self['headers'][name] = value",
+                                "signature": "update_headers(self, request_headers)"
+                            },
+                            {
+                                "code": "@property\ndef headers(self):\n    return self['headers']",
+                                "signature": "headers(self)"
+                            },
+                            {
+                                "code": "@property\ndef cookies(self):\n    jar = RequestsCookieJar()\n    for name, cookie_dict in self['cookies'].items():\n        jar.set_cookie(create_cookie(\n            name, cookie_dict.pop('value'), **cookie_dict))\n    jar.clear_expired_cookies()\n    return jar",
+                                "signature": "cookies(self)"
+                            },
+                            {
+                                "code": "@cookies.setter\ndef cookies(self, jar):\n    \"\"\"\n    :type jar: CookieJar\n    \"\"\"\n    # http://docs.python.org/2/library/cookielib.html#cookie-objects\n    stored_attrs = ['value', 'path', 'secure', 'expires']\n    self['cookies'] = {}\n    for cookie in jar:\n        self['cookies'][cookie.name] = dict(\n            (attname, getattr(cookie, attname))\n            for attname in stored_attrs\n        )",
+                                "signature": "cookies(self, jar)"
+                            },
+                            {
+                                "code": "@property\ndef auth(self):\n    auth = self.get('auth', None)\n    if not auth or not auth['type']:\n        return\n    auth_plugin = plugin_manager.get_auth_plugin(auth['type'])()\n    return auth_plugin.get_auth(auth['username'], auth['password'])",
+                                "signature": "auth(self)"
+                            },
+                            {
+                                "code": "@auth.setter\ndef auth(self, auth):\n    assert set(['type', 'username', 'password']) == set(auth.keys())\n    self['auth'] = auth",
+                                "signature": "auth(self, auth)"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "SESSIONS_DIR_NAME": [
                     42,

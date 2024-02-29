@@ -169,11 +169,6 @@
                             "def _helper(self, host=None, port=None, debug=False, ssl=None, sock=None, workers=1, loop=None, protocol=HttpProtocol, backlog=100, stop_event=None, register_sys_signals=True, run_async=False, auto_reload=False):\n    \"\"\"Helper function used by `run` and `create_server`.\"\"\"\n    if isinstance(ssl, dict):\n        cert = ssl.get('cert') or ssl.get('certificate')\n        key = ssl.get('key') or ssl.get('keyfile')\n        if cert is None or key is None:\n            raise ValueError('SSLContext or certificate and key required.')\n        context = create_default_context(purpose=Purpose.CLIENT_AUTH)\n        context.load_cert_chain(cert, keyfile=key)\n        ssl = context\n    if stop_event is not None:\n        if debug:\n            warnings.simplefilter('default')\n        warnings.warn('stop_event will be removed from future versions.', DeprecationWarning)\n    if self.config.PROXIES_COUNT and self.config.PROXIES_COUNT < 0:\n        raise ValueError('PROXIES_COUNT cannot be negative. https://sanic.readthedocs.io/en/latest/sanic/config.html#proxy-configuration')\n    self.error_handler.debug = debug\n    self.debug = debug\n    server_settings = {'protocol': protocol, 'host': host, 'port': port, 'sock': sock, 'ssl': ssl, 'app': self, 'signal': Signal(), 'loop': loop, 'register_sys_signals': register_sys_signals, 'backlog': backlog}\n    for (event_name, settings_name, reverse) in (('before_server_start', 'before_start', False), ('after_server_start', 'after_start', False), ('before_server_stop', 'before_stop', True), ('after_server_stop', 'after_stop', True)):\n        listeners = self.listeners[event_name].copy()\n        if reverse:\n            listeners.reverse()\n        listeners = [partial(listener, self) for listener in listeners]\n        server_settings[settings_name] = listeners\n    if self.configure_logging and debug:\n        logger.setLevel(logging.DEBUG)\n    if self.config.LOGO and os.environ.get('SANIC_SERVER_RUNNING') != 'true':\n        logger.debug(self.config.LOGO if isinstance(self.config.LOGO, str) else BASE_LOGO)\n    if run_async:\n        server_settings['run_async'] = True\n    if host and port and (os.environ.get('SANIC_SERVER_RUNNING') != 'true'):\n        proto = 'http'\n        if ssl is not None:\n            proto = 'https'\n        logger.info(f\"Goin' Fast @ {proto}://{host}:{port}\")\n    return server_settings",
                             "def _build_endpoint_name(self, *parts):\n    parts = [self.name, *parts]\n    return '.'.join(parts)",
                             "async def __call__(self, scope, receive, send):\n    \"\"\"To be ASGI compliant, our instance must be a callable that accepts\n    three arguments: scope, receive, send. See the ASGI reference for more\n    details: https://asgi.readthedocs.io/en/latest/\"\"\"\n    self.asgi = True\n    asgi_app = await ASGIApp.create(self, scope, receive, send)\n    await asgi_app()",
-                            "def decorator(listener):\n    self.listeners[event].append(listener)\n    return listener",
-                            "def response(handler):\n    if isinstance(handler, tuple):\n        (routes, handler) = handler\n    else:\n        routes = []\n    args = list(signature(handler).parameters.keys())\n    if not args:\n        handler_name = handler.__name__\n        raise ValueError(f'Required parameter `request` missing in the {handler_name}() route?')\n    if stream:\n        handler.is_stream = stream\n    routes.extend(self.router.add(uri=uri, methods=methods, handler=handler, host=host, strict_slashes=strict_slashes, version=version, name=name))\n    return (routes, handler)",
-                            "def response(handler):\n    if isinstance(handler, tuple):\n        (routes, handler) = handler\n    else:\n        routes = []\n\n    async def websocket_handler(request, *args, **kwargs):\n        request.app = self\n        if not getattr(handler, '__blueprintname__', False):\n            request.endpoint = handler.__name__\n        else:\n            request.endpoint = getattr(handler, '__blueprintname__', '') + handler.__name__\n            pass\n        if self.asgi:\n            ws = request.transport.get_websocket_connection()\n        else:\n            protocol = request.transport.get_protocol()\n            protocol.app = self\n            ws = await protocol.websocket_handshake(request, subprotocols)\n        fut = ensure_future(handler(request, ws, *args, **kwargs))\n        self.websocket_tasks.add(fut)\n        try:\n            await fut\n        except (CancelledError, ConnectionClosed):\n            pass\n        finally:\n            self.websocket_tasks.remove(fut)\n        await ws.close()\n    routes.extend(self.router.add(uri=uri, handler=websocket_handler, methods=frozenset({'GET'}), host=host, strict_slashes=strict_slashes, name=name))\n    return (routes, handler)",
-                            "def response(handler):\n    for exception in exceptions:\n        if isinstance(exception, (tuple, list)):\n            for e in exception:\n                self.error_handler.add(e, handler)\n        else:\n            self.error_handler.add(exception, handler)\n    return handler",
-                            "async def websocket_handler(request, *args, **kwargs):\n    request.app = self\n    if not getattr(handler, '__blueprintname__', False):\n        request.endpoint = handler.__name__\n    else:\n        request.endpoint = getattr(handler, '__blueprintname__', '') + handler.__name__\n        pass\n    if self.asgi:\n        ws = request.transport.get_websocket_connection()\n    else:\n        protocol = request.transport.get_protocol()\n        protocol.app = self\n        ws = await protocol.websocket_handshake(request, subprotocols)\n    fut = ensure_future(handler(request, ws, *args, **kwargs))\n    self.websocket_tasks.add(fut)\n    try:\n        await fut\n    except (CancelledError, ConnectionClosed):\n        pass\n    finally:\n        self.websocket_tasks.remove(fut)\n    await ws.close()",
                             "@self.listener('before_server_stop')\ndef cancel_websocket_tasks(app, loop):\n    for task in self.websocket_tasks:\n        task.cancel()",
                             "@self.listener('before_server_start')\ndef run(app, loop):\n    if callable(task):\n        try:\n            loop.create_task(task(self))\n        except TypeError:\n            loop.create_task(task())\n    else:\n        loop.create_task(task)"
                         ],
@@ -243,40 +238,35 @@
                             "_helper(self, host=None, port=None, debug=False, ssl=None, sock=None, workers=1, loop=None, protocol=HttpProtocol, backlog=100, stop_event=None, register_sys_signals=True, run_async=False, auto_reload=False)",
                             "_build_endpoint_name(self, *parts)",
                             "__call__(self, scope, receive, send)",
-                            "decorator(listener)",
-                            "response(handler)",
-                            "response(handler)",
-                            "response(handler)",
-                            "websocket_handler(request, *args, **kwargs)",
                             "cancel_websocket_tasks(app, loop)",
                             "run(app, loop)"
                         ],
                         "class_level_variable_names": [],
                         "constructor_variable_names": [
-                            "is_running",
-                            "blueprints",
-                            "named_request_middleware",
-                            "response_middleware",
+                            "router",
+                            "_blueprint_order",
                             "error_handler",
                             "asgi",
-                            "strict_slashes",
-                            "websocket_enabled",
-                            "request_class",
-                            "named_response_middleware",
+                            "debug",
+                            "is_running",
+                            "go_fast",
                             "config",
-                            "websocket_tasks",
+                            "name",
+                            "blueprints",
+                            "websocket_enabled",
+                            "response_middleware",
+                            "request_class",
+                            "is_request_stream",
+                            "request_middleware",
+                            "named_response_middleware",
+                            "named_request_middleware",
                             "sock",
                             "is_stopping",
-                            "name",
-                            "router",
-                            "go_fast",
-                            "frame_records",
                             "configure_logging",
+                            "websocket_tasks",
+                            "strict_slashes",
                             "listeners",
-                            "_blueprint_order",
-                            "request_middleware",
-                            "debug",
-                            "is_request_stream"
+                            "frame_records"
                         ]
                     },
                     "used_imports": [
@@ -306,7 +296,7 @@
                                     "variable_shape": "0"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f0c1eb5a6d0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f575ed9a5b0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -316,7 +306,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -348,12 +338,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f0c1eb5a6d0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f575ed9a5b0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -363,7 +353,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -397,12 +387,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f0c1eb5a6d0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f575ed9a5b0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -412,7 +402,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_2 at 0x7f0c1eb60ca0>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_2 at 0x7f575eda0ca0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -444,12 +434,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f0c1eb60ca0>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f575eda0ca0>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f0c1eb5a6d0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f575ed9a5b0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -459,7 +449,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_2 at 0x7f0c1eb60ca0>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_2 at 0x7f575eda0ca0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -493,12 +483,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f0c1eb60ca0>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f575eda0ca0>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f0c1eb5a6d0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f575ed9a5b0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -508,7 +498,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_3 at 0x7f0c1eb60d30>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_3 at 0x7f575eda0d30>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -540,12 +530,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f0c1eb60ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f0c1eb60d30>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f575eda0ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f575eda0d30>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f0c1eb5a6d0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f575ed9a5b0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -555,7 +545,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_3 at 0x7f0c1eb60d30>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_3 at 0x7f575eda0d30>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -589,12 +579,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f0c1eb60ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f0c1eb60d30>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f575eda0ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f575eda0d30>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f0c1eb5a6d0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f575ed9a5b0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -604,7 +594,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_4 at 0x7f0c1eb60dc0>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_4 at 0x7f575eda0dc0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -636,12 +626,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f0c1eb60ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f0c1eb60d30>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f575eda0ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f575eda0d30>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f0c1eb5a6d0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f575ed9a5b0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -651,7 +641,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_4 at 0x7f0c1eb60dc0>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_4 at 0x7f575eda0dc0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -661,7 +651,7 @@
                                     "variable_shape": null
                                 },
                                 "self.named_response_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f0c1eb60dc0>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f575eda0dc0>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 }
@@ -685,12 +675,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f0c1eb60ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f0c1eb60d30>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f575eda0ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f575eda0d30>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f0c1eb5a6d0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f575ed9a5b0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -700,7 +690,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_5 at 0x7f0c1eb60e50>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_5 at 0x7f575eda0e50>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -710,7 +700,7 @@
                                     "variable_shape": null
                                 },
                                 "self.named_response_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f0c1eb60dc0>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f575eda0dc0>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 }
@@ -732,12 +722,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f0c1eb60ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f0c1eb60d30>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f575eda0ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f575eda0d30>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f0c1eb5a6d0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f575ed9a5b0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -747,7 +737,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_5 at 0x7f0c1eb60e50>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_5 at 0x7f575eda0e50>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -757,7 +747,7 @@
                                     "variable_shape": null
                                 },
                                 "self.named_response_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f0c1eb60dc0>, <function test_bp_middleware_order.<locals>.mw_5 at 0x7f0c1eb60e50>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f575eda0dc0>, <function test_bp_middleware_order.<locals>.mw_5 at 0x7f575eda0e50>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 }
@@ -781,12 +771,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f0c1eb60ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f0c1eb60d30>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f575eda0ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f575eda0d30>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f0c1eb5a6d0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f575ed9a5b0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -796,7 +786,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_6 at 0x7f0c1eb60ee0>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_6 at 0x7f575eda0ee0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -806,7 +796,7 @@
                                     "variable_shape": null
                                 },
                                 "self.named_response_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f0c1eb60dc0>, <function test_bp_middleware_order.<locals>.mw_5 at 0x7f0c1eb60e50>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f575eda0dc0>, <function test_bp_middleware_order.<locals>.mw_5 at 0x7f575eda0e50>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 }
@@ -828,12 +818,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f0c1eb60c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f0c1eb60ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f0c1eb60d30>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f575eda0c10>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f575eda0ca0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f575eda0d30>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f0c1eb5a6d0>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f575ed9a5b0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -843,7 +833,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_6 at 0x7f0c1eb60ee0>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_6 at 0x7f575eda0ee0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -853,7 +843,7 @@
                                     "variable_shape": null
                                 },
                                 "self.named_response_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f0c1eb60dc0>, <function test_bp_middleware_order.<locals>.mw_5 at 0x7f0c1eb60e50>, <function test_bp_middleware_order.<locals>.mw_6 at 0x7f0c1eb60ee0>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f575eda0dc0>, <function test_bp_middleware_order.<locals>.mw_5 at 0x7f575eda0e50>, <function test_bp_middleware_order.<locals>.mw_6 at 0x7f575eda0ee0>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 }
@@ -884,7 +874,7 @@
                                     "variable_shape": "0"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f8d24344430>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f70444ec8e0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -894,7 +884,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -931,12 +921,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f8d24344430>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f70444ec8e0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -946,7 +936,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -985,12 +975,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f8d24344430>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f70444ec8e0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -1000,7 +990,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_2 at 0x7f8d240bcdc0>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_2 at 0x7f70441fbdc0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1037,12 +1027,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f8d240bcdc0>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f70441fbdc0>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f8d24344430>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f70444ec8e0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -1052,7 +1042,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_2 at 0x7f8d240bcdc0>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_2 at 0x7f70441fbdc0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1091,12 +1081,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f8d240bcdc0>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f70441fbdc0>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f8d24344430>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f70444ec8e0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -1106,7 +1096,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_3 at 0x7f8d240bce50>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_3 at 0x7f70441fbe50>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1143,12 +1133,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f8d240bcdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f8d240bce50>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f70441fbdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f70441fbe50>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f8d24344430>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f70444ec8e0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -1158,7 +1148,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_3 at 0x7f8d240bce50>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_3 at 0x7f70441fbe50>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1197,12 +1187,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f8d240bcdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f8d240bce50>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f70441fbdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f70441fbe50>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f8d24344430>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f70444ec8e0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -1212,7 +1202,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_4 at 0x7f8d240bcee0>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_4 at 0x7f70441fbee0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1249,12 +1239,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f8d240bcdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f8d240bce50>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f70441fbdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f70441fbe50>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f8d24344430>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f70444ec8e0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -1264,7 +1254,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_4 at 0x7f8d240bcee0>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_4 at 0x7f70441fbee0>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1274,7 +1264,7 @@
                                     "variable_shape": null
                                 },
                                 "self.named_response_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f8d240bcee0>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f70441fbee0>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
@@ -1303,12 +1293,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f8d240bcdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f8d240bce50>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f70441fbdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f70441fbe50>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f8d24344430>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f70444ec8e0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -1318,7 +1308,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_5 at 0x7f8d240bcf70>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_5 at 0x7f70441fbf70>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1328,7 +1318,7 @@
                                     "variable_shape": null
                                 },
                                 "self.named_response_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f8d240bcee0>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_4 at 0x7f70441fbee0>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
@@ -1355,12 +1345,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f8d240bcdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f8d240bce50>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f70441fbdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f70441fbe50>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f8d24344430>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f70444ec8e0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -1370,7 +1360,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_5 at 0x7f8d240bcf70>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_5 at 0x7f70441fbf70>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1380,7 +1370,7 @@
                                     "variable_shape": null
                                 },
                                 "self.named_response_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_5 at 0x7f8d240bcf70>, <function test_bp_middleware_order.<locals>.mw_4 at 0x7f8d240bcee0>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_5 at 0x7f70441fbf70>, <function test_bp_middleware_order.<locals>.mw_4 at 0x7f70441fbee0>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
@@ -1409,12 +1399,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f8d240bcdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f8d240bce50>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f70441fbdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f70441fbe50>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f8d24344430>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f70444ec8e0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -1424,7 +1414,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_6 at 0x7f8d243ee040>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_6 at 0x7f704452e040>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1434,7 +1424,7 @@
                                     "variable_shape": null
                                 },
                                 "self.named_response_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_5 at 0x7f8d240bcf70>, <function test_bp_middleware_order.<locals>.mw_4 at 0x7f8d240bcee0>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_5 at 0x7f70441fbf70>, <function test_bp_middleware_order.<locals>.mw_4 at 0x7f70441fbee0>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
@@ -1461,12 +1451,12 @@
                                     "variable_shape": "1"
                                 },
                                 "self.named_request_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f8d240bcd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f8d240bcdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f8d240bce50>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_1 at 0x7f70441fbd30>, <function test_bp_middleware_order.<locals>.mw_2 at 0x7f70441fbdc0>, <function test_bp_middleware_order.<locals>.mw_3 at 0x7f70441fbe50>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
                                 "self": {
-                                    "variable_value": "<sanic.app.Sanic object at 0x7f8d24344430>",
+                                    "variable_value": "<sanic.app.Sanic object at 0x7f70444ec8e0>",
                                     "variable_type": "Sanic",
                                     "variable_shape": null
                                 },
@@ -1476,7 +1466,7 @@
                                     "variable_shape": null
                                 },
                                 "middleware": {
-                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_6 at 0x7f8d243ee040>",
+                                    "variable_value": "<function test_bp_middleware_order.<locals>.mw_6 at 0x7f704452e040>",
                                     "variable_type": "function",
                                     "variable_shape": null
                                 },
@@ -1486,7 +1476,7 @@
                                     "variable_shape": null
                                 },
                                 "self.named_response_middleware": {
-                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_6 at 0x7f8d243ee040>, <function test_bp_middleware_order.<locals>.mw_5 at 0x7f8d240bcf70>, <function test_bp_middleware_order.<locals>.mw_4 at 0x7f8d240bcee0>])}",
+                                    "variable_value": "{'test_bp_middleware_order.process_response': deque([<function test_bp_middleware_order.<locals>.mw_6 at 0x7f704452e040>, <function test_bp_middleware_order.<locals>.mw_5 at 0x7f70441fbf70>, <function test_bp_middleware_order.<locals>.mw_4 at 0x7f70441fbee0>])}",
                                     "variable_type": "dict",
                                     "variable_shape": "1"
                                 },
@@ -1500,100 +1490,177 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def __init__(\n    self,\n    name=None,\n    router=None,\n    error_handler=None,\n    load_env=True,\n    request_class=None,\n    strict_slashes=False,\n    log_config=None,\n    configure_logging=True,\n):\n\n    # Get name from previous stack frame\n    if name is None:\n        warnings.warn(\n            \"Sanic(name=None) is deprecated and None value support \"\n            \"for `name` will be removed in the next release. \"\n            \"Please use Sanic(name='your_application_name') instead.\",\n            DeprecationWarning,\n            stacklevel=2,\n        )\n        frame_records = stack()[1]\n        name = getmodulename(frame_records[1])\n\n    # logging\n    if configure_logging:\n        logging.config.dictConfig(log_config or LOGGING_CONFIG_DEFAULTS)\n\n    self.name = name\n    self.asgi = False\n    self.router = router or Router()\n    self.request_class = request_class\n    self.error_handler = error_handler or ErrorHandler()\n    self.config = Config(load_env=load_env)\n    self.request_middleware = deque()\n    self.response_middleware = deque()\n    self.blueprints = {}\n    self._blueprint_order = []\n    self.configure_logging = configure_logging\n    self.debug = None\n    self.sock = None\n    self.strict_slashes = strict_slashes\n    self.listeners = defaultdict(list)\n    self.is_stopping = False\n    self.is_running = False\n    self.is_request_stream = False\n    self.websocket_enabled = False\n    self.websocket_tasks = set()\n    self.named_request_middleware = {}\n    self.named_response_middleware = {}\n    # Register alternative method names\n    self.go_fast = self.run",
-                "@property\ndef loop(self):\n    \"\"\"Synonymous with asyncio.get_event_loop().\n\n    Only supported when using the `app.run` method.\n    \"\"\"\n    if not self.is_running and self.asgi is False:\n        raise SanicException(\n            \"Loop can only be retrieved after the app has started \"\n            \"running. Not supported with `create_server` function\"\n        )\n    return get_event_loop()",
-                "def add_task(self, task):\n    \"\"\"Schedule a task to run later, after the loop has started.\n    Different from asyncio.ensure_future in that it does not\n    also return a future, and the actual ensure_future call\n    is delayed until before server start.\n\n    :param task: future, couroutine or awaitable\n    \"\"\"\n    try:\n        if callable(task):\n            try:\n                self.loop.create_task(task(self))\n            except TypeError:\n                self.loop.create_task(task())\n        else:\n            self.loop.create_task(task)\n    except SanicException:\n\n        @self.listener(\"before_server_start\")\n        def run(app, loop):\n            if callable(task):\n                try:\n                    loop.create_task(task(self))\n                except TypeError:\n                    loop.create_task(task())\n            else:\n                loop.create_task(task)",
-                "def listener(self, event):\n    \"\"\"Create a listener from a decorated function.\n\n    :param event: event to listen to\n    \"\"\"\n\n    def decorator(listener):\n        self.listeners[event].append(listener)\n        return listener\n\n    return decorator",
-                "def register_listener(self, listener, event):\n    \"\"\"\n    Register the listener for a given event.\n\n    :param listener: callable i.e. setup_db(app, loop)\n    :param event: when to register listener i.e. 'before_server_start'\n    :return: listener\n    \"\"\"\n\n    return self.listener(event)(listener)",
-                "def route(\n    self,\n    uri,\n    methods=frozenset({\"GET\"}),\n    host=None,\n    strict_slashes=None,\n    stream=False,\n    version=None,\n    name=None,\n):\n    \"\"\"Decorate a function to be registered as a route\n\n    :param uri: path of the URL\n    :param methods: list or tuple of methods allowed\n    :param host:\n    :param strict_slashes:\n    :param stream:\n    :param version:\n    :param name: user defined route name for url_for\n    :return: tuple of routes, decorated function\n    \"\"\"\n\n    # Fix case where the user did not prefix the URL with a /\n    # and will probably get confused as to why it's not working\n    if not uri.startswith(\"/\"):\n        uri = \"/\" + uri\n\n    if stream:\n        self.is_request_stream = True\n\n    if strict_slashes is None:\n        strict_slashes = self.strict_slashes\n\n    def response(handler):\n        if isinstance(handler, tuple):\n            # if a handler fn is already wrapped in a route, the handler\n            # variable will be a tuple of (existing routes, handler fn)\n            routes, handler = handler\n        else:\n            routes = []\n        args = list(signature(handler).parameters.keys())\n\n        if not args:\n            handler_name = handler.__name__\n\n            raise ValueError(\n                f\"Required parameter `request` missing \"\n                f\"in the {handler_name}() route?\"\n            )\n\n        if stream:\n            handler.is_stream = stream\n\n        routes.extend(\n            self.router.add(\n                uri=uri,\n                methods=methods,\n                handler=handler,\n                host=host,\n                strict_slashes=strict_slashes,\n                version=version,\n                name=name,\n            )\n        )\n        return routes, handler\n\n    return response",
-                "def get(\n    self, uri, host=None, strict_slashes=None, version=None, name=None\n):\n    \"\"\"\n    Add an API URL under the **GET** *HTTP* method\n\n    :param uri: URL to be tagged to **GET** method of *HTTP*\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param version: API Version\n    :param name: Unique name that can be used to identify the Route\n    :return: Object decorated with :func:`route` method\n    \"\"\"\n    return self.route(\n        uri,\n        methods=frozenset({\"GET\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        version=version,\n        name=name,\n    )",
-                "def post(\n    self,\n    uri,\n    host=None,\n    strict_slashes=None,\n    stream=False,\n    version=None,\n    name=None,\n):\n    \"\"\"\n    Add an API URL under the **POST** *HTTP* method\n\n    :param uri: URL to be tagged to **POST** method of *HTTP*\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param version: API Version\n    :param name: Unique name that can be used to identify the Route\n    :return: Object decorated with :func:`route` method\n    \"\"\"\n    return self.route(\n        uri,\n        methods=frozenset({\"POST\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        stream=stream,\n        version=version,\n        name=name,\n    )",
-                "def put(\n    self,\n    uri,\n    host=None,\n    strict_slashes=None,\n    stream=False,\n    version=None,\n    name=None,\n):\n    \"\"\"\n    Add an API URL under the **PUT** *HTTP* method\n\n    :param uri: URL to be tagged to **PUT** method of *HTTP*\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param version: API Version\n    :param name: Unique name that can be used to identify the Route\n    :return: Object decorated with :func:`route` method\n    \"\"\"\n    return self.route(\n        uri,\n        methods=frozenset({\"PUT\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        stream=stream,\n        version=version,\n        name=name,\n    )",
-                "def head(\n    self, uri, host=None, strict_slashes=None, version=None, name=None\n):\n    return self.route(\n        uri,\n        methods=frozenset({\"HEAD\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        version=version,\n        name=name,\n    )",
-                "def options(\n    self, uri, host=None, strict_slashes=None, version=None, name=None\n):\n    \"\"\"\n    Add an API URL under the **OPTIONS** *HTTP* method\n\n    :param uri: URL to be tagged to **OPTIONS** method of *HTTP*\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param version: API Version\n    :param name: Unique name that can be used to identify the Route\n    :return: Object decorated with :func:`route` method\n    \"\"\"\n    return self.route(\n        uri,\n        methods=frozenset({\"OPTIONS\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        version=version,\n        name=name,\n    )",
-                "def patch(\n    self,\n    uri,\n    host=None,\n    strict_slashes=None,\n    stream=False,\n    version=None,\n    name=None,\n):\n    \"\"\"\n    Add an API URL under the **PATCH** *HTTP* method\n\n    :param uri: URL to be tagged to **PATCH** method of *HTTP*\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param version: API Version\n    :param name: Unique name that can be used to identify the Route\n    :return: Object decorated with :func:`route` method\n    \"\"\"\n    return self.route(\n        uri,\n        methods=frozenset({\"PATCH\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        stream=stream,\n        version=version,\n        name=name,\n    )",
-                "def delete(\n    self, uri, host=None, strict_slashes=None, version=None, name=None\n):\n    \"\"\"\n    Add an API URL under the **DELETE** *HTTP* method\n\n    :param uri: URL to be tagged to **DELETE** method of *HTTP*\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param version: API Version\n    :param name: Unique name that can be used to identify the Route\n    :return: Object decorated with :func:`route` method\n    \"\"\"\n    return self.route(\n        uri,\n        methods=frozenset({\"DELETE\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        version=version,\n        name=name,\n    )",
-                "def add_route(\n    self,\n    handler,\n    uri,\n    methods=frozenset({\"GET\"}),\n    host=None,\n    strict_slashes=None,\n    version=None,\n    name=None,\n    stream=False,\n):\n    \"\"\"A helper method to register class instance or\n    functions as a handler to the application url\n    routes.\n\n    :param handler: function or class instance\n    :param uri: path of the URL\n    :param methods: list or tuple of methods allowed, these are overridden\n                    if using a HTTPMethodView\n    :param host:\n    :param strict_slashes:\n    :param version:\n    :param name: user defined route name for url_for\n    :param stream: boolean specifying if the handler is a stream handler\n    :return: function or class instance\n    \"\"\"\n    # Handle HTTPMethodView differently\n    if hasattr(handler, \"view_class\"):\n        methods = set()\n\n        for method in HTTP_METHODS:\n            _handler = getattr(handler.view_class, method.lower(), None)\n            if _handler:\n                methods.add(method)\n                if hasattr(_handler, \"is_stream\"):\n                    stream = True\n\n    # handle composition view differently\n    if isinstance(handler, CompositionView):\n        methods = handler.handlers.keys()\n        for _handler in handler.handlers.values():\n            if hasattr(_handler, \"is_stream\"):\n                stream = True\n                break\n\n    if strict_slashes is None:\n        strict_slashes = self.strict_slashes\n\n    self.route(\n        uri=uri,\n        methods=methods,\n        host=host,\n        strict_slashes=strict_slashes,\n        stream=stream,\n        version=version,\n        name=name,\n    )(handler)\n    return handler",
-                "def websocket(\n    self, uri, host=None, strict_slashes=None, subprotocols=None, name=None\n):\n    \"\"\"\n    Decorate a function to be registered as a websocket route\n\n    :param uri: path of the URL\n    :param host: Host IP or FQDN details\n    :param strict_slashes: If the API endpoint needs to terminate\n                           with a \"/\" or not\n    :param subprotocols: optional list of str with supported subprotocols\n    :param name: A unique name assigned to the URL so that it can\n                 be used with :func:`url_for`\n    :return: tuple of routes, decorated function\n    \"\"\"\n    self.enable_websocket()\n\n    # Fix case where the user did not prefix the URL with a /\n    # and will probably get confused as to why it's not working\n    if not uri.startswith(\"/\"):\n        uri = \"/\" + uri\n\n    if strict_slashes is None:\n        strict_slashes = self.strict_slashes\n\n    def response(handler):\n        if isinstance(handler, tuple):\n            # if a handler fn is already wrapped in a route, the handler\n            # variable will be a tuple of (existing routes, handler fn)\n            routes, handler = handler\n        else:\n            routes = []\n\n        async def websocket_handler(request, *args, **kwargs):\n            request.app = self\n            if not getattr(handler, \"__blueprintname__\", False):\n                request.endpoint = handler.__name__\n            else:\n                request.endpoint = (\n                    getattr(handler, \"__blueprintname__\", \"\")\n                    + handler.__name__\n                )\n\n                pass\n\n            if self.asgi:\n                ws = request.transport.get_websocket_connection()\n            else:\n                protocol = request.transport.get_protocol()\n                protocol.app = self\n\n                ws = await protocol.websocket_handshake(\n                    request, subprotocols\n                )\n\n            # schedule the application handler\n            # its future is kept in self.websocket_tasks in case it\n            # needs to be cancelled due to the server being stopped\n            fut = ensure_future(handler(request, ws, *args, **kwargs))\n            self.websocket_tasks.add(fut)\n            try:\n                await fut\n            except (CancelledError, ConnectionClosed):\n                pass\n            finally:\n                self.websocket_tasks.remove(fut)\n            await ws.close()\n\n        routes.extend(\n            self.router.add(\n                uri=uri,\n                handler=websocket_handler,\n                methods=frozenset({\"GET\"}),\n                host=host,\n                strict_slashes=strict_slashes,\n                name=name,\n            )\n        )\n        return routes, handler\n\n    return response",
-                "def add_websocket_route(\n    self,\n    handler,\n    uri,\n    host=None,\n    strict_slashes=None,\n    subprotocols=None,\n    name=None,\n):\n    \"\"\"\n    A helper method to register a function as a websocket route.\n\n    :param handler: a callable function or instance of a class\n                    that can handle the websocket request\n    :param host: Host IP or FQDN details\n    :param uri: URL path that will be mapped to the websocket\n                handler\n                handler\n    :param strict_slashes: If the API endpoint needs to terminate\n            with a \"/\" or not\n    :param subprotocols: Subprotocols to be used with websocket\n            handshake\n    :param name: A unique name assigned to the URL so that it can\n            be used with :func:`url_for`\n    :return: Objected decorated by :func:`websocket`\n    \"\"\"\n    if strict_slashes is None:\n        strict_slashes = self.strict_slashes\n\n    return self.websocket(\n        uri,\n        host=host,\n        strict_slashes=strict_slashes,\n        subprotocols=subprotocols,\n        name=name,\n    )(handler)",
-                "def enable_websocket(self, enable=True):\n    \"\"\"Enable or disable the support for websocket.\n\n    Websocket is enabled automatically if websocket routes are\n    added to the application.\n    \"\"\"\n    if not self.websocket_enabled:\n        # if the server is stopped, we want to cancel any ongoing\n        # websocket tasks, to allow the server to exit promptly\n        @self.listener(\"before_server_stop\")\n        def cancel_websocket_tasks(app, loop):\n            for task in self.websocket_tasks:\n                task.cancel()\n\n    self.websocket_enabled = enable",
-                "def exception(self, *exceptions):\n    \"\"\"Decorate a function to be registered as a handler for exceptions\n\n    :param exceptions: exceptions\n    :return: decorated function\n    \"\"\"\n\n    def response(handler):\n        for exception in exceptions:\n            if isinstance(exception, (tuple, list)):\n                for e in exception:\n                    self.error_handler.add(e, handler)\n            else:\n                self.error_handler.add(exception, handler)\n        return handler\n\n    return response",
-                "def register_middleware(self, middleware, attach_to=\"request\"):\n    \"\"\"\n    Register an application level middleware that will be attached\n    to all the API URLs registered under this application.\n\n    This method is internally invoked by the :func:`middleware`\n    decorator provided at the app level.\n\n    :param middleware: Callback method to be attached to the\n        middleware\n    :param attach_to: The state at which the middleware needs to be\n        invoked in the lifecycle of an *HTTP Request*.\n        **request** - Invoke before the request is processed\n        **response** - Invoke before the response is returned back\n    :return: decorated method\n    \"\"\"\n    if attach_to == \"request\":\n        if middleware not in self.request_middleware:\n            self.request_middleware.append(middleware)\n    if attach_to == \"response\":\n        if middleware not in self.response_middleware:\n            self.response_middleware.appendleft(middleware)\n    return middleware",
-                "def register_named_middleware(\n    self, middleware, route_names, attach_to=\"request\"\n):\n    if attach_to == \"request\":\n        for _rn in route_names:\n            if _rn not in self.named_request_middleware:\n                self.named_request_middleware[_rn] = deque()\n            if middleware not in self.named_request_middleware[_rn]:\n                self.named_request_middleware[_rn].append(middleware)\n    if attach_to == \"response\":\n        for _rn in route_names:\n            if _rn not in self.named_response_middleware:\n                self.named_response_middleware[_rn] = deque()\n            if middleware not in self.named_response_middleware[_rn]:\n                self.named_response_middleware[_rn].append(middleware)",
-                "def middleware(self, middleware_or_request):\n    \"\"\"\n    Decorate and register middleware to be called before a request.\n    Can either be called as *@app.middleware* or\n    *@app.middleware('request')*\n\n    :param: middleware_or_request: Optional parameter to use for\n        identifying which type of middleware is being registered.\n    \"\"\"\n    # Detect which way this was called, @middleware or @middleware('AT')\n    if callable(middleware_or_request):\n        return self.register_middleware(middleware_or_request)\n\n    else:\n        return partial(\n            self.register_middleware, attach_to=middleware_or_request\n        )",
-                "def static(\n    self,\n    uri,\n    file_or_directory,\n    pattern=r\"/?.+\",\n    use_modified_since=True,\n    use_content_range=False,\n    stream_large_files=False,\n    name=\"static\",\n    host=None,\n    strict_slashes=None,\n    content_type=None,\n):\n    \"\"\"\n    Register a root to serve files from. The input can either be a\n    file or a directory. This method will enable an easy and simple way\n    to setup the :class:`Route` necessary to serve the static files.\n\n    :param uri: URL path to be used for serving static content\n    :param file_or_directory: Path for the Static file/directory with\n        static files\n    :param pattern: Regex Pattern identifying the valid static files\n    :param use_modified_since: If true, send file modified time, and return\n        not modified if the browser's matches the server's\n    :param use_content_range: If true, process header for range requests\n        and sends the file part that is requested\n    :param stream_large_files: If true, use the\n        :func:`StreamingHTTPResponse.file_stream` handler rather\n        than the :func:`HTTPResponse.file` handler to send the file.\n        If this is an integer, this represents the threshold size to\n        switch to :func:`StreamingHTTPResponse.file_stream`\n    :param name: user defined name used for url_for\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param content_type: user defined content type for header\n    :return: None\n    \"\"\"\n    static_register(\n        self,\n        uri,\n        file_or_directory,\n        pattern,\n        use_modified_since,\n        use_content_range,\n        stream_large_files,\n        name,\n        host,\n        strict_slashes,\n        content_type,\n    )",
-                "def blueprint(self, blueprint, **options):\n    \"\"\"Register a blueprint on the application.\n\n    :param blueprint: Blueprint object or (list, tuple) thereof\n    :param options: option dictionary with blueprint defaults\n    :return: Nothing\n    \"\"\"\n    if isinstance(blueprint, (list, tuple, BlueprintGroup)):\n        for item in blueprint:\n            self.blueprint(item, **options)\n        return\n    if blueprint.name in self.blueprints:\n        assert self.blueprints[blueprint.name] is blueprint, (\n            'A blueprint with the name \"%s\" is already registered.  '\n            \"Blueprint names must be unique.\" % (blueprint.name,)\n        )\n    else:\n        self.blueprints[blueprint.name] = blueprint\n        self._blueprint_order.append(blueprint)\n    blueprint.register(self, options)",
-                "def register_blueprint(self, *args, **kwargs):\n    \"\"\"\n    Proxy method provided for invoking the :func:`blueprint` method\n\n    .. note::\n        To be deprecated in 1.0. Use :func:`blueprint` instead.\n\n    :param args: Blueprint object or (list, tuple) thereof\n    :param kwargs: option dictionary with blueprint defaults\n    :return: None\n    \"\"\"\n\n    if self.debug:\n        warnings.simplefilter(\"default\")\n    warnings.warn(\n        \"Use of register_blueprint will be deprecated in \"\n        \"version 1.0.  Please use the blueprint method\"\n        \" instead\",\n        DeprecationWarning,\n    )\n    return self.blueprint(*args, **kwargs)",
-                "def url_for(self, view_name: str, **kwargs):\n    r\"\"\"Build a URL based on a view name and the values provided.\n\n    In order to build a URL, all request parameters must be supplied as\n    keyword arguments, and each parameter must pass the test for the\n    specified parameter type. If these conditions are not met, a\n    `URLBuildError` will be thrown.\n\n    Keyword arguments that are not request parameters will be included in\n    the output URL's query string.\n\n    :param view_name: string referencing the view name\n    :param \\**kwargs: keys and values that are used to build request\n        parameters and query string arguments.\n\n    :return: the built URL\n\n    Raises:\n        URLBuildError\n    \"\"\"\n    # find the route by the supplied view name\n    kw: Dict[str, str] = {}\n    # special static files url_for\n    if view_name == \"static\":\n        kw.update(name=kwargs.pop(\"name\", \"static\"))\n    elif view_name.endswith(\".static\"):  # blueprint.static\n        kwargs.pop(\"name\", None)\n        kw.update(name=view_name)\n\n    uri, route = self.router.find_route_by_view_name(view_name, **kw)\n    if not (uri and route):\n        raise URLBuildError(\n            f\"Endpoint with name `{view_name}` was not found\"\n        )\n\n    # If the route has host defined, split that off\n    # TODO: Retain netloc and path separately in Route objects\n    host = uri.find(\"/\")\n    if host > 0:\n        host, uri = uri[:host], uri[host:]\n    else:\n        host = None\n\n    if view_name == \"static\" or view_name.endswith(\".static\"):\n        filename = kwargs.pop(\"filename\", None)\n        # it's static folder\n        if \"<file_uri:\" in uri:\n            folder_ = uri.split(\"<file_uri:\", 1)[0]\n            if folder_.endswith(\"/\"):\n                folder_ = folder_[:-1]\n\n            if filename.startswith(\"/\"):\n                filename = filename[1:]\n\n            uri = f\"{folder_}/{filename}\"\n\n    if uri != \"/\" and uri.endswith(\"/\"):\n        uri = uri[:-1]\n\n    out = uri\n\n    # find all the parameters we will need to build in the URL\n    matched_params = re.findall(self.router.parameter_pattern, uri)\n\n    # _method is only a placeholder now, don't know how to support it\n    kwargs.pop(\"_method\", None)\n    anchor = kwargs.pop(\"_anchor\", \"\")\n    # _external need SERVER_NAME in config or pass _server arg\n    external = kwargs.pop(\"_external\", False)\n    scheme = kwargs.pop(\"_scheme\", \"\")\n    if scheme and not external:\n        raise ValueError(\"When specifying _scheme, _external must be True\")\n\n    netloc = kwargs.pop(\"_server\", None)\n    if netloc is None and external:\n        netloc = host or self.config.get(\"SERVER_NAME\", \"\")\n\n    if external:\n        if not scheme:\n            if \":\" in netloc[:8]:\n                scheme = netloc[:8].split(\":\", 1)[0]\n            else:\n                scheme = \"http\"\n\n        if \"://\" in netloc[:8]:\n            netloc = netloc.split(\"://\", 1)[-1]\n\n    for match in matched_params:\n        name, _type, pattern = self.router.parse_parameter_string(match)\n        # we only want to match against each individual parameter\n        specific_pattern = f\"^{pattern}$\"\n        supplied_param = None\n\n        if name in kwargs:\n            supplied_param = kwargs.get(name)\n            del kwargs[name]\n        else:\n            raise URLBuildError(\n                f\"Required parameter `{name}` was not passed to url_for\"\n            )\n\n        supplied_param = str(supplied_param)\n        # determine if the parameter supplied by the caller passes the test\n        # in the URL\n        passes_pattern = re.match(specific_pattern, supplied_param)\n\n        if not passes_pattern:\n            if _type != str:\n                type_name = _type.__name__\n\n                msg = (\n                    f'Value \"{supplied_param}\" '\n                    f\"for parameter `{name}` does not \"\n                    f\"match pattern for type `{type_name}`: {pattern}\"\n                )\n            else:\n                msg = (\n                    f'Value \"{supplied_param}\" for parameter `{name}` '\n                    f\"does not satisfy pattern {pattern}\"\n                )\n            raise URLBuildError(msg)\n\n        # replace the parameter in the URL with the supplied value\n        replacement_regex = f\"(<{name}.*?>)\"\n\n        out = re.sub(replacement_regex, supplied_param, out)\n\n    # parse the remainder of the keyword arguments into a querystring\n    query_string = urlencode(kwargs, doseq=True) if kwargs else \"\"\n    # scheme://netloc/path;parameters?query#fragment\n    out = urlunparse((scheme, netloc, out, \"\", query_string, anchor))\n\n    return out",
-                "def converted_response_type(self, response):\n    \"\"\"\n    No implementation provided.\n    \"\"\"\n    pass",
-                "async def handle_request(self, request, write_callback, stream_callback):\n    \"\"\"Take a request from the HTTP Server and return a response object\n    to be sent back The HTTP Server only expects a response object, so\n    exception handling must be done here\n\n    :param request: HTTP Request object\n    :param write_callback: Synchronous response function to be\n        called with the response as the only argument\n    :param stream_callback: Coroutine that handles streaming a\n        StreamingHTTPResponse if produced by the handler.\n\n    :return: Nothing\n    \"\"\"\n    # Define `response` var here to remove warnings about\n    # allocation before assignment below.\n    response = None\n    cancelled = False\n    name = None\n    try:\n        # Fetch handler from router\n        handler, args, kwargs, uri, name = self.router.get(request)\n\n        # -------------------------------------------- #\n        # Request Middleware\n        # -------------------------------------------- #\n        response = await self._run_request_middleware(\n            request, request_name=name\n        )\n        # No middleware results\n        if not response:\n            # -------------------------------------------- #\n            # Execute Handler\n            # -------------------------------------------- #\n\n            request.uri_template = uri\n            if handler is None:\n                raise ServerError(\n                    (\n                        \"'None' was returned while requesting a \"\n                        \"handler from the router\"\n                    )\n                )\n            else:\n                if not getattr(handler, \"__blueprintname__\", False):\n                    request.endpoint = self._build_endpoint_name(\n                        handler.__name__\n                    )\n                else:\n                    request.endpoint = self._build_endpoint_name(\n                        getattr(handler, \"__blueprintname__\", \"\"),\n                        handler.__name__,\n                    )\n\n            # Run response handler\n            response = handler(request, *args, **kwargs)\n            if isawaitable(response):\n                response = await response\n    except CancelledError:\n        # If response handler times out, the server handles the error\n        # and cancels the handle_request job.\n        # In this case, the transport is already closed and we cannot\n        # issue a response.\n        response = None\n        cancelled = True\n    except Exception as e:\n        # -------------------------------------------- #\n        # Response Generation Failed\n        # -------------------------------------------- #\n\n        try:\n            response = self.error_handler.response(request, e)\n            if isawaitable(response):\n                response = await response\n        except Exception as e:\n            if isinstance(e, SanicException):\n                response = self.error_handler.default(\n                    request=request, exception=e\n                )\n            elif self.debug:\n                response = HTTPResponse(\n                    f\"Error while \"\n                    f\"handling error: {e}\\nStack: {format_exc()}\",\n                    status=500,\n                )\n            else:\n                response = HTTPResponse(\n                    \"An error occurred while handling an error\", status=500\n                )\n    finally:\n        # -------------------------------------------- #\n        # Response Middleware\n        # -------------------------------------------- #\n        # Don't run response middleware if response is None\n        if response is not None:\n            try:\n                response = await self._run_response_middleware(\n                    request, response, request_name=name\n                )\n            except CancelledError:\n                # Response middleware can timeout too, as above.\n                response = None\n                cancelled = True\n            except BaseException:\n                error_logger.exception(\n                    \"Exception occurred in one of response \"\n                    \"middleware handlers\"\n                )\n        if cancelled:\n            raise CancelledError()\n\n    # pass the response to the correct callback\n    if write_callback is None or isinstance(\n        response, StreamingHTTPResponse\n    ):\n        if stream_callback:\n            await stream_callback(response)\n        else:\n            # Should only end here IF it is an ASGI websocket.\n            # TODO:\n            # - Add exception handling\n            pass\n    else:\n        write_callback(response)",
-                "@property\ndef test_client(self):\n    return SanicTestClient(self)",
-                "@property\ndef asgi_client(self):\n    return SanicASGITestClient(self)",
-                "def run(\n    self,\n    host: Optional[str] = None,\n    port: Optional[int] = None,\n    debug: bool = False,\n    ssl: Union[dict, SSLContext, None] = None,\n    sock: Optional[socket] = None,\n    workers: int = 1,\n    protocol: Type[Protocol] = None,\n    backlog: int = 100,\n    stop_event: Any = None,\n    register_sys_signals: bool = True,\n    access_log: Optional[bool] = None,\n    **kwargs: Any,\n) -> None:\n    \"\"\"Run the HTTP Server and listen until keyboard interrupt or term\n    signal. On termination, drain connections before closing.\n\n    :param host: Address to host on\n    :type host: str\n    :param port: Port to host on\n    :type port: int\n    :param debug: Enables debug output (slows server)\n    :type debug: bool\n    :param ssl: SSLContext, or location of certificate and key\n                for SSL encryption of worker(s)\n    :type ssl: SSLContext or dict\n    :param sock: Socket for the server to accept connections from\n    :type sock: socket\n    :param workers: Number of processes received before it is respected\n    :type workers: int\n    :param protocol: Subclass of asyncio Protocol class\n    :type protocol: type[Protocol]\n    :param backlog: a number of unaccepted connections that the system\n                    will allow before refusing new connections\n    :type backlog: int\n    :param stop_event: event to be triggered\n                       before stopping the app - deprecated\n    :type stop_event: None\n    :param register_sys_signals: Register SIG* events\n    :type register_sys_signals: bool\n    :param access_log: Enables writing access logs (slows server)\n    :type access_log: bool\n    :return: Nothing\n    \"\"\"\n    if \"loop\" in kwargs:\n        raise TypeError(\n            \"loop is not a valid argument. To use an existing loop, \"\n            \"change to create_server().\\nSee more: \"\n            \"https://sanic.readthedocs.io/en/latest/sanic/deploying.html\"\n            \"#asynchronous-support\"\n        )\n\n    # Default auto_reload to false\n    auto_reload = False\n    # If debug is set, default it to true (unless on windows)\n    if debug and os.name == \"posix\":\n        auto_reload = True\n    # Allow for overriding either of the defaults\n    auto_reload = kwargs.get(\"auto_reload\", auto_reload)\n\n    if sock is None:\n        host, port = host or \"127.0.0.1\", port or 8000\n\n    if protocol is None:\n        protocol = (\n            WebSocketProtocol if self.websocket_enabled else HttpProtocol\n        )\n    if stop_event is not None:\n        if debug:\n            warnings.simplefilter(\"default\")\n        warnings.warn(\n            \"stop_event will be removed from future versions.\",\n            DeprecationWarning,\n        )\n    # if access_log is passed explicitly change config.ACCESS_LOG\n    if access_log is not None:\n        self.config.ACCESS_LOG = access_log\n\n    server_settings = self._helper(\n        host=host,\n        port=port,\n        debug=debug,\n        ssl=ssl,\n        sock=sock,\n        workers=workers,\n        protocol=protocol,\n        backlog=backlog,\n        register_sys_signals=register_sys_signals,\n        auto_reload=auto_reload,\n    )\n\n    try:\n        self.is_running = True\n        self.is_stopping = False\n        if workers > 1 and os.name != \"posix\":\n            logger.warn(\n                f\"Multiprocessing is currently not supported on {os.name},\"\n                \" using workers=1 instead\"\n            )\n            workers = 1\n        if workers == 1:\n            if auto_reload and os.name != \"posix\":\n                # This condition must be removed after implementing\n                # auto reloader for other operating systems.\n                raise NotImplementedError\n\n            if (\n                auto_reload\n                and os.environ.get(\"SANIC_SERVER_RUNNING\") != \"true\"\n            ):\n                reloader_helpers.watchdog(2)\n            else:\n                serve(**server_settings)\n        else:\n            serve_multiple(server_settings, workers)\n    except BaseException:\n        error_logger.exception(\n            \"Experienced exception while trying to serve\"\n        )\n        raise\n    finally:\n        self.is_running = False\n    logger.info(\"Server Stopped\")",
-                "def stop(self):\n    \"\"\"This kills the Sanic\"\"\"\n    if not self.is_stopping:\n        self.is_stopping = True\n        get_event_loop().stop()",
-                "async def create_server(\n    self,\n    host: Optional[str] = None,\n    port: Optional[int] = None,\n    debug: bool = False,\n    ssl: Union[dict, SSLContext, None] = None,\n    sock: Optional[socket] = None,\n    protocol: Type[Protocol] = None,\n    backlog: int = 100,\n    stop_event: Any = None,\n    access_log: Optional[bool] = None,\n    return_asyncio_server=False,\n    asyncio_server_kwargs=None,\n) -> Optional[AsyncioServer]:\n    \"\"\"\n    Asynchronous version of :func:`run`.\n\n    This method will take care of the operations necessary to invoke\n    the *before_start* events via :func:`trigger_events` method invocation\n    before starting the *sanic* app in Async mode.\n\n    .. note::\n        This does not support multiprocessing and is not the preferred\n        way to run a :class:`Sanic` application.\n\n    :param host: Address to host on\n    :type host: str\n    :param port: Port to host on\n    :type port: int\n    :param debug: Enables debug output (slows server)\n    :type debug: bool\n    :param ssl: SSLContext, or location of certificate and key\n                for SSL encryption of worker(s)\n    :type ssl: SSLContext or dict\n    :param sock: Socket for the server to accept connections from\n    :type sock: socket\n    :param protocol: Subclass of asyncio Protocol class\n    :type protocol: type[Protocol]\n    :param backlog: a number of unaccepted connections that the system\n                    will allow before refusing new connections\n    :type backlog: int\n    :param stop_event: event to be triggered\n                       before stopping the app - deprecated\n    :type stop_event: None\n    :param access_log: Enables writing access logs (slows server)\n    :type access_log: bool\n    :param return_asyncio_server: flag that defines whether there's a need\n                                  to return asyncio.Server or\n                                  start it serving right away\n    :type return_asyncio_server: bool\n    :param asyncio_server_kwargs: key-value arguments for\n                                  asyncio/uvloop create_server method\n    :type asyncio_server_kwargs: dict\n    :return: AsyncioServer if return_asyncio_server is true, else Nothing\n    \"\"\"\n\n    if sock is None:\n        host, port = host or \"127.0.0.1\", port or 8000\n\n    if protocol is None:\n        protocol = (\n            WebSocketProtocol if self.websocket_enabled else HttpProtocol\n        )\n    if stop_event is not None:\n        if debug:\n            warnings.simplefilter(\"default\")\n        warnings.warn(\n            \"stop_event will be removed from future versions.\",\n            DeprecationWarning,\n        )\n    # if access_log is passed explicitly change config.ACCESS_LOG\n    if access_log is not None:\n        self.config.ACCESS_LOG = access_log\n\n    server_settings = self._helper(\n        host=host,\n        port=port,\n        debug=debug,\n        ssl=ssl,\n        sock=sock,\n        loop=get_event_loop(),\n        protocol=protocol,\n        backlog=backlog,\n        run_async=return_asyncio_server,\n    )\n\n    # Trigger before_start events\n    await self.trigger_events(\n        server_settings.get(\"before_start\", []),\n        server_settings.get(\"loop\"),\n    )\n\n    return await serve(\n        asyncio_server_kwargs=asyncio_server_kwargs, **server_settings\n    )",
-                "async def trigger_events(self, events, loop):\n    \"\"\"Trigger events (functions or async)\n    :param events: one or more sync or async functions to execute\n    :param loop: event loop\n    \"\"\"\n    for event in events:\n        result = event(loop)\n        if isawaitable(result):\n            await result",
-                "async def _run_request_middleware(self, request, request_name=None):\n    # The if improves speed.  I don't know why\n    named_middleware = self.named_request_middleware.get(\n        request_name, deque()\n    )\n    applicable_middleware = self.request_middleware + named_middleware\n    if applicable_middleware:\n        for middleware in applicable_middleware:\n            response = middleware(request)\n            if isawaitable(response):\n                response = await response\n            if response:\n                return response\n    return None",
-                "async def _run_response_middleware(\n    self, request, response, request_name=None\n):\n    named_middleware = self.named_response_middleware.get(\n        request_name, deque()\n    )\n    applicable_middleware = self.response_middleware + named_middleware\n    if applicable_middleware:\n        for middleware in applicable_middleware:\n            _response = middleware(request, response)\n            if isawaitable(_response):\n                _response = await _response\n            if _response:\n                response = _response\n                break\n    return response",
-                "def _helper(\n    self,\n    host=None,\n    port=None,\n    debug=False,\n    ssl=None,\n    sock=None,\n    workers=1,\n    loop=None,\n    protocol=HttpProtocol,\n    backlog=100,\n    stop_event=None,\n    register_sys_signals=True,\n    run_async=False,\n    auto_reload=False,\n):\n    \"\"\"Helper function used by `run` and `create_server`.\"\"\"\n    if isinstance(ssl, dict):\n        # try common aliaseses\n        cert = ssl.get(\"cert\") or ssl.get(\"certificate\")\n        key = ssl.get(\"key\") or ssl.get(\"keyfile\")\n        if cert is None or key is None:\n            raise ValueError(\"SSLContext or certificate and key required.\")\n        context = create_default_context(purpose=Purpose.CLIENT_AUTH)\n        context.load_cert_chain(cert, keyfile=key)\n        ssl = context\n    if stop_event is not None:\n        if debug:\n            warnings.simplefilter(\"default\")\n        warnings.warn(\n            \"stop_event will be removed from future versions.\",\n            DeprecationWarning,\n        )\n    if self.config.PROXIES_COUNT and self.config.PROXIES_COUNT < 0:\n        raise ValueError(\n            \"PROXIES_COUNT cannot be negative. \"\n            \"https://sanic.readthedocs.io/en/latest/sanic/config.html\"\n            \"#proxy-configuration\"\n        )\n\n    self.error_handler.debug = debug\n    self.debug = debug\n\n    server_settings = {\n        \"protocol\": protocol,\n        \"host\": host,\n        \"port\": port,\n        \"sock\": sock,\n        \"ssl\": ssl,\n        \"app\": self,\n        \"signal\": Signal(),\n        \"loop\": loop,\n        \"register_sys_signals\": register_sys_signals,\n        \"backlog\": backlog,\n    }\n\n    # -------------------------------------------- #\n    # Register start/stop events\n    # -------------------------------------------- #\n\n    for event_name, settings_name, reverse in (\n        (\"before_server_start\", \"before_start\", False),\n        (\"after_server_start\", \"after_start\", False),\n        (\"before_server_stop\", \"before_stop\", True),\n        (\"after_server_stop\", \"after_stop\", True),\n    ):\n        listeners = self.listeners[event_name].copy()\n        if reverse:\n            listeners.reverse()\n        # Prepend sanic to the arguments when listeners are triggered\n        listeners = [partial(listener, self) for listener in listeners]\n        server_settings[settings_name] = listeners\n\n    if self.configure_logging and debug:\n        logger.setLevel(logging.DEBUG)\n\n    if (\n        self.config.LOGO\n        and os.environ.get(\"SANIC_SERVER_RUNNING\") != \"true\"\n    ):\n        logger.debug(\n            self.config.LOGO\n            if isinstance(self.config.LOGO, str)\n            else BASE_LOGO\n        )\n\n    if run_async:\n        server_settings[\"run_async\"] = True\n\n    # Serve\n    if host and port and os.environ.get(\"SANIC_SERVER_RUNNING\") != \"true\":\n        proto = \"http\"\n        if ssl is not None:\n            proto = \"https\"\n        logger.info(f\"Goin' Fast @ {proto}://{host}:{port}\")\n\n    return server_settings",
-                "def _build_endpoint_name(self, *parts):\n    parts = [self.name, *parts]\n    return \".\".join(parts)",
-                "async def __call__(self, scope, receive, send):\n    \"\"\"To be ASGI compliant, our instance must be a callable that accepts\n    three arguments: scope, receive, send. See the ASGI reference for more\n    details: https://asgi.readthedocs.io/en/latest/\"\"\"\n    self.asgi = True\n    asgi_app = await ASGIApp.create(self, scope, receive, send)\n    await asgi_app()",
-                "def decorator(listener):\n    self.listeners[event].append(listener)\n    return listener",
-                "def response(handler):\n    if isinstance(handler, tuple):\n        # if a handler fn is already wrapped in a route, the handler\n        # variable will be a tuple of (existing routes, handler fn)\n        routes, handler = handler\n    else:\n        routes = []\n    args = list(signature(handler).parameters.keys())\n\n    if not args:\n        handler_name = handler.__name__\n\n        raise ValueError(\n            f\"Required parameter `request` missing \"\n            f\"in the {handler_name}() route?\"\n        )\n\n    if stream:\n        handler.is_stream = stream\n\n    routes.extend(\n        self.router.add(\n            uri=uri,\n            methods=methods,\n            handler=handler,\n            host=host,\n            strict_slashes=strict_slashes,\n            version=version,\n            name=name,\n        )\n    )\n    return routes, handler",
-                "def response(handler):\n    if isinstance(handler, tuple):\n        # if a handler fn is already wrapped in a route, the handler\n        # variable will be a tuple of (existing routes, handler fn)\n        routes, handler = handler\n    else:\n        routes = []\n\n    async def websocket_handler(request, *args, **kwargs):\n        request.app = self\n        if not getattr(handler, \"__blueprintname__\", False):\n            request.endpoint = handler.__name__\n        else:\n            request.endpoint = (\n                getattr(handler, \"__blueprintname__\", \"\")\n                + handler.__name__\n            )\n\n            pass\n\n        if self.asgi:\n            ws = request.transport.get_websocket_connection()\n        else:\n            protocol = request.transport.get_protocol()\n            protocol.app = self\n\n            ws = await protocol.websocket_handshake(\n                request, subprotocols\n            )\n\n        # schedule the application handler\n        # its future is kept in self.websocket_tasks in case it\n        # needs to be cancelled due to the server being stopped\n        fut = ensure_future(handler(request, ws, *args, **kwargs))\n        self.websocket_tasks.add(fut)\n        try:\n            await fut\n        except (CancelledError, ConnectionClosed):\n            pass\n        finally:\n            self.websocket_tasks.remove(fut)\n        await ws.close()\n\n    routes.extend(\n        self.router.add(\n            uri=uri,\n            handler=websocket_handler,\n            methods=frozenset({\"GET\"}),\n            host=host,\n            strict_slashes=strict_slashes,\n            name=name,\n        )\n    )\n    return routes, handler",
-                "def response(handler):\n    for exception in exceptions:\n        if isinstance(exception, (tuple, list)):\n            for e in exception:\n                self.error_handler.add(e, handler)\n        else:\n            self.error_handler.add(exception, handler)\n    return handler",
-                "async def websocket_handler(request, *args, **kwargs):\n    request.app = self\n    if not getattr(handler, \"__blueprintname__\", False):\n        request.endpoint = handler.__name__\n    else:\n        request.endpoint = (\n            getattr(handler, \"__blueprintname__\", \"\")\n            + handler.__name__\n        )\n\n        pass\n\n    if self.asgi:\n        ws = request.transport.get_websocket_connection()\n    else:\n        protocol = request.transport.get_protocol()\n        protocol.app = self\n\n        ws = await protocol.websocket_handshake(\n            request, subprotocols\n        )\n\n    # schedule the application handler\n    # its future is kept in self.websocket_tasks in case it\n    # needs to be cancelled due to the server being stopped\n    fut = ensure_future(handler(request, ws, *args, **kwargs))\n    self.websocket_tasks.add(fut)\n    try:\n        await fut\n    except (CancelledError, ConnectionClosed):\n        pass\n    finally:\n        self.websocket_tasks.remove(fut)\n    await ws.close()",
-                "@self.listener(\"before_server_stop\")\ndef cancel_websocket_tasks(app, loop):\n    for task in self.websocket_tasks:\n        task.cancel()",
-                "@self.listener(\"before_server_start\")\ndef run(app, loop):\n    if callable(task):\n        try:\n            loop.create_task(task(self))\n        except TypeError:\n            loop.create_task(task())\n    else:\n        loop.create_task(task)"
-            ],
-            "inscope_function_signatures": [
-                "__init__(self, name=None, router=None, error_handler=None, load_env=True, request_class=None, strict_slashes=False, log_config=None, configure_logging=True)",
-                "loop(self)",
-                "add_task(self, task)",
-                "listener(self, event)",
-                "register_listener(self, listener, event)",
-                "route(self, uri, methods=frozenset({'GET'}), host=None, strict_slashes=None, stream=False, version=None, name=None)",
-                "get(self, uri, host=None, strict_slashes=None, version=None, name=None)",
-                "post(self, uri, host=None, strict_slashes=None, stream=False, version=None, name=None)",
-                "put(self, uri, host=None, strict_slashes=None, stream=False, version=None, name=None)",
-                "head(self, uri, host=None, strict_slashes=None, version=None, name=None)",
-                "options(self, uri, host=None, strict_slashes=None, version=None, name=None)",
-                "patch(self, uri, host=None, strict_slashes=None, stream=False, version=None, name=None)",
-                "delete(self, uri, host=None, strict_slashes=None, version=None, name=None)",
-                "add_route(self, handler, uri, methods=frozenset({'GET'}), host=None, strict_slashes=None, version=None, name=None, stream=False)",
-                "websocket(self, uri, host=None, strict_slashes=None, subprotocols=None, name=None)",
-                "add_websocket_route(self, handler, uri, host=None, strict_slashes=None, subprotocols=None, name=None)",
-                "enable_websocket(self, enable=True)",
-                "exception(self, *exceptions)",
-                "register_middleware(self, middleware, attach_to='request')",
-                "register_named_middleware(self, middleware, route_names, attach_to='request')",
-                "middleware(self, middleware_or_request)",
-                "static(self, uri, file_or_directory, pattern='/?.+', use_modified_since=True, use_content_range=False, stream_large_files=False, name='static', host=None, strict_slashes=None, content_type=None)",
-                "blueprint(self, blueprint, **options)",
-                "register_blueprint(self, *args, **kwargs)",
-                "url_for(self, view_name: str, **kwargs)",
-                "converted_response_type(self, response)",
-                "handle_request(self, request, write_callback, stream_callback)",
-                "test_client(self)",
-                "asgi_client(self)",
-                "run(self, host: Optional[str]=None, port: Optional[int]=None, debug: bool=False, ssl: Union[dict, SSLContext, None]=None, sock: Optional[socket]=None, workers: int=1, protocol: Type[Protocol]=None, backlog: int=100, stop_event: Any=None, register_sys_signals: bool=True, access_log: Optional[bool]=None, **kwargs: Any) -> None",
-                "stop(self)",
-                "create_server(self, host: Optional[str]=None, port: Optional[int]=None, debug: bool=False, ssl: Union[dict, SSLContext, None]=None, sock: Optional[socket]=None, protocol: Type[Protocol]=None, backlog: int=100, stop_event: Any=None, access_log: Optional[bool]=None, return_asyncio_server=False, asyncio_server_kwargs=None) -> Optional[AsyncioServer]",
-                "trigger_events(self, events, loop)",
-                "_run_request_middleware(self, request, request_name=None)",
-                "_run_response_middleware(self, request, response, request_name=None)",
-                "_helper(self, host=None, port=None, debug=False, ssl=None, sock=None, workers=1, loop=None, protocol=HttpProtocol, backlog=100, stop_event=None, register_sys_signals=True, run_async=False, auto_reload=False)",
-                "_build_endpoint_name(self, *parts)",
-                "__call__(self, scope, receive, send)",
-                "decorator(listener)",
-                "response(handler)",
-                "response(handler)",
-                "response(handler)",
-                "websocket_handler(request, *args, **kwargs)",
-                "cancel_websocket_tasks(app, loop)",
-                "run(app, loop)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [
+                    {
+                        "code": "@self.listener(\"before_server_stop\")\ndef cancel_websocket_tasks(app, loop):\n    for task in self.websocket_tasks:\n        task.cancel()",
+                        "signature": "cancel_websocket_tasks(app, loop)"
+                    },
+                    {
+                        "code": "@self.listener(\"before_server_start\")\ndef run(app, loop):\n    if callable(task):\n        try:\n            loop.create_task(task(self))\n        except TypeError:\n            loop.create_task(task())\n    else:\n        loop.create_task(task)",
+                        "signature": "run(app, loop)"
+                    }
+                ],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class Sanic:",
+                        "functions": [
+                            {
+                                "code": "def __init__(\n    self,\n    name=None,\n    router=None,\n    error_handler=None,\n    load_env=True,\n    request_class=None,\n    strict_slashes=False,\n    log_config=None,\n    configure_logging=True,\n):\n\n    # Get name from previous stack frame\n    if name is None:\n        warnings.warn(\n            \"Sanic(name=None) is deprecated and None value support \"\n            \"for `name` will be removed in the next release. \"\n            \"Please use Sanic(name='your_application_name') instead.\",\n            DeprecationWarning,\n            stacklevel=2,\n        )\n        frame_records = stack()[1]\n        name = getmodulename(frame_records[1])\n\n    # logging\n    if configure_logging:\n        logging.config.dictConfig(log_config or LOGGING_CONFIG_DEFAULTS)\n\n    self.name = name\n    self.asgi = False\n    self.router = router or Router()\n    self.request_class = request_class\n    self.error_handler = error_handler or ErrorHandler()\n    self.config = Config(load_env=load_env)\n    self.request_middleware = deque()\n    self.response_middleware = deque()\n    self.blueprints = {}\n    self._blueprint_order = []\n    self.configure_logging = configure_logging\n    self.debug = None\n    self.sock = None\n    self.strict_slashes = strict_slashes\n    self.listeners = defaultdict(list)\n    self.is_stopping = False\n    self.is_running = False\n    self.is_request_stream = False\n    self.websocket_enabled = False\n    self.websocket_tasks = set()\n    self.named_request_middleware = {}\n    self.named_response_middleware = {}\n    # Register alternative method names\n    self.go_fast = self.run",
+                                "signature": "__init__(self, name=None, router=None, error_handler=None, load_env=True, request_class=None, strict_slashes=False, log_config=None, configure_logging=True)"
+                            },
+                            {
+                                "code": "@property\ndef loop(self):\n    \"\"\"Synonymous with asyncio.get_event_loop().\n\n    Only supported when using the `app.run` method.\n    \"\"\"\n    if not self.is_running and self.asgi is False:\n        raise SanicException(\n            \"Loop can only be retrieved after the app has started \"\n            \"running. Not supported with `create_server` function\"\n        )\n    return get_event_loop()",
+                                "signature": "loop(self)"
+                            },
+                            {
+                                "code": "def add_task(self, task):\n    \"\"\"Schedule a task to run later, after the loop has started.\n    Different from asyncio.ensure_future in that it does not\n    also return a future, and the actual ensure_future call\n    is delayed until before server start.\n\n    :param task: future, couroutine or awaitable\n    \"\"\"\n    try:\n        if callable(task):\n            try:\n                self.loop.create_task(task(self))\n            except TypeError:\n                self.loop.create_task(task())\n        else:\n            self.loop.create_task(task)\n    except SanicException:\n\n        @self.listener(\"before_server_start\")\n        def run(app, loop):\n            if callable(task):\n                try:\n                    loop.create_task(task(self))\n                except TypeError:\n                    loop.create_task(task())\n            else:\n                loop.create_task(task)",
+                                "signature": "add_task(self, task)"
+                            },
+                            {
+                                "code": "def listener(self, event):\n    \"\"\"Create a listener from a decorated function.\n\n    :param event: event to listen to\n    \"\"\"\n\n    def decorator(listener):\n        self.listeners[event].append(listener)\n        return listener\n\n    return decorator",
+                                "signature": "listener(self, event)"
+                            },
+                            {
+                                "code": "def register_listener(self, listener, event):\n    \"\"\"\n    Register the listener for a given event.\n\n    :param listener: callable i.e. setup_db(app, loop)\n    :param event: when to register listener i.e. 'before_server_start'\n    :return: listener\n    \"\"\"\n\n    return self.listener(event)(listener)",
+                                "signature": "register_listener(self, listener, event)"
+                            },
+                            {
+                                "code": "def route(\n    self,\n    uri,\n    methods=frozenset({\"GET\"}),\n    host=None,\n    strict_slashes=None,\n    stream=False,\n    version=None,\n    name=None,\n):\n    \"\"\"Decorate a function to be registered as a route\n\n    :param uri: path of the URL\n    :param methods: list or tuple of methods allowed\n    :param host:\n    :param strict_slashes:\n    :param stream:\n    :param version:\n    :param name: user defined route name for url_for\n    :return: tuple of routes, decorated function\n    \"\"\"\n\n    # Fix case where the user did not prefix the URL with a /\n    # and will probably get confused as to why it's not working\n    if not uri.startswith(\"/\"):\n        uri = \"/\" + uri\n\n    if stream:\n        self.is_request_stream = True\n\n    if strict_slashes is None:\n        strict_slashes = self.strict_slashes\n\n    def response(handler):\n        if isinstance(handler, tuple):\n            # if a handler fn is already wrapped in a route, the handler\n            # variable will be a tuple of (existing routes, handler fn)\n            routes, handler = handler\n        else:\n            routes = []\n        args = list(signature(handler).parameters.keys())\n\n        if not args:\n            handler_name = handler.__name__\n\n            raise ValueError(\n                f\"Required parameter `request` missing \"\n                f\"in the {handler_name}() route?\"\n            )\n\n        if stream:\n            handler.is_stream = stream\n\n        routes.extend(\n            self.router.add(\n                uri=uri,\n                methods=methods,\n                handler=handler,\n                host=host,\n                strict_slashes=strict_slashes,\n                version=version,\n                name=name,\n            )\n        )\n        return routes, handler\n\n    return response",
+                                "signature": "route(self, uri, methods=frozenset({'GET'}), host=None, strict_slashes=None, stream=False, version=None, name=None)"
+                            },
+                            {
+                                "code": "def get(\n    self, uri, host=None, strict_slashes=None, version=None, name=None\n):\n    \"\"\"\n    Add an API URL under the **GET** *HTTP* method\n\n    :param uri: URL to be tagged to **GET** method of *HTTP*\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param version: API Version\n    :param name: Unique name that can be used to identify the Route\n    :return: Object decorated with :func:`route` method\n    \"\"\"\n    return self.route(\n        uri,\n        methods=frozenset({\"GET\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        version=version,\n        name=name,\n    )",
+                                "signature": "get(self, uri, host=None, strict_slashes=None, version=None, name=None)"
+                            },
+                            {
+                                "code": "def post(\n    self,\n    uri,\n    host=None,\n    strict_slashes=None,\n    stream=False,\n    version=None,\n    name=None,\n):\n    \"\"\"\n    Add an API URL under the **POST** *HTTP* method\n\n    :param uri: URL to be tagged to **POST** method of *HTTP*\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param version: API Version\n    :param name: Unique name that can be used to identify the Route\n    :return: Object decorated with :func:`route` method\n    \"\"\"\n    return self.route(\n        uri,\n        methods=frozenset({\"POST\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        stream=stream,\n        version=version,\n        name=name,\n    )",
+                                "signature": "post(self, uri, host=None, strict_slashes=None, stream=False, version=None, name=None)"
+                            },
+                            {
+                                "code": "def put(\n    self,\n    uri,\n    host=None,\n    strict_slashes=None,\n    stream=False,\n    version=None,\n    name=None,\n):\n    \"\"\"\n    Add an API URL under the **PUT** *HTTP* method\n\n    :param uri: URL to be tagged to **PUT** method of *HTTP*\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param version: API Version\n    :param name: Unique name that can be used to identify the Route\n    :return: Object decorated with :func:`route` method\n    \"\"\"\n    return self.route(\n        uri,\n        methods=frozenset({\"PUT\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        stream=stream,\n        version=version,\n        name=name,\n    )",
+                                "signature": "put(self, uri, host=None, strict_slashes=None, stream=False, version=None, name=None)"
+                            },
+                            {
+                                "code": "def head(\n    self, uri, host=None, strict_slashes=None, version=None, name=None\n):\n    return self.route(\n        uri,\n        methods=frozenset({\"HEAD\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        version=version,\n        name=name,\n    )",
+                                "signature": "head(self, uri, host=None, strict_slashes=None, version=None, name=None)"
+                            },
+                            {
+                                "code": "def options(\n    self, uri, host=None, strict_slashes=None, version=None, name=None\n):\n    \"\"\"\n    Add an API URL under the **OPTIONS** *HTTP* method\n\n    :param uri: URL to be tagged to **OPTIONS** method of *HTTP*\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param version: API Version\n    :param name: Unique name that can be used to identify the Route\n    :return: Object decorated with :func:`route` method\n    \"\"\"\n    return self.route(\n        uri,\n        methods=frozenset({\"OPTIONS\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        version=version,\n        name=name,\n    )",
+                                "signature": "options(self, uri, host=None, strict_slashes=None, version=None, name=None)"
+                            },
+                            {
+                                "code": "def patch(\n    self,\n    uri,\n    host=None,\n    strict_slashes=None,\n    stream=False,\n    version=None,\n    name=None,\n):\n    \"\"\"\n    Add an API URL under the **PATCH** *HTTP* method\n\n    :param uri: URL to be tagged to **PATCH** method of *HTTP*\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param version: API Version\n    :param name: Unique name that can be used to identify the Route\n    :return: Object decorated with :func:`route` method\n    \"\"\"\n    return self.route(\n        uri,\n        methods=frozenset({\"PATCH\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        stream=stream,\n        version=version,\n        name=name,\n    )",
+                                "signature": "patch(self, uri, host=None, strict_slashes=None, stream=False, version=None, name=None)"
+                            },
+                            {
+                                "code": "def delete(\n    self, uri, host=None, strict_slashes=None, version=None, name=None\n):\n    \"\"\"\n    Add an API URL under the **DELETE** *HTTP* method\n\n    :param uri: URL to be tagged to **DELETE** method of *HTTP*\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param version: API Version\n    :param name: Unique name that can be used to identify the Route\n    :return: Object decorated with :func:`route` method\n    \"\"\"\n    return self.route(\n        uri,\n        methods=frozenset({\"DELETE\"}),\n        host=host,\n        strict_slashes=strict_slashes,\n        version=version,\n        name=name,\n    )",
+                                "signature": "delete(self, uri, host=None, strict_slashes=None, version=None, name=None)"
+                            },
+                            {
+                                "code": "def add_route(\n    self,\n    handler,\n    uri,\n    methods=frozenset({\"GET\"}),\n    host=None,\n    strict_slashes=None,\n    version=None,\n    name=None,\n    stream=False,\n):\n    \"\"\"A helper method to register class instance or\n    functions as a handler to the application url\n    routes.\n\n    :param handler: function or class instance\n    :param uri: path of the URL\n    :param methods: list or tuple of methods allowed, these are overridden\n                    if using a HTTPMethodView\n    :param host:\n    :param strict_slashes:\n    :param version:\n    :param name: user defined route name for url_for\n    :param stream: boolean specifying if the handler is a stream handler\n    :return: function or class instance\n    \"\"\"\n    # Handle HTTPMethodView differently\n    if hasattr(handler, \"view_class\"):\n        methods = set()\n\n        for method in HTTP_METHODS:\n            _handler = getattr(handler.view_class, method.lower(), None)\n            if _handler:\n                methods.add(method)\n                if hasattr(_handler, \"is_stream\"):\n                    stream = True\n\n    # handle composition view differently\n    if isinstance(handler, CompositionView):\n        methods = handler.handlers.keys()\n        for _handler in handler.handlers.values():\n            if hasattr(_handler, \"is_stream\"):\n                stream = True\n                break\n\n    if strict_slashes is None:\n        strict_slashes = self.strict_slashes\n\n    self.route(\n        uri=uri,\n        methods=methods,\n        host=host,\n        strict_slashes=strict_slashes,\n        stream=stream,\n        version=version,\n        name=name,\n    )(handler)\n    return handler",
+                                "signature": "add_route(self, handler, uri, methods=frozenset({'GET'}), host=None, strict_slashes=None, version=None, name=None, stream=False)"
+                            },
+                            {
+                                "code": "def websocket(\n    self, uri, host=None, strict_slashes=None, subprotocols=None, name=None\n):\n    \"\"\"\n    Decorate a function to be registered as a websocket route\n\n    :param uri: path of the URL\n    :param host: Host IP or FQDN details\n    :param strict_slashes: If the API endpoint needs to terminate\n                           with a \"/\" or not\n    :param subprotocols: optional list of str with supported subprotocols\n    :param name: A unique name assigned to the URL so that it can\n                 be used with :func:`url_for`\n    :return: tuple of routes, decorated function\n    \"\"\"\n    self.enable_websocket()\n\n    # Fix case where the user did not prefix the URL with a /\n    # and will probably get confused as to why it's not working\n    if not uri.startswith(\"/\"):\n        uri = \"/\" + uri\n\n    if strict_slashes is None:\n        strict_slashes = self.strict_slashes\n\n    def response(handler):\n        if isinstance(handler, tuple):\n            # if a handler fn is already wrapped in a route, the handler\n            # variable will be a tuple of (existing routes, handler fn)\n            routes, handler = handler\n        else:\n            routes = []\n\n        async def websocket_handler(request, *args, **kwargs):\n            request.app = self\n            if not getattr(handler, \"__blueprintname__\", False):\n                request.endpoint = handler.__name__\n            else:\n                request.endpoint = (\n                    getattr(handler, \"__blueprintname__\", \"\")\n                    + handler.__name__\n                )\n\n                pass\n\n            if self.asgi:\n                ws = request.transport.get_websocket_connection()\n            else:\n                protocol = request.transport.get_protocol()\n                protocol.app = self\n\n                ws = await protocol.websocket_handshake(\n                    request, subprotocols\n                )\n\n            # schedule the application handler\n            # its future is kept in self.websocket_tasks in case it\n            # needs to be cancelled due to the server being stopped\n            fut = ensure_future(handler(request, ws, *args, **kwargs))\n            self.websocket_tasks.add(fut)\n            try:\n                await fut\n            except (CancelledError, ConnectionClosed):\n                pass\n            finally:\n                self.websocket_tasks.remove(fut)\n            await ws.close()\n\n        routes.extend(\n            self.router.add(\n                uri=uri,\n                handler=websocket_handler,\n                methods=frozenset({\"GET\"}),\n                host=host,\n                strict_slashes=strict_slashes,\n                name=name,\n            )\n        )\n        return routes, handler\n\n    return response",
+                                "signature": "websocket(self, uri, host=None, strict_slashes=None, subprotocols=None, name=None)"
+                            },
+                            {
+                                "code": "def add_websocket_route(\n    self,\n    handler,\n    uri,\n    host=None,\n    strict_slashes=None,\n    subprotocols=None,\n    name=None,\n):\n    \"\"\"\n    A helper method to register a function as a websocket route.\n\n    :param handler: a callable function or instance of a class\n                    that can handle the websocket request\n    :param host: Host IP or FQDN details\n    :param uri: URL path that will be mapped to the websocket\n                handler\n                handler\n    :param strict_slashes: If the API endpoint needs to terminate\n            with a \"/\" or not\n    :param subprotocols: Subprotocols to be used with websocket\n            handshake\n    :param name: A unique name assigned to the URL so that it can\n            be used with :func:`url_for`\n    :return: Objected decorated by :func:`websocket`\n    \"\"\"\n    if strict_slashes is None:\n        strict_slashes = self.strict_slashes\n\n    return self.websocket(\n        uri,\n        host=host,\n        strict_slashes=strict_slashes,\n        subprotocols=subprotocols,\n        name=name,\n    )(handler)",
+                                "signature": "add_websocket_route(self, handler, uri, host=None, strict_slashes=None, subprotocols=None, name=None)"
+                            },
+                            {
+                                "code": "def enable_websocket(self, enable=True):\n    \"\"\"Enable or disable the support for websocket.\n\n    Websocket is enabled automatically if websocket routes are\n    added to the application.\n    \"\"\"\n    if not self.websocket_enabled:\n        # if the server is stopped, we want to cancel any ongoing\n        # websocket tasks, to allow the server to exit promptly\n        @self.listener(\"before_server_stop\")\n        def cancel_websocket_tasks(app, loop):\n            for task in self.websocket_tasks:\n                task.cancel()\n\n    self.websocket_enabled = enable",
+                                "signature": "enable_websocket(self, enable=True)"
+                            },
+                            {
+                                "code": "def exception(self, *exceptions):\n    \"\"\"Decorate a function to be registered as a handler for exceptions\n\n    :param exceptions: exceptions\n    :return: decorated function\n    \"\"\"\n\n    def response(handler):\n        for exception in exceptions:\n            if isinstance(exception, (tuple, list)):\n                for e in exception:\n                    self.error_handler.add(e, handler)\n            else:\n                self.error_handler.add(exception, handler)\n        return handler\n\n    return response",
+                                "signature": "exception(self, *exceptions)"
+                            },
+                            {
+                                "code": "def register_middleware(self, middleware, attach_to=\"request\"):\n    \"\"\"\n    Register an application level middleware that will be attached\n    to all the API URLs registered under this application.\n\n    This method is internally invoked by the :func:`middleware`\n    decorator provided at the app level.\n\n    :param middleware: Callback method to be attached to the\n        middleware\n    :param attach_to: The state at which the middleware needs to be\n        invoked in the lifecycle of an *HTTP Request*.\n        **request** - Invoke before the request is processed\n        **response** - Invoke before the response is returned back\n    :return: decorated method\n    \"\"\"\n    if attach_to == \"request\":\n        if middleware not in self.request_middleware:\n            self.request_middleware.append(middleware)\n    if attach_to == \"response\":\n        if middleware not in self.response_middleware:\n            self.response_middleware.appendleft(middleware)\n    return middleware",
+                                "signature": "register_middleware(self, middleware, attach_to='request')"
+                            },
+                            {
+                                "code": "def register_named_middleware(\n    self, middleware, route_names, attach_to=\"request\"\n):\n    if attach_to == \"request\":\n        for _rn in route_names:\n            if _rn not in self.named_request_middleware:\n                self.named_request_middleware[_rn] = deque()\n            if middleware not in self.named_request_middleware[_rn]:\n                self.named_request_middleware[_rn].append(middleware)\n    if attach_to == \"response\":\n        for _rn in route_names:\n            if _rn not in self.named_response_middleware:\n                self.named_response_middleware[_rn] = deque()\n            if middleware not in self.named_response_middleware[_rn]:\n                self.named_response_middleware[_rn].append(middleware)",
+                                "signature": "register_named_middleware(self, middleware, route_names, attach_to='request')"
+                            },
+                            {
+                                "code": "def middleware(self, middleware_or_request):\n    \"\"\"\n    Decorate and register middleware to be called before a request.\n    Can either be called as *@app.middleware* or\n    *@app.middleware('request')*\n\n    :param: middleware_or_request: Optional parameter to use for\n        identifying which type of middleware is being registered.\n    \"\"\"\n    # Detect which way this was called, @middleware or @middleware('AT')\n    if callable(middleware_or_request):\n        return self.register_middleware(middleware_or_request)\n\n    else:\n        return partial(\n            self.register_middleware, attach_to=middleware_or_request\n        )",
+                                "signature": "middleware(self, middleware_or_request)"
+                            },
+                            {
+                                "code": "def static(\n    self,\n    uri,\n    file_or_directory,\n    pattern=r\"/?.+\",\n    use_modified_since=True,\n    use_content_range=False,\n    stream_large_files=False,\n    name=\"static\",\n    host=None,\n    strict_slashes=None,\n    content_type=None,\n):\n    \"\"\"\n    Register a root to serve files from. The input can either be a\n    file or a directory. This method will enable an easy and simple way\n    to setup the :class:`Route` necessary to serve the static files.\n\n    :param uri: URL path to be used for serving static content\n    :param file_or_directory: Path for the Static file/directory with\n        static files\n    :param pattern: Regex Pattern identifying the valid static files\n    :param use_modified_since: If true, send file modified time, and return\n        not modified if the browser's matches the server's\n    :param use_content_range: If true, process header for range requests\n        and sends the file part that is requested\n    :param stream_large_files: If true, use the\n        :func:`StreamingHTTPResponse.file_stream` handler rather\n        than the :func:`HTTPResponse.file` handler to send the file.\n        If this is an integer, this represents the threshold size to\n        switch to :func:`StreamingHTTPResponse.file_stream`\n    :param name: user defined name used for url_for\n    :param host: Host IP or FQDN for the service to use\n    :param strict_slashes: Instruct :class:`Sanic` to check if the request\n        URLs need to terminate with a */*\n    :param content_type: user defined content type for header\n    :return: None\n    \"\"\"\n    static_register(\n        self,\n        uri,\n        file_or_directory,\n        pattern,\n        use_modified_since,\n        use_content_range,\n        stream_large_files,\n        name,\n        host,\n        strict_slashes,\n        content_type,\n    )",
+                                "signature": "static(self, uri, file_or_directory, pattern='/?.+', use_modified_since=True, use_content_range=False, stream_large_files=False, name='static', host=None, strict_slashes=None, content_type=None)"
+                            },
+                            {
+                                "code": "def blueprint(self, blueprint, **options):\n    \"\"\"Register a blueprint on the application.\n\n    :param blueprint: Blueprint object or (list, tuple) thereof\n    :param options: option dictionary with blueprint defaults\n    :return: Nothing\n    \"\"\"\n    if isinstance(blueprint, (list, tuple, BlueprintGroup)):\n        for item in blueprint:\n            self.blueprint(item, **options)\n        return\n    if blueprint.name in self.blueprints:\n        assert self.blueprints[blueprint.name] is blueprint, (\n            'A blueprint with the name \"%s\" is already registered.  '\n            \"Blueprint names must be unique.\" % (blueprint.name,)\n        )\n    else:\n        self.blueprints[blueprint.name] = blueprint\n        self._blueprint_order.append(blueprint)\n    blueprint.register(self, options)",
+                                "signature": "blueprint(self, blueprint, **options)"
+                            },
+                            {
+                                "code": "def register_blueprint(self, *args, **kwargs):\n    \"\"\"\n    Proxy method provided for invoking the :func:`blueprint` method\n\n    .. note::\n        To be deprecated in 1.0. Use :func:`blueprint` instead.\n\n    :param args: Blueprint object or (list, tuple) thereof\n    :param kwargs: option dictionary with blueprint defaults\n    :return: None\n    \"\"\"\n\n    if self.debug:\n        warnings.simplefilter(\"default\")\n    warnings.warn(\n        \"Use of register_blueprint will be deprecated in \"\n        \"version 1.0.  Please use the blueprint method\"\n        \" instead\",\n        DeprecationWarning,\n    )\n    return self.blueprint(*args, **kwargs)",
+                                "signature": "register_blueprint(self, *args, **kwargs)"
+                            },
+                            {
+                                "code": "def url_for(self, view_name: str, **kwargs):\n    r\"\"\"Build a URL based on a view name and the values provided.\n\n    In order to build a URL, all request parameters must be supplied as\n    keyword arguments, and each parameter must pass the test for the\n    specified parameter type. If these conditions are not met, a\n    `URLBuildError` will be thrown.\n\n    Keyword arguments that are not request parameters will be included in\n    the output URL's query string.\n\n    :param view_name: string referencing the view name\n    :param \\**kwargs: keys and values that are used to build request\n        parameters and query string arguments.\n\n    :return: the built URL\n\n    Raises:\n        URLBuildError\n    \"\"\"\n    # find the route by the supplied view name\n    kw: Dict[str, str] = {}\n    # special static files url_for\n    if view_name == \"static\":\n        kw.update(name=kwargs.pop(\"name\", \"static\"))\n    elif view_name.endswith(\".static\"):  # blueprint.static\n        kwargs.pop(\"name\", None)\n        kw.update(name=view_name)\n\n    uri, route = self.router.find_route_by_view_name(view_name, **kw)\n    if not (uri and route):\n        raise URLBuildError(\n            f\"Endpoint with name `{view_name}` was not found\"\n        )\n\n    # If the route has host defined, split that off\n    # TODO: Retain netloc and path separately in Route objects\n    host = uri.find(\"/\")\n    if host > 0:\n        host, uri = uri[:host], uri[host:]\n    else:\n        host = None\n\n    if view_name == \"static\" or view_name.endswith(\".static\"):\n        filename = kwargs.pop(\"filename\", None)\n        # it's static folder\n        if \"<file_uri:\" in uri:\n            folder_ = uri.split(\"<file_uri:\", 1)[0]\n            if folder_.endswith(\"/\"):\n                folder_ = folder_[:-1]\n\n            if filename.startswith(\"/\"):\n                filename = filename[1:]\n\n            uri = f\"{folder_}/{filename}\"\n\n    if uri != \"/\" and uri.endswith(\"/\"):\n        uri = uri[:-1]\n\n    out = uri\n\n    # find all the parameters we will need to build in the URL\n    matched_params = re.findall(self.router.parameter_pattern, uri)\n\n    # _method is only a placeholder now, don't know how to support it\n    kwargs.pop(\"_method\", None)\n    anchor = kwargs.pop(\"_anchor\", \"\")\n    # _external need SERVER_NAME in config or pass _server arg\n    external = kwargs.pop(\"_external\", False)\n    scheme = kwargs.pop(\"_scheme\", \"\")\n    if scheme and not external:\n        raise ValueError(\"When specifying _scheme, _external must be True\")\n\n    netloc = kwargs.pop(\"_server\", None)\n    if netloc is None and external:\n        netloc = host or self.config.get(\"SERVER_NAME\", \"\")\n\n    if external:\n        if not scheme:\n            if \":\" in netloc[:8]:\n                scheme = netloc[:8].split(\":\", 1)[0]\n            else:\n                scheme = \"http\"\n\n        if \"://\" in netloc[:8]:\n            netloc = netloc.split(\"://\", 1)[-1]\n\n    for match in matched_params:\n        name, _type, pattern = self.router.parse_parameter_string(match)\n        # we only want to match against each individual parameter\n        specific_pattern = f\"^{pattern}$\"\n        supplied_param = None\n\n        if name in kwargs:\n            supplied_param = kwargs.get(name)\n            del kwargs[name]\n        else:\n            raise URLBuildError(\n                f\"Required parameter `{name}` was not passed to url_for\"\n            )\n\n        supplied_param = str(supplied_param)\n        # determine if the parameter supplied by the caller passes the test\n        # in the URL\n        passes_pattern = re.match(specific_pattern, supplied_param)\n\n        if not passes_pattern:\n            if _type != str:\n                type_name = _type.__name__\n\n                msg = (\n                    f'Value \"{supplied_param}\" '\n                    f\"for parameter `{name}` does not \"\n                    f\"match pattern for type `{type_name}`: {pattern}\"\n                )\n            else:\n                msg = (\n                    f'Value \"{supplied_param}\" for parameter `{name}` '\n                    f\"does not satisfy pattern {pattern}\"\n                )\n            raise URLBuildError(msg)\n\n        # replace the parameter in the URL with the supplied value\n        replacement_regex = f\"(<{name}.*?>)\"\n\n        out = re.sub(replacement_regex, supplied_param, out)\n\n    # parse the remainder of the keyword arguments into a querystring\n    query_string = urlencode(kwargs, doseq=True) if kwargs else \"\"\n    # scheme://netloc/path;parameters?query#fragment\n    out = urlunparse((scheme, netloc, out, \"\", query_string, anchor))\n\n    return out",
+                                "signature": "url_for(self, view_name: str, **kwargs)"
+                            },
+                            {
+                                "code": "def converted_response_type(self, response):\n    \"\"\"\n    No implementation provided.\n    \"\"\"\n    pass",
+                                "signature": "converted_response_type(self, response)"
+                            },
+                            {
+                                "code": "async def handle_request(self, request, write_callback, stream_callback):\n    \"\"\"Take a request from the HTTP Server and return a response object\n    to be sent back The HTTP Server only expects a response object, so\n    exception handling must be done here\n\n    :param request: HTTP Request object\n    :param write_callback: Synchronous response function to be\n        called with the response as the only argument\n    :param stream_callback: Coroutine that handles streaming a\n        StreamingHTTPResponse if produced by the handler.\n\n    :return: Nothing\n    \"\"\"\n    # Define `response` var here to remove warnings about\n    # allocation before assignment below.\n    response = None\n    cancelled = False\n    name = None\n    try:\n        # Fetch handler from router\n        handler, args, kwargs, uri, name = self.router.get(request)\n\n        # -------------------------------------------- #\n        # Request Middleware\n        # -------------------------------------------- #\n        response = await self._run_request_middleware(\n            request, request_name=name\n        )\n        # No middleware results\n        if not response:\n            # -------------------------------------------- #\n            # Execute Handler\n            # -------------------------------------------- #\n\n            request.uri_template = uri\n            if handler is None:\n                raise ServerError(\n                    (\n                        \"'None' was returned while requesting a \"\n                        \"handler from the router\"\n                    )\n                )\n            else:\n                if not getattr(handler, \"__blueprintname__\", False):\n                    request.endpoint = self._build_endpoint_name(\n                        handler.__name__\n                    )\n                else:\n                    request.endpoint = self._build_endpoint_name(\n                        getattr(handler, \"__blueprintname__\", \"\"),\n                        handler.__name__,\n                    )\n\n            # Run response handler\n            response = handler(request, *args, **kwargs)\n            if isawaitable(response):\n                response = await response\n    except CancelledError:\n        # If response handler times out, the server handles the error\n        # and cancels the handle_request job.\n        # In this case, the transport is already closed and we cannot\n        # issue a response.\n        response = None\n        cancelled = True\n    except Exception as e:\n        # -------------------------------------------- #\n        # Response Generation Failed\n        # -------------------------------------------- #\n\n        try:\n            response = self.error_handler.response(request, e)\n            if isawaitable(response):\n                response = await response\n        except Exception as e:\n            if isinstance(e, SanicException):\n                response = self.error_handler.default(\n                    request=request, exception=e\n                )\n            elif self.debug:\n                response = HTTPResponse(\n                    f\"Error while \"\n                    f\"handling error: {e}\\nStack: {format_exc()}\",\n                    status=500,\n                )\n            else:\n                response = HTTPResponse(\n                    \"An error occurred while handling an error\", status=500\n                )\n    finally:\n        # -------------------------------------------- #\n        # Response Middleware\n        # -------------------------------------------- #\n        # Don't run response middleware if response is None\n        if response is not None:\n            try:\n                response = await self._run_response_middleware(\n                    request, response, request_name=name\n                )\n            except CancelledError:\n                # Response middleware can timeout too, as above.\n                response = None\n                cancelled = True\n            except BaseException:\n                error_logger.exception(\n                    \"Exception occurred in one of response \"\n                    \"middleware handlers\"\n                )\n        if cancelled:\n            raise CancelledError()\n\n    # pass the response to the correct callback\n    if write_callback is None or isinstance(\n        response, StreamingHTTPResponse\n    ):\n        if stream_callback:\n            await stream_callback(response)\n        else:\n            # Should only end here IF it is an ASGI websocket.\n            # TODO:\n            # - Add exception handling\n            pass\n    else:\n        write_callback(response)",
+                                "signature": "handle_request(self, request, write_callback, stream_callback)"
+                            },
+                            {
+                                "code": "@property\ndef test_client(self):\n    return SanicTestClient(self)",
+                                "signature": "test_client(self)"
+                            },
+                            {
+                                "code": "@property\ndef asgi_client(self):\n    return SanicASGITestClient(self)",
+                                "signature": "asgi_client(self)"
+                            },
+                            {
+                                "code": "def run(\n    self,\n    host: Optional[str] = None,\n    port: Optional[int] = None,\n    debug: bool = False,\n    ssl: Union[dict, SSLContext, None] = None,\n    sock: Optional[socket] = None,\n    workers: int = 1,\n    protocol: Type[Protocol] = None,\n    backlog: int = 100,\n    stop_event: Any = None,\n    register_sys_signals: bool = True,\n    access_log: Optional[bool] = None,\n    **kwargs: Any,\n) -> None:\n    \"\"\"Run the HTTP Server and listen until keyboard interrupt or term\n    signal. On termination, drain connections before closing.\n\n    :param host: Address to host on\n    :type host: str\n    :param port: Port to host on\n    :type port: int\n    :param debug: Enables debug output (slows server)\n    :type debug: bool\n    :param ssl: SSLContext, or location of certificate and key\n                for SSL encryption of worker(s)\n    :type ssl: SSLContext or dict\n    :param sock: Socket for the server to accept connections from\n    :type sock: socket\n    :param workers: Number of processes received before it is respected\n    :type workers: int\n    :param protocol: Subclass of asyncio Protocol class\n    :type protocol: type[Protocol]\n    :param backlog: a number of unaccepted connections that the system\n                    will allow before refusing new connections\n    :type backlog: int\n    :param stop_event: event to be triggered\n                       before stopping the app - deprecated\n    :type stop_event: None\n    :param register_sys_signals: Register SIG* events\n    :type register_sys_signals: bool\n    :param access_log: Enables writing access logs (slows server)\n    :type access_log: bool\n    :return: Nothing\n    \"\"\"\n    if \"loop\" in kwargs:\n        raise TypeError(\n            \"loop is not a valid argument. To use an existing loop, \"\n            \"change to create_server().\\nSee more: \"\n            \"https://sanic.readthedocs.io/en/latest/sanic/deploying.html\"\n            \"#asynchronous-support\"\n        )\n\n    # Default auto_reload to false\n    auto_reload = False\n    # If debug is set, default it to true (unless on windows)\n    if debug and os.name == \"posix\":\n        auto_reload = True\n    # Allow for overriding either of the defaults\n    auto_reload = kwargs.get(\"auto_reload\", auto_reload)\n\n    if sock is None:\n        host, port = host or \"127.0.0.1\", port or 8000\n\n    if protocol is None:\n        protocol = (\n            WebSocketProtocol if self.websocket_enabled else HttpProtocol\n        )\n    if stop_event is not None:\n        if debug:\n            warnings.simplefilter(\"default\")\n        warnings.warn(\n            \"stop_event will be removed from future versions.\",\n            DeprecationWarning,\n        )\n    # if access_log is passed explicitly change config.ACCESS_LOG\n    if access_log is not None:\n        self.config.ACCESS_LOG = access_log\n\n    server_settings = self._helper(\n        host=host,\n        port=port,\n        debug=debug,\n        ssl=ssl,\n        sock=sock,\n        workers=workers,\n        protocol=protocol,\n        backlog=backlog,\n        register_sys_signals=register_sys_signals,\n        auto_reload=auto_reload,\n    )\n\n    try:\n        self.is_running = True\n        self.is_stopping = False\n        if workers > 1 and os.name != \"posix\":\n            logger.warn(\n                f\"Multiprocessing is currently not supported on {os.name},\"\n                \" using workers=1 instead\"\n            )\n            workers = 1\n        if workers == 1:\n            if auto_reload and os.name != \"posix\":\n                # This condition must be removed after implementing\n                # auto reloader for other operating systems.\n                raise NotImplementedError\n\n            if (\n                auto_reload\n                and os.environ.get(\"SANIC_SERVER_RUNNING\") != \"true\"\n            ):\n                reloader_helpers.watchdog(2)\n            else:\n                serve(**server_settings)\n        else:\n            serve_multiple(server_settings, workers)\n    except BaseException:\n        error_logger.exception(\n            \"Experienced exception while trying to serve\"\n        )\n        raise\n    finally:\n        self.is_running = False\n    logger.info(\"Server Stopped\")",
+                                "signature": "run(self, host: Optional[str]=None, port: Optional[int]=None, debug: bool=False, ssl: Union[dict, SSLContext, None]=None, sock: Optional[socket]=None, workers: int=1, protocol: Type[Protocol]=None, backlog: int=100, stop_event: Any=None, register_sys_signals: bool=True, access_log: Optional[bool]=None, **kwargs: Any) -> None"
+                            },
+                            {
+                                "code": "def stop(self):\n    \"\"\"This kills the Sanic\"\"\"\n    if not self.is_stopping:\n        self.is_stopping = True\n        get_event_loop().stop()",
+                                "signature": "stop(self)"
+                            },
+                            {
+                                "code": "async def create_server(\n    self,\n    host: Optional[str] = None,\n    port: Optional[int] = None,\n    debug: bool = False,\n    ssl: Union[dict, SSLContext, None] = None,\n    sock: Optional[socket] = None,\n    protocol: Type[Protocol] = None,\n    backlog: int = 100,\n    stop_event: Any = None,\n    access_log: Optional[bool] = None,\n    return_asyncio_server=False,\n    asyncio_server_kwargs=None,\n) -> Optional[AsyncioServer]:\n    \"\"\"\n    Asynchronous version of :func:`run`.\n\n    This method will take care of the operations necessary to invoke\n    the *before_start* events via :func:`trigger_events` method invocation\n    before starting the *sanic* app in Async mode.\n\n    .. note::\n        This does not support multiprocessing and is not the preferred\n        way to run a :class:`Sanic` application.\n\n    :param host: Address to host on\n    :type host: str\n    :param port: Port to host on\n    :type port: int\n    :param debug: Enables debug output (slows server)\n    :type debug: bool\n    :param ssl: SSLContext, or location of certificate and key\n                for SSL encryption of worker(s)\n    :type ssl: SSLContext or dict\n    :param sock: Socket for the server to accept connections from\n    :type sock: socket\n    :param protocol: Subclass of asyncio Protocol class\n    :type protocol: type[Protocol]\n    :param backlog: a number of unaccepted connections that the system\n                    will allow before refusing new connections\n    :type backlog: int\n    :param stop_event: event to be triggered\n                       before stopping the app - deprecated\n    :type stop_event: None\n    :param access_log: Enables writing access logs (slows server)\n    :type access_log: bool\n    :param return_asyncio_server: flag that defines whether there's a need\n                                  to return asyncio.Server or\n                                  start it serving right away\n    :type return_asyncio_server: bool\n    :param asyncio_server_kwargs: key-value arguments for\n                                  asyncio/uvloop create_server method\n    :type asyncio_server_kwargs: dict\n    :return: AsyncioServer if return_asyncio_server is true, else Nothing\n    \"\"\"\n\n    if sock is None:\n        host, port = host or \"127.0.0.1\", port or 8000\n\n    if protocol is None:\n        protocol = (\n            WebSocketProtocol if self.websocket_enabled else HttpProtocol\n        )\n    if stop_event is not None:\n        if debug:\n            warnings.simplefilter(\"default\")\n        warnings.warn(\n            \"stop_event will be removed from future versions.\",\n            DeprecationWarning,\n        )\n    # if access_log is passed explicitly change config.ACCESS_LOG\n    if access_log is not None:\n        self.config.ACCESS_LOG = access_log\n\n    server_settings = self._helper(\n        host=host,\n        port=port,\n        debug=debug,\n        ssl=ssl,\n        sock=sock,\n        loop=get_event_loop(),\n        protocol=protocol,\n        backlog=backlog,\n        run_async=return_asyncio_server,\n    )\n\n    # Trigger before_start events\n    await self.trigger_events(\n        server_settings.get(\"before_start\", []),\n        server_settings.get(\"loop\"),\n    )\n\n    return await serve(\n        asyncio_server_kwargs=asyncio_server_kwargs, **server_settings\n    )",
+                                "signature": "create_server(self, host: Optional[str]=None, port: Optional[int]=None, debug: bool=False, ssl: Union[dict, SSLContext, None]=None, sock: Optional[socket]=None, protocol: Type[Protocol]=None, backlog: int=100, stop_event: Any=None, access_log: Optional[bool]=None, return_asyncio_server=False, asyncio_server_kwargs=None) -> Optional[AsyncioServer]"
+                            },
+                            {
+                                "code": "async def trigger_events(self, events, loop):\n    \"\"\"Trigger events (functions or async)\n    :param events: one or more sync or async functions to execute\n    :param loop: event loop\n    \"\"\"\n    for event in events:\n        result = event(loop)\n        if isawaitable(result):\n            await result",
+                                "signature": "trigger_events(self, events, loop)"
+                            },
+                            {
+                                "code": "async def _run_request_middleware(self, request, request_name=None):\n    # The if improves speed.  I don't know why\n    named_middleware = self.named_request_middleware.get(\n        request_name, deque()\n    )\n    applicable_middleware = self.request_middleware + named_middleware\n    if applicable_middleware:\n        for middleware in applicable_middleware:\n            response = middleware(request)\n            if isawaitable(response):\n                response = await response\n            if response:\n                return response\n    return None",
+                                "signature": "_run_request_middleware(self, request, request_name=None)"
+                            },
+                            {
+                                "code": "async def _run_response_middleware(\n    self, request, response, request_name=None\n):\n    named_middleware = self.named_response_middleware.get(\n        request_name, deque()\n    )\n    applicable_middleware = self.response_middleware + named_middleware\n    if applicable_middleware:\n        for middleware in applicable_middleware:\n            _response = middleware(request, response)\n            if isawaitable(_response):\n                _response = await _response\n            if _response:\n                response = _response\n                break\n    return response",
+                                "signature": "_run_response_middleware(self, request, response, request_name=None)"
+                            },
+                            {
+                                "code": "def _helper(\n    self,\n    host=None,\n    port=None,\n    debug=False,\n    ssl=None,\n    sock=None,\n    workers=1,\n    loop=None,\n    protocol=HttpProtocol,\n    backlog=100,\n    stop_event=None,\n    register_sys_signals=True,\n    run_async=False,\n    auto_reload=False,\n):\n    \"\"\"Helper function used by `run` and `create_server`.\"\"\"\n    if isinstance(ssl, dict):\n        # try common aliaseses\n        cert = ssl.get(\"cert\") or ssl.get(\"certificate\")\n        key = ssl.get(\"key\") or ssl.get(\"keyfile\")\n        if cert is None or key is None:\n            raise ValueError(\"SSLContext or certificate and key required.\")\n        context = create_default_context(purpose=Purpose.CLIENT_AUTH)\n        context.load_cert_chain(cert, keyfile=key)\n        ssl = context\n    if stop_event is not None:\n        if debug:\n            warnings.simplefilter(\"default\")\n        warnings.warn(\n            \"stop_event will be removed from future versions.\",\n            DeprecationWarning,\n        )\n    if self.config.PROXIES_COUNT and self.config.PROXIES_COUNT < 0:\n        raise ValueError(\n            \"PROXIES_COUNT cannot be negative. \"\n            \"https://sanic.readthedocs.io/en/latest/sanic/config.html\"\n            \"#proxy-configuration\"\n        )\n\n    self.error_handler.debug = debug\n    self.debug = debug\n\n    server_settings = {\n        \"protocol\": protocol,\n        \"host\": host,\n        \"port\": port,\n        \"sock\": sock,\n        \"ssl\": ssl,\n        \"app\": self,\n        \"signal\": Signal(),\n        \"loop\": loop,\n        \"register_sys_signals\": register_sys_signals,\n        \"backlog\": backlog,\n    }\n\n    # -------------------------------------------- #\n    # Register start/stop events\n    # -------------------------------------------- #\n\n    for event_name, settings_name, reverse in (\n        (\"before_server_start\", \"before_start\", False),\n        (\"after_server_start\", \"after_start\", False),\n        (\"before_server_stop\", \"before_stop\", True),\n        (\"after_server_stop\", \"after_stop\", True),\n    ):\n        listeners = self.listeners[event_name].copy()\n        if reverse:\n            listeners.reverse()\n        # Prepend sanic to the arguments when listeners are triggered\n        listeners = [partial(listener, self) for listener in listeners]\n        server_settings[settings_name] = listeners\n\n    if self.configure_logging and debug:\n        logger.setLevel(logging.DEBUG)\n\n    if (\n        self.config.LOGO\n        and os.environ.get(\"SANIC_SERVER_RUNNING\") != \"true\"\n    ):\n        logger.debug(\n            self.config.LOGO\n            if isinstance(self.config.LOGO, str)\n            else BASE_LOGO\n        )\n\n    if run_async:\n        server_settings[\"run_async\"] = True\n\n    # Serve\n    if host and port and os.environ.get(\"SANIC_SERVER_RUNNING\") != \"true\":\n        proto = \"http\"\n        if ssl is not None:\n            proto = \"https\"\n        logger.info(f\"Goin' Fast @ {proto}://{host}:{port}\")\n\n    return server_settings",
+                                "signature": "_helper(self, host=None, port=None, debug=False, ssl=None, sock=None, workers=1, loop=None, protocol=HttpProtocol, backlog=100, stop_event=None, register_sys_signals=True, run_async=False, auto_reload=False)"
+                            },
+                            {
+                                "code": "def _build_endpoint_name(self, *parts):\n    parts = [self.name, *parts]\n    return \".\".join(parts)",
+                                "signature": "_build_endpoint_name(self, *parts)"
+                            },
+                            {
+                                "code": "async def __call__(self, scope, receive, send):\n    \"\"\"To be ASGI compliant, our instance must be a callable that accepts\n    three arguments: scope, receive, send. See the ASGI reference for more\n    details: https://asgi.readthedocs.io/en/latest/\"\"\"\n    self.asgi = True\n    asgi_app = await ASGIApp.create(self, scope, receive, send)\n    await asgi_app()",
+                                "signature": "__call__(self, scope, receive, send)"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "name": [
                     896,
@@ -4971,7 +5038,7 @@
                 "test_function": "test_bp_middleware_order",
                 "test_function_code": "def test_bp_middleware_order(app):\n    blueprint = Blueprint(\"test_bp_middleware_order\")\n    order = list()\n    @blueprint.middleware(\"request\")\n    def mw_1(request):\n        order.append(1)\n    @blueprint.middleware(\"request\")\n    def mw_2(request):\n        order.append(2)\n    @blueprint.middleware(\"request\")\n    def mw_3(request):\n        order.append(3)\n    @blueprint.middleware(\"response\")\n    def mw_4(request, response):\n        order.append(6)\n    @blueprint.middleware(\"response\")\n    def mw_5(request, response):\n        order.append(5)\n    @blueprint.middleware(\"response\")\n    def mw_6(request, response):\n        order.append(4)\n\n    @blueprint.route(\"/\")\n    def process_response(request):\n        return text(\"OK\")\n\n    app.blueprint(blueprint)\n    order.clear()\n    request, response = app.test_client.get(\"/\")\n\n    assert response.status == 200\n    assert order == [1, 2, 3, 4, 5, 6]",
                 "test_error": "assert [1, 2, 3, 6, 5, 4] == [1, 2, 3, 4, 5, 6]   At index 3 diff: 6 != 4   Full diff:   - [1, 2, 3, 6, 5, 4]   ?           ^     ^   + [1, 2, 3, 4, 5, 6]   ?           ^     ^",
-                "full_test_error": "app = <sanic.app.Sanic object at 0x7f88950309d0>\n\n    def test_bp_middleware_order(app):\n        blueprint = Blueprint(\"test_bp_middleware_order\")\n        order = list()\n        @blueprint.middleware(\"request\")\n        def mw_1(request):\n            order.append(1)\n        @blueprint.middleware(\"request\")\n        def mw_2(request):\n            order.append(2)\n        @blueprint.middleware(\"request\")\n        def mw_3(request):\n            order.append(3)\n        @blueprint.middleware(\"response\")\n        def mw_4(request, response):\n            order.append(6)\n        @blueprint.middleware(\"response\")\n        def mw_5(request, response):\n            order.append(5)\n        @blueprint.middleware(\"response\")\n        def mw_6(request, response):\n            order.append(4)\n    \n        @blueprint.route(\"/\")\n        def process_response(request):\n            return text(\"OK\")\n    \n        app.blueprint(blueprint)\n        order.clear()\n        request, response = app.test_client.get(\"/\")\n    \n        assert response.status == 200\n>       assert order == [1, 2, 3, 4, 5, 6]\nE       assert [1, 2, 3, 6, 5, 4] == [1, 2, 3, 4, 5, 6]\nE         At index 3 diff: 6 != 4\nE         Full diff:\nE         - [1, 2, 3, 6, 5, 4]\nE         ?           ^     ^\nE         + [1, 2, 3, 4, 5, 6]\nE         ?           ^     ^\n\ntests/test_blueprints.py:304: AssertionError",
+                "full_test_error": "app = <sanic.app.Sanic object at 0x7f2820dba880>\n\n    def test_bp_middleware_order(app):\n        blueprint = Blueprint(\"test_bp_middleware_order\")\n        order = list()\n        @blueprint.middleware(\"request\")\n        def mw_1(request):\n            order.append(1)\n        @blueprint.middleware(\"request\")\n        def mw_2(request):\n            order.append(2)\n        @blueprint.middleware(\"request\")\n        def mw_3(request):\n            order.append(3)\n        @blueprint.middleware(\"response\")\n        def mw_4(request, response):\n            order.append(6)\n        @blueprint.middleware(\"response\")\n        def mw_5(request, response):\n            order.append(5)\n        @blueprint.middleware(\"response\")\n        def mw_6(request, response):\n            order.append(4)\n    \n        @blueprint.route(\"/\")\n        def process_response(request):\n            return text(\"OK\")\n    \n        app.blueprint(blueprint)\n        order.clear()\n        request, response = app.test_client.get(\"/\")\n    \n        assert response.status == 200\n>       assert order == [1, 2, 3, 4, 5, 6]\nE       assert [1, 2, 3, 6, 5, 4] == [1, 2, 3, 4, 5, 6]\nE         At index 3 diff: 6 != 4\nE         Full diff:\nE         - [1, 2, 3, 6, 5, 4]\nE         ?           ^     ^\nE         + [1, 2, 3, 4, 5, 6]\nE         ?           ^     ^\n\ntests/test_blueprints.py:304: AssertionError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": []

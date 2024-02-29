@@ -210,8 +210,7 @@
                             "def to_numpy(self, dtype=None, copy=False):\n    \"\"\"\n    Convert the PandasArray to a :class:`numpy.ndarray`.\n\n    By default, this requires no coercion or copying of data.\n\n    Parameters\n    ----------\n    dtype : numpy.dtype\n        The NumPy dtype to pass to :func:`numpy.asarray`.\n    copy : bool, default False\n        Whether to copy the underlying data.\n\n    Returns\n    -------\n    ndarray\n    \"\"\"\n    result = np.asarray(self._ndarray, dtype=dtype)\n    if copy and result is self._ndarray:\n        result = result.copy()\n    return result",
                             "@Appender(ExtensionArray.searchsorted.__doc__)\ndef searchsorted(self, value, side='left', sorter=None):\n    return searchsorted(self.to_numpy(), value, side=side, sorter=sorter)",
                             "def __invert__(self):\n    return type(self)(~self._ndarray)",
-                            "@classmethod\ndef _create_arithmetic_method(cls, op):\n\n    def arithmetic_method(self, other):\n        if isinstance(other, (ABCIndexClass, ABCSeries)):\n            return NotImplemented\n        elif isinstance(other, cls):\n            other = other._ndarray\n        with np.errstate(all='ignore'):\n            result = op(self._ndarray, other)\n        if op is divmod:\n            (a, b) = result\n            return (cls(a), cls(b))\n        return cls(result)\n    return compat.set_function_name(arithmetic_method, '__{}__'.format(op.__name__), cls)",
-                            "def arithmetic_method(self, other):\n    if isinstance(other, (ABCIndexClass, ABCSeries)):\n        return NotImplemented\n    elif isinstance(other, cls):\n        other = other._ndarray\n    with np.errstate(all='ignore'):\n        result = op(self._ndarray, other)\n    if op is divmod:\n        (a, b) = result\n        return (cls(a), cls(b))\n    return cls(result)"
+                            "@classmethod\ndef _create_arithmetic_method(cls, op):\n\n    def arithmetic_method(self, other):\n        if isinstance(other, (ABCIndexClass, ABCSeries)):\n            return NotImplemented\n        elif isinstance(other, cls):\n            other = other._ndarray\n        with np.errstate(all='ignore'):\n            result = op(self._ndarray, other)\n        if op is divmod:\n            (a, b) = result\n            return (cls(a), cls(b))\n        return cls(result)\n    return compat.set_function_name(arithmetic_method, '__{}__'.format(op.__name__), cls)"
                         ],
                         "constructor_variables": [
                             "self._ndarray = values",
@@ -260,8 +259,7 @@
                             "to_numpy(self, dtype=None, copy=False)",
                             "searchsorted(self, value, side='left', sorter=None)",
                             "__invert__(self)",
-                            "_create_arithmetic_method(cls, op)",
-                            "arithmetic_method(self, other)"
+                            "_create_arithmetic_method(cls, op)"
                         ],
                         "class_level_variable_names": [
                             "_typ",
@@ -271,8 +269,8 @@
                         ],
                         "constructor_variable_names": [
                             "_dtype",
-                            "_ndarray",
-                            "values"
+                            "values",
+                            "_ndarray"
                         ]
                     },
                     "used_imports": [
@@ -442,7 +440,7 @@
                                     "variable_shape": null
                                 },
                                 "values.astype": {
-                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7fb125c88b70>",
+                                    "variable_value": "<built-in method astype of numpy.ndarray object at 0x7f6cbd046a80>",
                                     "variable_type": "builtin_function_or_method",
                                     "variable_shape": null
                                 },
@@ -695,106 +693,209 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def __init__(self, dtype):\n    dtype = np.dtype(dtype)\n    self._dtype = dtype\n    self._name = dtype.name\n    self._type = dtype.type",
-                "def __repr__(self):\n    return \"PandasDtype({!r})\".format(self.name)",
-                "@property\ndef numpy_dtype(self):\n    \"\"\"The NumPy dtype this PandasDtype wraps.\"\"\"\n    return self._dtype",
-                "@property\ndef name(self):\n    return self._name",
-                "@property\ndef type(self):\n    return self._type",
-                "@property\ndef _is_numeric(self):\n    # exclude object, str, unicode, void.\n    return self.kind in set(\"biufc\")",
-                "@property\ndef _is_boolean(self):\n    return self.kind == \"b\"",
-                "@classmethod\ndef construct_from_string(cls, string):\n    return cls(np.dtype(string))",
-                "def construct_array_type(cls):\n    return PandasArray",
-                "@property\ndef kind(self):\n    return self._dtype.kind",
-                "@property\ndef itemsize(self):\n    \"\"\"The element size of this data-type object.\"\"\"\n    return self._dtype.itemsize",
-                "def __init__(self, values, copy=False):\n    if isinstance(values, type(self)):\n        values = values._ndarray\n    if not isinstance(values, np.ndarray):\n        raise ValueError(\n            \"'values' must be a NumPy array, not {typ}\".format(\n                typ=type(values).__name__\n            )\n        )\n\n    if values.ndim != 1:\n        raise ValueError(\"PandasArray must be 1-dimensional.\")\n\n    if copy:\n        values = values.copy()\n\n    self._ndarray = values\n    self._dtype = PandasDtype(values.dtype)",
-                "@classmethod\ndef _from_sequence(cls, scalars, dtype=None, copy=False):\n    if isinstance(dtype, PandasDtype):\n        dtype = dtype._dtype\n\n    result = np.asarray(scalars, dtype=dtype)\n    if copy and result is scalars:\n        result = result.copy()\n    return cls(result)",
-                "@classmethod\ndef _from_factorized(cls, values, original):\n    return cls(values)",
-                "@classmethod\ndef _concat_same_type(cls, to_concat):\n    return cls(np.concatenate(to_concat))",
-                "@property\ndef dtype(self):\n    return self._dtype",
-                "def __array__(self, dtype=None):\n    return np.asarray(self._ndarray, dtype=dtype)",
-                "def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):\n    # Lightly modified version of\n    # https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/\\\n    # numpy.lib.mixins.NDArrayOperatorsMixin.html\n    # The primary modification is not boxing scalar return values\n    # in PandasArray, since pandas' ExtensionArrays are 1-d.\n    out = kwargs.get(\"out\", ())\n    for x in inputs + out:\n        # Only support operations with instances of _HANDLED_TYPES.\n        # Use PandasArray instead of type(self) for isinstance to\n        # allow subclasses that don't override __array_ufunc__ to\n        # handle PandasArray objects.\n        if not isinstance(x, self._HANDLED_TYPES + (PandasArray,)):\n            return NotImplemented\n\n    # Defer to the implementation of the ufunc on unwrapped values.\n    inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x for x in inputs)\n    if out:\n        kwargs[\"out\"] = tuple(\n            x._ndarray if isinstance(x, PandasArray) else x for x in out\n        )\n    result = getattr(ufunc, method)(*inputs, **kwargs)\n\n    if type(result) is tuple and len(result):\n        # multiple return values\n        if not lib.is_scalar(result[0]):\n            # re-box array-like results\n            return tuple(type(self)(x) for x in result)\n        else:\n            # but not scalar reductions\n            return result\n    elif method == \"at\":\n        # no return value\n        return None\n    else:\n        # one return value\n        if not lib.is_scalar(result):\n            # re-box array-like results, but not scalar reductions\n            result = type(self)(result)\n        return result",
-                "def __getitem__(self, item):\n    if isinstance(item, type(self)):\n        item = item._ndarray\n\n    result = self._ndarray[item]\n    if not lib.is_scalar(item):\n        result = type(self)(result)\n    return result",
-                "def __setitem__(self, key, value):\n    value = extract_array(value, extract_numpy=True)\n\n    if not lib.is_scalar(key) and is_list_like(key):\n        key = np.asarray(key)\n\n    if not lib.is_scalar(value):\n        value = np.asarray(value)\n\n    values = self._ndarray\n    t = np.result_type(value, values)\n    if t != self._ndarray.dtype:\n        values = values.astype(t, casting=\"safe\")\n        values[key] = value\n        self._dtype = PandasDtype(t)\n        self._ndarray = values\n    else:\n        self._ndarray[key] = value",
-                "def __len__(self) -> int:\n    return len(self._ndarray)",
-                "@property\ndef nbytes(self) -> int:\n    return self._ndarray.nbytes",
-                "def isna(self):\n    return isna(self._ndarray)",
-                "def fillna(self, value=None, method=None, limit=None):\n    # TODO(_values_for_fillna): remove this\n    value, method = validate_fillna_kwargs(value, method)\n\n    mask = self.isna()\n\n    if is_array_like(value):\n        if len(value) != len(self):\n            raise ValueError(\n                \"Length of 'value' does not match. Got ({}) \"\n                \" expected {}\".format(len(value), len(self))\n            )\n        value = value[mask]\n\n    if mask.any():\n        if method is not None:\n            func = pad_1d if method == \"pad\" else backfill_1d\n            new_values = func(self._ndarray, limit=limit, mask=mask)\n            new_values = self._from_sequence(new_values, dtype=self.dtype)\n        else:\n            # fill with value\n            new_values = self.copy()\n            new_values[mask] = value\n    else:\n        new_values = self.copy()\n    return new_values",
-                "def take(self, indices, allow_fill=False, fill_value=None):\n    result = take(\n        self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value\n    )\n    return type(self)(result)",
-                "def copy(self):\n    return type(self)(self._ndarray.copy())",
-                "def _values_for_argsort(self):\n    return self._ndarray",
-                "def _values_for_factorize(self):\n    return self._ndarray, -1",
-                "def unique(self):\n    return type(self)(unique(self._ndarray))",
-                "def _reduce(self, name, skipna=True, **kwargs):\n    meth = getattr(self, name, None)\n    if meth:\n        return meth(skipna=skipna, **kwargs)\n    else:\n        msg = \"'{}' does not implement reduction '{}'\"\n        raise TypeError(msg.format(type(self).__name__, name))",
-                "def any(self, axis=None, out=None, keepdims=False, skipna=True):\n    nv.validate_any((), dict(out=out, keepdims=keepdims))\n    return nanops.nanany(self._ndarray, axis=axis, skipna=skipna)",
-                "def all(self, axis=None, out=None, keepdims=False, skipna=True):\n    nv.validate_all((), dict(out=out, keepdims=keepdims))\n    return nanops.nanall(self._ndarray, axis=axis, skipna=skipna)",
-                "def min(self, axis=None, out=None, keepdims=False, skipna=True):\n    nv.validate_min((), dict(out=out, keepdims=keepdims))\n    return nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)",
-                "def max(self, axis=None, out=None, keepdims=False, skipna=True):\n    nv.validate_max((), dict(out=out, keepdims=keepdims))\n    return nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)",
-                "def sum(\n    self,\n    axis=None,\n    dtype=None,\n    out=None,\n    keepdims=False,\n    initial=None,\n    skipna=True,\n    min_count=0,\n):\n    nv.validate_sum(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)\n    )\n    return nanops.nansum(\n        self._ndarray, axis=axis, skipna=skipna, min_count=min_count\n    )",
-                "def prod(\n    self,\n    axis=None,\n    dtype=None,\n    out=None,\n    keepdims=False,\n    initial=None,\n    skipna=True,\n    min_count=0,\n):\n    nv.validate_prod(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)\n    )\n    return nanops.nanprod(\n        self._ndarray, axis=axis, skipna=skipna, min_count=min_count\n    )",
-                "def mean(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):\n    nv.validate_mean((), dict(dtype=dtype, out=out, keepdims=keepdims))\n    return nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)",
-                "def median(\n    self, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True\n):\n    nv.validate_median(\n        (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)\n    )\n    return nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)",
-                "def std(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):\n    nv.validate_stat_ddof_func(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims), fname=\"std\"\n    )\n    return nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)",
-                "def var(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):\n    nv.validate_stat_ddof_func(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims), fname=\"var\"\n    )\n    return nanops.nanvar(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)",
-                "def sem(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):\n    nv.validate_stat_ddof_func(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims), fname=\"sem\"\n    )\n    return nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)",
-                "def kurt(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):\n    nv.validate_stat_ddof_func(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims), fname=\"kurt\"\n    )\n    return nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)",
-                "def skew(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):\n    nv.validate_stat_ddof_func(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims), fname=\"skew\"\n    )\n    return nanops.nanskew(self._ndarray, axis=axis, skipna=skipna)",
-                "def to_numpy(self, dtype=None, copy=False):\n    \"\"\"\n    Convert the PandasArray to a :class:`numpy.ndarray`.\n\n    By default, this requires no coercion or copying of data.\n\n    Parameters\n    ----------\n    dtype : numpy.dtype\n        The NumPy dtype to pass to :func:`numpy.asarray`.\n    copy : bool, default False\n        Whether to copy the underlying data.\n\n    Returns\n    -------\n    ndarray\n    \"\"\"\n    result = np.asarray(self._ndarray, dtype=dtype)\n    if copy and result is self._ndarray:\n        result = result.copy()\n\n    return result",
-                "@Appender(ExtensionArray.searchsorted.__doc__)\ndef searchsorted(self, value, side=\"left\", sorter=None):\n    return searchsorted(self.to_numpy(), value, side=side, sorter=sorter)",
-                "def __invert__(self):\n    return type(self)(~self._ndarray)",
-                "@classmethod\ndef _create_arithmetic_method(cls, op):\n    def arithmetic_method(self, other):\n        if isinstance(other, (ABCIndexClass, ABCSeries)):\n            return NotImplemented\n\n        elif isinstance(other, cls):\n            other = other._ndarray\n\n        with np.errstate(all=\"ignore\"):\n            result = op(self._ndarray, other)\n\n        if op is divmod:\n            a, b = result\n            return cls(a), cls(b)\n\n        return cls(result)\n\n    return compat.set_function_name(\n        arithmetic_method, \"__{}__\".format(op.__name__), cls\n    )",
-                "def arithmetic_method(self, other):\n    if isinstance(other, (ABCIndexClass, ABCSeries)):\n        return NotImplemented\n\n    elif isinstance(other, cls):\n        other = other._ndarray\n\n    with np.errstate(all=\"ignore\"):\n        result = op(self._ndarray, other)\n\n    if op is divmod:\n        a, b = result\n        return cls(a), cls(b)\n\n    return cls(result)"
-            ],
-            "inscope_function_signatures": [
-                "__init__(self, dtype)",
-                "__repr__(self)",
-                "numpy_dtype(self)",
-                "name(self)",
-                "type(self)",
-                "_is_numeric(self)",
-                "_is_boolean(self)",
-                "construct_from_string(cls, string)",
-                "construct_array_type(cls)",
-                "kind(self)",
-                "itemsize(self)",
-                "__init__(self, values, copy=False)",
-                "_from_sequence(cls, scalars, dtype=None, copy=False)",
-                "_from_factorized(cls, values, original)",
-                "_concat_same_type(cls, to_concat)",
-                "dtype(self)",
-                "__array__(self, dtype=None)",
-                "__array_ufunc__(self, ufunc, method, *inputs, **kwargs)",
-                "__getitem__(self, item)",
-                "__setitem__(self, key, value)",
-                "__len__(self) -> int",
-                "nbytes(self) -> int",
-                "isna(self)",
-                "fillna(self, value=None, method=None, limit=None)",
-                "take(self, indices, allow_fill=False, fill_value=None)",
-                "copy(self)",
-                "_values_for_argsort(self)",
-                "_values_for_factorize(self)",
-                "unique(self)",
-                "_reduce(self, name, skipna=True, **kwargs)",
-                "any(self, axis=None, out=None, keepdims=False, skipna=True)",
-                "all(self, axis=None, out=None, keepdims=False, skipna=True)",
-                "min(self, axis=None, out=None, keepdims=False, skipna=True)",
-                "max(self, axis=None, out=None, keepdims=False, skipna=True)",
-                "sum(self, axis=None, dtype=None, out=None, keepdims=False, initial=None, skipna=True, min_count=0)",
-                "prod(self, axis=None, dtype=None, out=None, keepdims=False, initial=None, skipna=True, min_count=0)",
-                "mean(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True)",
-                "median(self, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True)",
-                "std(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True)",
-                "var(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True)",
-                "sem(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True)",
-                "kurt(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True)",
-                "skew(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True)",
-                "to_numpy(self, dtype=None, copy=False)",
-                "searchsorted(self, value, side='left', sorter=None)",
-                "__invert__(self)",
-                "_create_arithmetic_method(cls, op)",
-                "arithmetic_method(self, other)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [],
+                "file_scope_classes": [
+                    {
+                        "class_declaration": "class PandasDtype:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, dtype):\n    dtype = np.dtype(dtype)\n    self._dtype = dtype\n    self._name = dtype.name\n    self._type = dtype.type",
+                                "signature": "__init__(self, dtype)"
+                            },
+                            {
+                                "code": "def __repr__(self):\n    return \"PandasDtype({!r})\".format(self.name)",
+                                "signature": "__repr__(self)"
+                            },
+                            {
+                                "code": "@property\ndef numpy_dtype(self):\n    \"\"\"The NumPy dtype this PandasDtype wraps.\"\"\"\n    return self._dtype",
+                                "signature": "numpy_dtype(self)"
+                            },
+                            {
+                                "code": "@property\ndef name(self):\n    return self._name",
+                                "signature": "name(self)"
+                            },
+                            {
+                                "code": "@property\ndef type(self):\n    return self._type",
+                                "signature": "type(self)"
+                            },
+                            {
+                                "code": "@property\ndef _is_numeric(self):\n    # exclude object, str, unicode, void.\n    return self.kind in set(\"biufc\")",
+                                "signature": "_is_numeric(self)"
+                            },
+                            {
+                                "code": "@property\ndef _is_boolean(self):\n    return self.kind == \"b\"",
+                                "signature": "_is_boolean(self)"
+                            },
+                            {
+                                "code": "@classmethod\ndef construct_from_string(cls, string):\n    return cls(np.dtype(string))",
+                                "signature": "construct_from_string(cls, string)"
+                            },
+                            {
+                                "code": "def construct_array_type(cls):\n    return PandasArray",
+                                "signature": "construct_array_type(cls)"
+                            },
+                            {
+                                "code": "@property\ndef kind(self):\n    return self._dtype.kind",
+                                "signature": "kind(self)"
+                            },
+                            {
+                                "code": "@property\ndef itemsize(self):\n    \"\"\"The element size of this data-type object.\"\"\"\n    return self._dtype.itemsize",
+                                "signature": "itemsize(self)"
+                            }
+                        ]
+                    },
+                    {
+                        "class_declaration": "class PandasArray:",
+                        "functions": [
+                            {
+                                "code": "def __init__(self, values, copy=False):\n    if isinstance(values, type(self)):\n        values = values._ndarray\n    if not isinstance(values, np.ndarray):\n        raise ValueError(\n            \"'values' must be a NumPy array, not {typ}\".format(\n                typ=type(values).__name__\n            )\n        )\n\n    if values.ndim != 1:\n        raise ValueError(\"PandasArray must be 1-dimensional.\")\n\n    if copy:\n        values = values.copy()\n\n    self._ndarray = values\n    self._dtype = PandasDtype(values.dtype)",
+                                "signature": "__init__(self, values, copy=False)"
+                            },
+                            {
+                                "code": "@classmethod\ndef _from_sequence(cls, scalars, dtype=None, copy=False):\n    if isinstance(dtype, PandasDtype):\n        dtype = dtype._dtype\n\n    result = np.asarray(scalars, dtype=dtype)\n    if copy and result is scalars:\n        result = result.copy()\n    return cls(result)",
+                                "signature": "_from_sequence(cls, scalars, dtype=None, copy=False)"
+                            },
+                            {
+                                "code": "@classmethod\ndef _from_factorized(cls, values, original):\n    return cls(values)",
+                                "signature": "_from_factorized(cls, values, original)"
+                            },
+                            {
+                                "code": "@classmethod\ndef _concat_same_type(cls, to_concat):\n    return cls(np.concatenate(to_concat))",
+                                "signature": "_concat_same_type(cls, to_concat)"
+                            },
+                            {
+                                "code": "@property\ndef dtype(self):\n    return self._dtype",
+                                "signature": "dtype(self)"
+                            },
+                            {
+                                "code": "def __array__(self, dtype=None):\n    return np.asarray(self._ndarray, dtype=dtype)",
+                                "signature": "__array__(self, dtype=None)"
+                            },
+                            {
+                                "code": "def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):\n    # Lightly modified version of\n    # https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/\\\n    # numpy.lib.mixins.NDArrayOperatorsMixin.html\n    # The primary modification is not boxing scalar return values\n    # in PandasArray, since pandas' ExtensionArrays are 1-d.\n    out = kwargs.get(\"out\", ())\n    for x in inputs + out:\n        # Only support operations with instances of _HANDLED_TYPES.\n        # Use PandasArray instead of type(self) for isinstance to\n        # allow subclasses that don't override __array_ufunc__ to\n        # handle PandasArray objects.\n        if not isinstance(x, self._HANDLED_TYPES + (PandasArray,)):\n            return NotImplemented\n\n    # Defer to the implementation of the ufunc on unwrapped values.\n    inputs = tuple(x._ndarray if isinstance(x, PandasArray) else x for x in inputs)\n    if out:\n        kwargs[\"out\"] = tuple(\n            x._ndarray if isinstance(x, PandasArray) else x for x in out\n        )\n    result = getattr(ufunc, method)(*inputs, **kwargs)\n\n    if type(result) is tuple and len(result):\n        # multiple return values\n        if not lib.is_scalar(result[0]):\n            # re-box array-like results\n            return tuple(type(self)(x) for x in result)\n        else:\n            # but not scalar reductions\n            return result\n    elif method == \"at\":\n        # no return value\n        return None\n    else:\n        # one return value\n        if not lib.is_scalar(result):\n            # re-box array-like results, but not scalar reductions\n            result = type(self)(result)\n        return result",
+                                "signature": "__array_ufunc__(self, ufunc, method, *inputs, **kwargs)"
+                            },
+                            {
+                                "code": "def __getitem__(self, item):\n    if isinstance(item, type(self)):\n        item = item._ndarray\n\n    result = self._ndarray[item]\n    if not lib.is_scalar(item):\n        result = type(self)(result)\n    return result",
+                                "signature": "__getitem__(self, item)"
+                            },
+                            {
+                                "code": "def __setitem__(self, key, value):\n    value = extract_array(value, extract_numpy=True)\n\n    if not lib.is_scalar(key) and is_list_like(key):\n        key = np.asarray(key)\n\n    if not lib.is_scalar(value):\n        value = np.asarray(value)\n\n    values = self._ndarray\n    t = np.result_type(value, values)\n    if t != self._ndarray.dtype:\n        values = values.astype(t, casting=\"safe\")\n        values[key] = value\n        self._dtype = PandasDtype(t)\n        self._ndarray = values\n    else:\n        self._ndarray[key] = value",
+                                "signature": "__setitem__(self, key, value)"
+                            },
+                            {
+                                "code": "def __len__(self) -> int:\n    return len(self._ndarray)",
+                                "signature": "__len__(self) -> int"
+                            },
+                            {
+                                "code": "@property\ndef nbytes(self) -> int:\n    return self._ndarray.nbytes",
+                                "signature": "nbytes(self) -> int"
+                            },
+                            {
+                                "code": "def isna(self):\n    return isna(self._ndarray)",
+                                "signature": "isna(self)"
+                            },
+                            {
+                                "code": "def fillna(self, value=None, method=None, limit=None):\n    # TODO(_values_for_fillna): remove this\n    value, method = validate_fillna_kwargs(value, method)\n\n    mask = self.isna()\n\n    if is_array_like(value):\n        if len(value) != len(self):\n            raise ValueError(\n                \"Length of 'value' does not match. Got ({}) \"\n                \" expected {}\".format(len(value), len(self))\n            )\n        value = value[mask]\n\n    if mask.any():\n        if method is not None:\n            func = pad_1d if method == \"pad\" else backfill_1d\n            new_values = func(self._ndarray, limit=limit, mask=mask)\n            new_values = self._from_sequence(new_values, dtype=self.dtype)\n        else:\n            # fill with value\n            new_values = self.copy()\n            new_values[mask] = value\n    else:\n        new_values = self.copy()\n    return new_values",
+                                "signature": "fillna(self, value=None, method=None, limit=None)"
+                            },
+                            {
+                                "code": "def take(self, indices, allow_fill=False, fill_value=None):\n    result = take(\n        self._ndarray, indices, allow_fill=allow_fill, fill_value=fill_value\n    )\n    return type(self)(result)",
+                                "signature": "take(self, indices, allow_fill=False, fill_value=None)"
+                            },
+                            {
+                                "code": "def copy(self):\n    return type(self)(self._ndarray.copy())",
+                                "signature": "copy(self)"
+                            },
+                            {
+                                "code": "def _values_for_argsort(self):\n    return self._ndarray",
+                                "signature": "_values_for_argsort(self)"
+                            },
+                            {
+                                "code": "def _values_for_factorize(self):\n    return self._ndarray, -1",
+                                "signature": "_values_for_factorize(self)"
+                            },
+                            {
+                                "code": "def unique(self):\n    return type(self)(unique(self._ndarray))",
+                                "signature": "unique(self)"
+                            },
+                            {
+                                "code": "def _reduce(self, name, skipna=True, **kwargs):\n    meth = getattr(self, name, None)\n    if meth:\n        return meth(skipna=skipna, **kwargs)\n    else:\n        msg = \"'{}' does not implement reduction '{}'\"\n        raise TypeError(msg.format(type(self).__name__, name))",
+                                "signature": "_reduce(self, name, skipna=True, **kwargs)"
+                            },
+                            {
+                                "code": "def any(self, axis=None, out=None, keepdims=False, skipna=True):\n    nv.validate_any((), dict(out=out, keepdims=keepdims))\n    return nanops.nanany(self._ndarray, axis=axis, skipna=skipna)",
+                                "signature": "any(self, axis=None, out=None, keepdims=False, skipna=True)"
+                            },
+                            {
+                                "code": "def all(self, axis=None, out=None, keepdims=False, skipna=True):\n    nv.validate_all((), dict(out=out, keepdims=keepdims))\n    return nanops.nanall(self._ndarray, axis=axis, skipna=skipna)",
+                                "signature": "all(self, axis=None, out=None, keepdims=False, skipna=True)"
+                            },
+                            {
+                                "code": "def min(self, axis=None, out=None, keepdims=False, skipna=True):\n    nv.validate_min((), dict(out=out, keepdims=keepdims))\n    return nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)",
+                                "signature": "min(self, axis=None, out=None, keepdims=False, skipna=True)"
+                            },
+                            {
+                                "code": "def max(self, axis=None, out=None, keepdims=False, skipna=True):\n    nv.validate_max((), dict(out=out, keepdims=keepdims))\n    return nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)",
+                                "signature": "max(self, axis=None, out=None, keepdims=False, skipna=True)"
+                            },
+                            {
+                                "code": "def sum(\n    self,\n    axis=None,\n    dtype=None,\n    out=None,\n    keepdims=False,\n    initial=None,\n    skipna=True,\n    min_count=0,\n):\n    nv.validate_sum(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)\n    )\n    return nanops.nansum(\n        self._ndarray, axis=axis, skipna=skipna, min_count=min_count\n    )",
+                                "signature": "sum(self, axis=None, dtype=None, out=None, keepdims=False, initial=None, skipna=True, min_count=0)"
+                            },
+                            {
+                                "code": "def prod(\n    self,\n    axis=None,\n    dtype=None,\n    out=None,\n    keepdims=False,\n    initial=None,\n    skipna=True,\n    min_count=0,\n):\n    nv.validate_prod(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims, initial=initial)\n    )\n    return nanops.nanprod(\n        self._ndarray, axis=axis, skipna=skipna, min_count=min_count\n    )",
+                                "signature": "prod(self, axis=None, dtype=None, out=None, keepdims=False, initial=None, skipna=True, min_count=0)"
+                            },
+                            {
+                                "code": "def mean(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):\n    nv.validate_mean((), dict(dtype=dtype, out=out, keepdims=keepdims))\n    return nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)",
+                                "signature": "mean(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True)"
+                            },
+                            {
+                                "code": "def median(\n    self, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True\n):\n    nv.validate_median(\n        (), dict(out=out, overwrite_input=overwrite_input, keepdims=keepdims)\n    )\n    return nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)",
+                                "signature": "median(self, axis=None, out=None, overwrite_input=False, keepdims=False, skipna=True)"
+                            },
+                            {
+                                "code": "def std(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):\n    nv.validate_stat_ddof_func(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims), fname=\"std\"\n    )\n    return nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)",
+                                "signature": "std(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True)"
+                            },
+                            {
+                                "code": "def var(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):\n    nv.validate_stat_ddof_func(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims), fname=\"var\"\n    )\n    return nanops.nanvar(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)",
+                                "signature": "var(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True)"
+                            },
+                            {
+                                "code": "def sem(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True):\n    nv.validate_stat_ddof_func(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims), fname=\"sem\"\n    )\n    return nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)",
+                                "signature": "sem(self, axis=None, dtype=None, out=None, ddof=1, keepdims=False, skipna=True)"
+                            },
+                            {
+                                "code": "def kurt(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):\n    nv.validate_stat_ddof_func(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims), fname=\"kurt\"\n    )\n    return nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)",
+                                "signature": "kurt(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True)"
+                            },
+                            {
+                                "code": "def skew(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True):\n    nv.validate_stat_ddof_func(\n        (), dict(dtype=dtype, out=out, keepdims=keepdims), fname=\"skew\"\n    )\n    return nanops.nanskew(self._ndarray, axis=axis, skipna=skipna)",
+                                "signature": "skew(self, axis=None, dtype=None, out=None, keepdims=False, skipna=True)"
+                            },
+                            {
+                                "code": "def to_numpy(self, dtype=None, copy=False):\n    \"\"\"\n    Convert the PandasArray to a :class:`numpy.ndarray`.\n\n    By default, this requires no coercion or copying of data.\n\n    Parameters\n    ----------\n    dtype : numpy.dtype\n        The NumPy dtype to pass to :func:`numpy.asarray`.\n    copy : bool, default False\n        Whether to copy the underlying data.\n\n    Returns\n    -------\n    ndarray\n    \"\"\"\n    result = np.asarray(self._ndarray, dtype=dtype)\n    if copy and result is self._ndarray:\n        result = result.copy()\n\n    return result",
+                                "signature": "to_numpy(self, dtype=None, copy=False)"
+                            },
+                            {
+                                "code": "@Appender(ExtensionArray.searchsorted.__doc__)\ndef searchsorted(self, value, side=\"left\", sorter=None):\n    return searchsorted(self.to_numpy(), value, side=side, sorter=sorter)",
+                                "signature": "searchsorted(self, value, side='left', sorter=None)"
+                            },
+                            {
+                                "code": "def __invert__(self):\n    return type(self)(~self._ndarray)",
+                                "signature": "__invert__(self)"
+                            },
+                            {
+                                "code": "@classmethod\ndef _create_arithmetic_method(cls, op):\n    def arithmetic_method(self, other):\n        if isinstance(other, (ABCIndexClass, ABCSeries)):\n            return NotImplemented\n\n        elif isinstance(other, cls):\n            other = other._ndarray\n\n        with np.errstate(all=\"ignore\"):\n            result = op(self._ndarray, other)\n\n        if op is divmod:\n            a, b = result\n            return cls(a), cls(b)\n\n        return cls(result)\n\n    return compat.set_function_name(\n        arithmetic_method, \"__{}__\".format(op.__name__), cls\n    )",
+                                "signature": "_create_arithmetic_method(cls, op)"
+                            }
+                        ]
+                    }
+                ]
+            },
             "variables_in_file": {
                 "ExtensionDtype": [
                     25

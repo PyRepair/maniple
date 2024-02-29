@@ -88,198 +88,383 @@
                     ]
                 }
             ],
-            "inscope_functions": [
-                "def normalize_conv(func):\n    def wrapper(*args, **kwargs):\n        x = args[0]\n        w = args[1]\n        if x.ndim == 3:\n            w = np.flipud(w)\n            w = np.transpose(w, (1, 2, 0))\n            if kwargs['data_format'] == 'channels_last':\n                x = np.transpose(x, (0, 2, 1))\n        elif x.ndim == 4:\n            w = np.fliplr(np.flipud(w))\n            w = np.transpose(w, (2, 3, 0, 1))\n            if kwargs['data_format'] == 'channels_last':\n                x = np.transpose(x, (0, 3, 1, 2))\n        else:\n            w = np.flip(np.fliplr(np.flipud(w)), axis=2)\n            w = np.transpose(w, (3, 4, 0, 1, 2))\n            if kwargs['data_format'] == 'channels_last':\n                x = np.transpose(x, (0, 4, 1, 2, 3))\n\n        dilation_rate = kwargs.pop('dilation_rate', 1)\n        if isinstance(dilation_rate, int):\n            dilation_rate = (dilation_rate,) * (x.ndim - 2)\n        for (i, d) in enumerate(dilation_rate):\n            if d > 1:\n                for j in range(w.shape[2 + i] - 1):\n                    w = np.insert(w, 2 * j + 1, 0, axis=2 + i)\n\n        y = func(x, w, **kwargs)\n\n        if kwargs['data_format'] == 'channels_last':\n            if y.ndim == 3:\n                y = np.transpose(y, (0, 2, 1))\n            elif y.ndim == 4:\n                y = np.transpose(y, (0, 2, 3, 1))\n            else:\n                y = np.transpose(y, (0, 2, 3, 4, 1))\n\n        return y\n\n    return wrapper",
-                "@normalize_conv\ndef conv(x, w, padding, data_format):\n    y = []\n    for i in range(x.shape[0]):\n        _y = []\n        for j in range(w.shape[1]):\n            __y = []\n            for k in range(w.shape[0]):\n                __y.append(signal.convolve(x[i, k], w[k, j], mode=padding))\n            _y.append(np.sum(np.stack(__y, axis=-1), axis=-1))\n        y.append(_y)\n    y = np.array(y)\n    return y",
-                "@normalize_conv\ndef depthwise_conv(x, w, padding, data_format):\n    y = []\n    for i in range(x.shape[0]):\n        _y = []\n        for j in range(w.shape[0]):\n            __y = []\n            for k in range(w.shape[1]):\n                __y.append(signal.convolve(x[i, j], w[j, k], mode=padding))\n            _y.append(np.stack(__y, axis=0))\n        y.append(np.concatenate(_y, axis=0))\n    y = np.array(y)\n    return y",
-                "def separable_conv(x, w1, w2, padding, data_format):\n    x2 = depthwise_conv(x, w1, padding=padding, data_format=data_format)\n    return conv(x2, w2, padding=padding, data_format=data_format)",
-                "def conv_transpose(x, w, output_shape, padding, data_format, dilation_rate=1):\n    if x.ndim == 4:\n        w = np.fliplr(np.flipud(w))\n        w = np.transpose(w, (0, 1, 3, 2))\n    else:\n        w = np.flip(np.fliplr(np.flipud(w)), axis=2)\n        w = np.transpose(w, (0, 1, 2, 4, 3))\n\n    if isinstance(dilation_rate, int):\n        dilation_rate = (dilation_rate,) * (x.ndim - 2)\n    for (i, d) in enumerate(dilation_rate):\n        if d > 1:\n            for j in range(w.shape[i] - 1):\n                w = np.insert(w, 2 * j + 1, 0, axis=i)\n\n    return conv(x, w, padding=padding, data_format=data_format)",
-                "def pool(x, pool_size, strides, padding, data_format, pool_mode):\n    if data_format == 'channels_last':\n        if x.ndim == 3:\n            x = np.transpose(x, (0, 2, 1))\n        elif x.ndim == 4:\n            x = np.transpose(x, (0, 3, 1, 2))\n        else:\n            x = np.transpose(x, (0, 4, 1, 2, 3))\n\n    if padding == 'same':\n        pad = [(0, 0), (0, 0)] + [(s // 2, s // 2) for s in pool_size]\n        x = np.pad(x, pad, 'constant', constant_values=-np.inf)\n\n    # indexing trick\n    x = np.pad(x, [(0, 0), (0, 0)] + [(0, 1) for _ in pool_size],\n               'constant', constant_values=0)\n\n    if x.ndim == 3:\n        y = [x[:, :, k:k1:strides[0]]\n             for (k, k1) in zip(range(pool_size[0]), range(-pool_size[0], 0))]\n    elif x.ndim == 4:\n        y = []\n        for (k, k1) in zip(range(pool_size[0]), range(-pool_size[0], 0)):\n            for (l, l1) in zip(range(pool_size[1]), range(-pool_size[1], 0)):\n                y.append(x[:, :, k:k1:strides[0], l:l1:strides[1]])\n    else:\n        y = []\n        for (k, k1) in zip(range(pool_size[0]), range(-pool_size[0], 0)):\n            for (l, l1) in zip(range(pool_size[1]), range(-pool_size[1], 0)):\n                for (m, m1) in zip(range(pool_size[2]), range(-pool_size[2], 0)):\n                    y.append(x[:,\n                               :,\n                               k:k1:strides[0],\n                               l:l1:strides[1],\n                               m:m1:strides[2]])\n    y = np.stack(y, axis=-1)\n    if pool_mode == 'avg':\n        y = np.mean(np.ma.masked_invalid(y), axis=-1).data\n    elif pool_mode == 'max':\n        y = np.max(y, axis=-1)\n\n    if data_format == 'channels_last':\n        if y.ndim == 3:\n            y = np.transpose(y, (0, 2, 1))\n        elif y.ndim == 4:\n            y = np.transpose(y, (0, 2, 3, 1))\n        else:\n            y = np.transpose(y, (0, 2, 3, 4, 1))\n\n    return y",
-                "def bias_add(x, y, data_format):\n    if data_format == 'channels_first':\n        if y.ndim > 1:\n            y = np.reshape(y, y.shape[::-1])\n        for _ in range(x.ndim - y.ndim - 1):\n            y = np.expand_dims(y, -1)\n    else:\n        for _ in range(x.ndim - y.ndim - 1):\n            y = np.expand_dims(y, 0)\n    return x + y",
-                "def rnn(step_function, inputs, initial_states,\n        go_backwards=False, mask=None, constants=None,\n        unroll=False, input_length=None):\n\n    if constants is None:\n        constants = []\n\n    output_sample, _ = step_function(inputs[:, 0], initial_states + constants)\n    if mask is not None:\n        if mask.dtype != np.bool:\n            mask = mask.astype(np.bool)\n        if mask.shape != inputs.shape[:2]:\n            raise ValueError(\n                'mask should have `shape=(samples, time)`, '\n                'got {}'.format(mask.shape))\n\n        def expand_mask(mask_, x):\n            # expand mask so that `mask[:, t].ndim == x.ndim`\n            while mask_.ndim < x.ndim + 1:\n                mask_ = np.expand_dims(mask_, axis=-1)\n            return mask_\n        output_mask = expand_mask(mask, output_sample)\n        states_masks = [expand_mask(mask, state) for state in initial_states]\n\n    if input_length is None:\n        input_length = inputs.shape[1]\n    assert input_length == inputs.shape[1]\n    time_index = range(input_length)\n    if go_backwards:\n        time_index = time_index[::-1]\n\n    outputs = []\n    states_tm1 = initial_states  # tm1 means \"t minus one\" as in \"previous timestep\"\n    output_tm1 = np.zeros(output_sample.shape)\n    for t in time_index:\n        output_t, states_t = step_function(inputs[:, t], states_tm1 + constants)\n        if mask is not None:\n            output_t = np.where(output_mask[:, t], output_t, output_tm1)\n            states_t = [np.where(state_mask[:, t], state_t, state_tm1)\n                        for state_mask, state_t, state_tm1\n                        in zip(states_masks, states_t, states_tm1)]\n        outputs.append(output_t)\n        states_tm1 = states_t\n        output_tm1 = output_t\n\n    return outputs[-1], np.stack(outputs, axis=1), states_tm1",
-                "def learning_phase():\n    return _LEARNING_PHASE",
-                "def set_learning_phase(value):\n    global _LEARNING_PHASE\n    _LEARNING_PHASE = value",
-                "def in_train_phase(x, alt, training=None):\n    if training is None:\n        training = learning_phase()\n\n    if training is 1 or training is True:\n        if callable(x):\n            return x()\n        else:\n            return x\n    else:\n        if callable(alt):\n            return alt()\n        else:\n            return alt",
-                "def in_test_phase(x, alt, training=None):\n    return in_train_phase(alt, x, training=training)",
-                "def relu(x, alpha=0., max_value=None, threshold=0.):\n    if max_value is None:\n        max_value = np.inf\n    above_threshold = x * (x >= threshold)\n    above_threshold = np.clip(above_threshold, 0.0, max_value)\n    below_threshold = alpha * (x - threshold) * (x < threshold)\n    return below_threshold + above_threshold",
-                "def switch(condition, then_expression, else_expression):\n    cond_float = condition.astype(floatx())\n    while cond_float.ndim < then_expression.ndim:\n        cond_float = cond_float[..., np.newaxis]\n    return cond_float * then_expression + (1 - cond_float) * else_expression",
-                "def softplus(x):\n    return np.log(1. + np.exp(x))",
-                "def softsign(x):\n    return x / (1 + np.abs(x))",
-                "def elu(x, alpha=1.):\n    return x * (x > 0) + alpha * (np.exp(x) - 1.) * (x < 0)",
-                "def sigmoid(x):\n    return 1. / (1. + np.exp(-x))",
-                "def hard_sigmoid(x):\n    y = 0.2 * x + 0.5\n    return np.clip(y, 0, 1)",
-                "def tanh(x):\n    return np.tanh(x)",
-                "def softmax(x, axis=-1):\n    y = np.exp(x - np.max(x, axis, keepdims=True))\n    return y / np.sum(y, axis, keepdims=True)",
-                "def l2_normalize(x, axis=-1):\n    y = np.max(np.sum(x ** 2, axis, keepdims=True), axis, keepdims=True)\n    return x / np.sqrt(y)",
-                "def binary_crossentropy(target, output, from_logits=False):\n    if not from_logits:\n        output = np.clip(output, 1e-7, 1 - 1e-7)\n        output = np.log(output / (1 - output))\n    return (target * -np.log(sigmoid(output)) +\n            (1 - target) * -np.log(1 - sigmoid(output)))",
-                "def categorical_crossentropy(target, output, from_logits=False):\n    if from_logits:\n        output = softmax(output)\n    else:\n        output /= output.sum(axis=-1, keepdims=True)\n    output = np.clip(output, 1e-7, 1 - 1e-7)\n    return np.sum(target * -np.log(output), axis=-1, keepdims=False)",
-                "def max(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.max(x, axis=axis, keepdims=keepdims)",
-                "def min(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.min(x, axis=axis, keepdims=keepdims)",
-                "def mean(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.mean(x, axis=axis, keepdims=keepdims)",
-                "def var(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.var(x, axis=axis, keepdims=keepdims)",
-                "def std(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.std(x, axis=axis, keepdims=keepdims)",
-                "def logsumexp(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return sp.misc.logsumexp(x, axis=axis, keepdims=keepdims)",
-                "def sum(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.sum(x, axis=axis, keepdims=keepdims)",
-                "def prod(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.prod(x, axis=axis, keepdims=keepdims)",
-                "def cumsum(x, axis=0):\n    return np.cumsum(x, axis=axis)",
-                "def cumprod(x, axis=0):\n    return np.cumprod(x, axis=axis)",
-                "def any(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.any(x, axis=axis, keepdims=keepdims)",
-                "def all(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.all(x, axis=axis, keepdims=keepdims)",
-                "def argmax(x, axis=-1):\n    return np.argmax(x, axis=axis)",
-                "def argmin(x, axis=-1):\n    return np.argmin(x, axis=axis)",
-                "def sqrt(x):\n    y = np.sqrt(x)\n    y[np.isnan(y)] = 0.\n    return y",
-                "def pow(x, a=1.):\n    return np.power(x, a)",
-                "def clip(x, min_value, max_value):\n    return np.clip(x, min_value, max_value)",
-                "def concatenate(tensors, axis=-1):\n    return np.concatenate(tensors, axis)",
-                "def permute_dimensions(x, pattern):\n    return np.transpose(x, pattern)",
-                "def reshape(x, shape):\n    return np.reshape(x, shape)",
-                "def repeat_elements(x, rep, axis):\n    return np.repeat(x, rep, axis=axis)",
-                "def repeat(x, n):\n    y = np.expand_dims(x, 1)\n    y = np.repeat(y, n, axis=1)\n    return y",
-                "def temporal_padding(x, padding=(1, 1)):\n    return np.pad(x, [(0, 0), padding, (0, 0)], mode='constant')",
-                "def spatial_2d_padding(x, padding=((1, 1), (1, 1)), data_format=None):\n    all_dims_padding = ((0, 0),) + padding + ((0, 0),)\n    all_dims_padding = transpose_shape(all_dims_padding, data_format,\n                                       spatial_axes=(1, 2))\n    return np.pad(x, all_dims_padding, mode='constant')",
-                "def spatial_3d_padding(x, padding=((1, 1), (1, 1), (1, 1)), data_format=None):\n    all_dims_padding = ((0, 0),) + padding + ((0, 0),)\n    all_dims_padding = transpose_shape(all_dims_padding, data_format,\n                                       spatial_axes=(1, 2, 3))\n    return np.pad(x, all_dims_padding, mode='constant')",
-                "def tile(x, n):\n    return np.tile(x, n)",
-                "def arange(start, stop=None, step=1, dtype='int32'):\n    return np.arange(start, stop, step, dtype)",
-                "def flatten(x):\n    return np.reshape(x, (-1,))",
-                "def batch_flatten(x):\n    return np.reshape(x, (x.shape[0], -1))",
-                "def gather(reference, indices):\n    return reference[indices]",
-                "def eval(x):\n    return x",
-                "def get_value(x):\n    return x",
-                "def count_params(x):\n    return x.size",
-                "def int_shape(x):\n    return x.shape",
-                "def get_variable_shape(x):\n    return int_shape(x)",
-                "def dtype(x):\n    return x.dtype.name",
-                "def constant(value, dtype=None, shape=None, name=None):\n    if dtype is None:\n        dtype = floatx()\n    if shape is None:\n        shape = ()\n    np_value = value * np.ones(shape)\n    np_value.astype(dtype)\n    return np_value",
-                "def print_tensor(x, message=''):\n    print(x, message)\n    return x",
-                "def dot(x, y):\n    return np.dot(x, y)",
-                "def batch_dot(x, y, axes=None):\n    if x.ndim < 2 or y.ndim < 2:\n        raise ValueError('Batch dot requires inputs of rank 2 or more.')\n\n    if isinstance(axes, int):\n        axes = [axes, axes]\n    elif isinstance(axes, tuple):\n        axes = list(axes)\n\n    if axes is None:\n        if y.ndim == 2:\n            axes = [x.ndim - 1, y.ndim - 1]\n        else:\n            axes = [x.ndim - 1, y.ndim - 2]\n\n    if any([isinstance(a, (list, tuple)) for a in axes]):\n        raise ValueError('Multiple target dimensions are not supported. ' +\n                         'Expected: None, int, (int, int), ' +\n                         'Provided: ' + str(axes))\n\n    # Handle negative axes\n    if axes[0] < 0:\n        axes[0] += x.ndim\n    if axes[1] < 0:\n        axes[1] += y.ndim\n\n    if 0 in axes:\n        raise ValueError('Can not perform batch dot over axis 0.')\n\n    if x.shape[0] != y.shape[0]:\n        raise ValueError('Can not perform batch dot on inputs'\n                         ' with different batch sizes.')\n\n    d1 = x.shape[axes[0]]\n    d2 = y.shape[axes[1]]\n    if d1 != d2:\n        raise ValueError('Can not do batch_dot on inputs with shapes ' +\n                         str(x.shape) + ' and ' + str(y.shape) +\n                         ' with axes=' + str(axes) + '. x.shape[%d] != '\n                         'y.shape[%d] (%d != %d).' % (axes[0], axes[1], d1, d2))\n\n    result = []\n    axes = [axes[0] - 1, axes[1] - 1]  # ignore batch dimension\n    for xi, yi in zip(x, y):\n        result.append(np.tensordot(xi, yi, axes))\n    result = np.array(result)\n\n    if result.ndim == 1:\n        result = np.expand_dims(result, -1)\n\n    return result",
-                "def transpose(x):\n    return np.transpose(x)",
-                "def reverse(x, axes):\n    if isinstance(axes, list):\n        axes = tuple(axes)\n    return np.flip(x, axes)",
-                "def slice(x, start, size):\n    slices = [py_slice(i, i + j) for i, j in zip(start, size)]\n    return x[tuple(slices)]",
-                "def variable(value, dtype=None, name=None, constraint=None):\n    if constraint is not None:\n        raise TypeError(\"Constraint must be None when \"\n                        \"using the NumPy backend.\")\n    return np.array(value, dtype)",
-                "def dropout(x, level, noise_shape=None, seed=None):\n    if noise_shape is None:\n        noise_shape = x.shape\n    if learning_phase():\n        noise = np.random.choice([0, 1],\n                                 noise_shape,\n                                 replace=True,\n                                 p=[level, 1 - level])\n        return x * noise / (1 - level)\n    else:\n        return x",
-                "def equal(x, y):\n    return x == y",
-                "def not_equal(x, y):\n    return x != y",
-                "def greater(x, y):\n    return x > y",
-                "def greater_equal(x, y):\n    return x >= y",
-                "def less(x, y):\n    return x < y",
-                "def less_equal(x, y):\n    return x <= y",
-                "def maximum(x, y):\n    return np.maximum(x, y)",
-                "def minimum(x, y):\n    return np.minimum(x, y)",
-                "def ndim(x):\n    return x.ndim",
-                "def random_uniform_variable(shape, low, high, dtype=None, name=None, seed=None):\n    return (high - low) * np.random.random(shape).astype(dtype) + low",
-                "def random_normal_variable(shape, mean, scale, dtype=None, name=None, seed=None):\n    return scale * np.random.randn(*shape).astype(dtype) + mean",
-                "def zeros(shape, dtype=floatx(), name=None):\n    return np.zeros(shape, dtype=dtype)",
-                "def zeros_like(x, dtype=floatx(), name=None):\n    return np.zeros_like(x, dtype=dtype)",
-                "def ones(shape, dtype=floatx(), name=None):\n    return np.ones(shape, dtype=dtype)",
-                "def ones_like(x, dtype=floatx(), name=None):\n    return np.ones_like(x, dtype=dtype)",
-                "def eye(size, dtype=None, name=None):\n    return np.eye(size, dtype=dtype)",
-                "def resize_images(x, height_factor, width_factor, data_format):\n    if data_format == 'channels_first':\n        x = repeat_elements(x, height_factor, axis=2)\n        x = repeat_elements(x, width_factor, axis=3)\n    elif data_format == 'channels_last':\n        x = repeat_elements(x, height_factor, axis=1)\n        x = repeat_elements(x, width_factor, axis=2)\n    return x",
-                "def resize_volumes(x, depth_factor, height_factor, width_factor, data_format):\n    if data_format == 'channels_first':\n        x = repeat_elements(x, depth_factor, axis=2)\n        x = repeat_elements(x, height_factor, axis=3)\n        x = repeat_elements(x, width_factor, axis=4)\n    elif data_format == 'channels_last':\n        x = repeat_elements(x, depth_factor, axis=1)\n        x = repeat_elements(x, height_factor, axis=2)\n        x = repeat_elements(x, width_factor, axis=3)\n    return x",
-                "def one_hot(indices, num_classes):\n    return to_categorical(indices, num_classes)",
-                "def ctc_decode(y_pred, input_length, greedy=True, beam_width=100, top_paths=1,\n               merge_repeated=False):\n    num_samples = y_pred.shape[0]\n    num_classes = y_pred.shape[-1]\n    log_prob = np.zeros((num_samples, 1))\n    decoded_dense = -np.ones_like(y_pred[..., 0])\n    decoded_length = np.zeros((num_samples,), dtype=np.int)\n    if greedy:\n        for i in range(num_samples):\n            prob = y_pred[i]\n            length = input_length[i]\n            decoded = np.argmax(prob[:length], axis=-1)\n            log_prob[i] = -np.sum(np.log(prob[np.arange(length), decoded]))\n            decoded = _remove_repeats(decoded)\n            decoded = _remove_blanks(decoded, num_classes)\n            decoded_length[i] = len(decoded)\n            decoded_dense[i, :len(decoded)] = decoded\n        return decoded_dense[:, :np.max(decoded_length)], log_prob\n    else:\n        raise NotImplementedError",
-                "def _remove_repeats(inds):\n    is_not_repeat = np.insert(np.diff(inds).astype(np.bool), 0, True)\n    return inds[is_not_repeat]",
-                "def _remove_blanks(inds, num_classes):\n    return inds[inds < (num_classes - 1)]",
-                "def stack(x, axis=0):\n    return np.stack(x, axis=axis)",
-                "def wrapper(*args, **kwargs):\n    x = args[0]\n    w = args[1]\n    if x.ndim == 3:\n        w = np.flipud(w)\n        w = np.transpose(w, (1, 2, 0))\n        if kwargs['data_format'] == 'channels_last':\n            x = np.transpose(x, (0, 2, 1))\n    elif x.ndim == 4:\n        w = np.fliplr(np.flipud(w))\n        w = np.transpose(w, (2, 3, 0, 1))\n        if kwargs['data_format'] == 'channels_last':\n            x = np.transpose(x, (0, 3, 1, 2))\n    else:\n        w = np.flip(np.fliplr(np.flipud(w)), axis=2)\n        w = np.transpose(w, (3, 4, 0, 1, 2))\n        if kwargs['data_format'] == 'channels_last':\n            x = np.transpose(x, (0, 4, 1, 2, 3))\n\n    dilation_rate = kwargs.pop('dilation_rate', 1)\n    if isinstance(dilation_rate, int):\n        dilation_rate = (dilation_rate,) * (x.ndim - 2)\n    for (i, d) in enumerate(dilation_rate):\n        if d > 1:\n            for j in range(w.shape[2 + i] - 1):\n                w = np.insert(w, 2 * j + 1, 0, axis=2 + i)\n\n    y = func(x, w, **kwargs)\n\n    if kwargs['data_format'] == 'channels_last':\n        if y.ndim == 3:\n            y = np.transpose(y, (0, 2, 1))\n        elif y.ndim == 4:\n            y = np.transpose(y, (0, 2, 3, 1))\n        else:\n            y = np.transpose(y, (0, 2, 3, 4, 1))\n\n    return y",
-                "def expand_mask(mask_, x):\n    # expand mask so that `mask[:, t].ndim == x.ndim`\n    while mask_.ndim < x.ndim + 1:\n        mask_ = np.expand_dims(mask_, axis=-1)\n    return mask_"
-            ],
-            "inscope_function_signatures": [
-                "normalize_conv(func)",
-                "conv(x, w, padding, data_format)",
-                "depthwise_conv(x, w, padding, data_format)",
-                "separable_conv(x, w1, w2, padding, data_format)",
-                "conv_transpose(x, w, output_shape, padding, data_format, dilation_rate=1)",
-                "pool(x, pool_size, strides, padding, data_format, pool_mode)",
-                "bias_add(x, y, data_format)",
-                "rnn(step_function, inputs, initial_states, go_backwards=False, mask=None, constants=None, unroll=False, input_length=None)",
-                "learning_phase()",
-                "set_learning_phase(value)",
-                "in_train_phase(x, alt, training=None)",
-                "in_test_phase(x, alt, training=None)",
-                "relu(x, alpha=0.0, max_value=None, threshold=0.0)",
-                "switch(condition, then_expression, else_expression)",
-                "softplus(x)",
-                "softsign(x)",
-                "elu(x, alpha=1.0)",
-                "sigmoid(x)",
-                "hard_sigmoid(x)",
-                "tanh(x)",
-                "softmax(x, axis=-1)",
-                "l2_normalize(x, axis=-1)",
-                "binary_crossentropy(target, output, from_logits=False)",
-                "categorical_crossentropy(target, output, from_logits=False)",
-                "max(x, axis=None, keepdims=False)",
-                "min(x, axis=None, keepdims=False)",
-                "mean(x, axis=None, keepdims=False)",
-                "var(x, axis=None, keepdims=False)",
-                "std(x, axis=None, keepdims=False)",
-                "logsumexp(x, axis=None, keepdims=False)",
-                "sum(x, axis=None, keepdims=False)",
-                "prod(x, axis=None, keepdims=False)",
-                "cumsum(x, axis=0)",
-                "cumprod(x, axis=0)",
-                "any(x, axis=None, keepdims=False)",
-                "all(x, axis=None, keepdims=False)",
-                "argmax(x, axis=-1)",
-                "argmin(x, axis=-1)",
-                "sqrt(x)",
-                "pow(x, a=1.0)",
-                "clip(x, min_value, max_value)",
-                "concatenate(tensors, axis=-1)",
-                "permute_dimensions(x, pattern)",
-                "reshape(x, shape)",
-                "repeat_elements(x, rep, axis)",
-                "repeat(x, n)",
-                "temporal_padding(x, padding=(1, 1))",
-                "spatial_2d_padding(x, padding=((1, 1), (1, 1)), data_format=None)",
-                "spatial_3d_padding(x, padding=((1, 1), (1, 1), (1, 1)), data_format=None)",
-                "tile(x, n)",
-                "arange(start, stop=None, step=1, dtype='int32')",
-                "flatten(x)",
-                "batch_flatten(x)",
-                "gather(reference, indices)",
-                "eval(x)",
-                "get_value(x)",
-                "count_params(x)",
-                "int_shape(x)",
-                "get_variable_shape(x)",
-                "dtype(x)",
-                "constant(value, dtype=None, shape=None, name=None)",
-                "print_tensor(x, message='')",
-                "dot(x, y)",
-                "batch_dot(x, y, axes=None)",
-                "transpose(x)",
-                "reverse(x, axes)",
-                "slice(x, start, size)",
-                "variable(value, dtype=None, name=None, constraint=None)",
-                "dropout(x, level, noise_shape=None, seed=None)",
-                "equal(x, y)",
-                "not_equal(x, y)",
-                "greater(x, y)",
-                "greater_equal(x, y)",
-                "less(x, y)",
-                "less_equal(x, y)",
-                "maximum(x, y)",
-                "minimum(x, y)",
-                "ndim(x)",
-                "random_uniform_variable(shape, low, high, dtype=None, name=None, seed=None)",
-                "random_normal_variable(shape, mean, scale, dtype=None, name=None, seed=None)",
-                "zeros(shape, dtype=floatx(), name=None)",
-                "zeros_like(x, dtype=floatx(), name=None)",
-                "ones(shape, dtype=floatx(), name=None)",
-                "ones_like(x, dtype=floatx(), name=None)",
-                "eye(size, dtype=None, name=None)",
-                "resize_images(x, height_factor, width_factor, data_format)",
-                "resize_volumes(x, depth_factor, height_factor, width_factor, data_format)",
-                "one_hot(indices, num_classes)",
-                "ctc_decode(y_pred, input_length, greedy=True, beam_width=100, top_paths=1, merge_repeated=False)",
-                "_remove_repeats(inds)",
-                "_remove_blanks(inds, num_classes)",
-                "stack(x, axis=0)",
-                "wrapper(*args, **kwargs)",
-                "expand_mask(mask_, x)"
-            ],
+            "inscope_functions": {
+                "file_scope_functions": [
+                    {
+                        "code": "def normalize_conv(func):\n    def wrapper(*args, **kwargs):\n        x = args[0]\n        w = args[1]\n        if x.ndim == 3:\n            w = np.flipud(w)\n            w = np.transpose(w, (1, 2, 0))\n            if kwargs['data_format'] == 'channels_last':\n                x = np.transpose(x, (0, 2, 1))\n        elif x.ndim == 4:\n            w = np.fliplr(np.flipud(w))\n            w = np.transpose(w, (2, 3, 0, 1))\n            if kwargs['data_format'] == 'channels_last':\n                x = np.transpose(x, (0, 3, 1, 2))\n        else:\n            w = np.flip(np.fliplr(np.flipud(w)), axis=2)\n            w = np.transpose(w, (3, 4, 0, 1, 2))\n            if kwargs['data_format'] == 'channels_last':\n                x = np.transpose(x, (0, 4, 1, 2, 3))\n\n        dilation_rate = kwargs.pop('dilation_rate', 1)\n        if isinstance(dilation_rate, int):\n            dilation_rate = (dilation_rate,) * (x.ndim - 2)\n        for (i, d) in enumerate(dilation_rate):\n            if d > 1:\n                for j in range(w.shape[2 + i] - 1):\n                    w = np.insert(w, 2 * j + 1, 0, axis=2 + i)\n\n        y = func(x, w, **kwargs)\n\n        if kwargs['data_format'] == 'channels_last':\n            if y.ndim == 3:\n                y = np.transpose(y, (0, 2, 1))\n            elif y.ndim == 4:\n                y = np.transpose(y, (0, 2, 3, 1))\n            else:\n                y = np.transpose(y, (0, 2, 3, 4, 1))\n\n        return y\n\n    return wrapper",
+                        "signature": "normalize_conv(func)"
+                    },
+                    {
+                        "code": "@normalize_conv\ndef conv(x, w, padding, data_format):\n    y = []\n    for i in range(x.shape[0]):\n        _y = []\n        for j in range(w.shape[1]):\n            __y = []\n            for k in range(w.shape[0]):\n                __y.append(signal.convolve(x[i, k], w[k, j], mode=padding))\n            _y.append(np.sum(np.stack(__y, axis=-1), axis=-1))\n        y.append(_y)\n    y = np.array(y)\n    return y",
+                        "signature": "conv(x, w, padding, data_format)"
+                    },
+                    {
+                        "code": "@normalize_conv\ndef depthwise_conv(x, w, padding, data_format):\n    y = []\n    for i in range(x.shape[0]):\n        _y = []\n        for j in range(w.shape[0]):\n            __y = []\n            for k in range(w.shape[1]):\n                __y.append(signal.convolve(x[i, j], w[j, k], mode=padding))\n            _y.append(np.stack(__y, axis=0))\n        y.append(np.concatenate(_y, axis=0))\n    y = np.array(y)\n    return y",
+                        "signature": "depthwise_conv(x, w, padding, data_format)"
+                    },
+                    {
+                        "code": "def separable_conv(x, w1, w2, padding, data_format):\n    x2 = depthwise_conv(x, w1, padding=padding, data_format=data_format)\n    return conv(x2, w2, padding=padding, data_format=data_format)",
+                        "signature": "separable_conv(x, w1, w2, padding, data_format)"
+                    },
+                    {
+                        "code": "def conv_transpose(x, w, output_shape, padding, data_format, dilation_rate=1):\n    if x.ndim == 4:\n        w = np.fliplr(np.flipud(w))\n        w = np.transpose(w, (0, 1, 3, 2))\n    else:\n        w = np.flip(np.fliplr(np.flipud(w)), axis=2)\n        w = np.transpose(w, (0, 1, 2, 4, 3))\n\n    if isinstance(dilation_rate, int):\n        dilation_rate = (dilation_rate,) * (x.ndim - 2)\n    for (i, d) in enumerate(dilation_rate):\n        if d > 1:\n            for j in range(w.shape[i] - 1):\n                w = np.insert(w, 2 * j + 1, 0, axis=i)\n\n    return conv(x, w, padding=padding, data_format=data_format)",
+                        "signature": "conv_transpose(x, w, output_shape, padding, data_format, dilation_rate=1)"
+                    },
+                    {
+                        "code": "def pool(x, pool_size, strides, padding, data_format, pool_mode):\n    if data_format == 'channels_last':\n        if x.ndim == 3:\n            x = np.transpose(x, (0, 2, 1))\n        elif x.ndim == 4:\n            x = np.transpose(x, (0, 3, 1, 2))\n        else:\n            x = np.transpose(x, (0, 4, 1, 2, 3))\n\n    if padding == 'same':\n        pad = [(0, 0), (0, 0)] + [(s // 2, s // 2) for s in pool_size]\n        x = np.pad(x, pad, 'constant', constant_values=-np.inf)\n\n    # indexing trick\n    x = np.pad(x, [(0, 0), (0, 0)] + [(0, 1) for _ in pool_size],\n               'constant', constant_values=0)\n\n    if x.ndim == 3:\n        y = [x[:, :, k:k1:strides[0]]\n             for (k, k1) in zip(range(pool_size[0]), range(-pool_size[0], 0))]\n    elif x.ndim == 4:\n        y = []\n        for (k, k1) in zip(range(pool_size[0]), range(-pool_size[0], 0)):\n            for (l, l1) in zip(range(pool_size[1]), range(-pool_size[1], 0)):\n                y.append(x[:, :, k:k1:strides[0], l:l1:strides[1]])\n    else:\n        y = []\n        for (k, k1) in zip(range(pool_size[0]), range(-pool_size[0], 0)):\n            for (l, l1) in zip(range(pool_size[1]), range(-pool_size[1], 0)):\n                for (m, m1) in zip(range(pool_size[2]), range(-pool_size[2], 0)):\n                    y.append(x[:,\n                               :,\n                               k:k1:strides[0],\n                               l:l1:strides[1],\n                               m:m1:strides[2]])\n    y = np.stack(y, axis=-1)\n    if pool_mode == 'avg':\n        y = np.mean(np.ma.masked_invalid(y), axis=-1).data\n    elif pool_mode == 'max':\n        y = np.max(y, axis=-1)\n\n    if data_format == 'channels_last':\n        if y.ndim == 3:\n            y = np.transpose(y, (0, 2, 1))\n        elif y.ndim == 4:\n            y = np.transpose(y, (0, 2, 3, 1))\n        else:\n            y = np.transpose(y, (0, 2, 3, 4, 1))\n\n    return y",
+                        "signature": "pool(x, pool_size, strides, padding, data_format, pool_mode)"
+                    },
+                    {
+                        "code": "def bias_add(x, y, data_format):\n    if data_format == 'channels_first':\n        if y.ndim > 1:\n            y = np.reshape(y, y.shape[::-1])\n        for _ in range(x.ndim - y.ndim - 1):\n            y = np.expand_dims(y, -1)\n    else:\n        for _ in range(x.ndim - y.ndim - 1):\n            y = np.expand_dims(y, 0)\n    return x + y",
+                        "signature": "bias_add(x, y, data_format)"
+                    },
+                    {
+                        "code": "def rnn(step_function, inputs, initial_states,\n        go_backwards=False, mask=None, constants=None,\n        unroll=False, input_length=None):\n\n    if constants is None:\n        constants = []\n\n    output_sample, _ = step_function(inputs[:, 0], initial_states + constants)\n    if mask is not None:\n        if mask.dtype != np.bool:\n            mask = mask.astype(np.bool)\n        if mask.shape != inputs.shape[:2]:\n            raise ValueError(\n                'mask should have `shape=(samples, time)`, '\n                'got {}'.format(mask.shape))\n\n        def expand_mask(mask_, x):\n            # expand mask so that `mask[:, t].ndim == x.ndim`\n            while mask_.ndim < x.ndim + 1:\n                mask_ = np.expand_dims(mask_, axis=-1)\n            return mask_\n        output_mask = expand_mask(mask, output_sample)\n        states_masks = [expand_mask(mask, state) for state in initial_states]\n\n    if input_length is None:\n        input_length = inputs.shape[1]\n    assert input_length == inputs.shape[1]\n    time_index = range(input_length)\n    if go_backwards:\n        time_index = time_index[::-1]\n\n    outputs = []\n    states_tm1 = initial_states  # tm1 means \"t minus one\" as in \"previous timestep\"\n    output_tm1 = np.zeros(output_sample.shape)\n    for t in time_index:\n        output_t, states_t = step_function(inputs[:, t], states_tm1 + constants)\n        if mask is not None:\n            output_t = np.where(output_mask[:, t], output_t, output_tm1)\n            states_t = [np.where(state_mask[:, t], state_t, state_tm1)\n                        for state_mask, state_t, state_tm1\n                        in zip(states_masks, states_t, states_tm1)]\n        outputs.append(output_t)\n        states_tm1 = states_t\n        output_tm1 = output_t\n\n    return outputs[-1], np.stack(outputs, axis=1), states_tm1",
+                        "signature": "rnn(step_function, inputs, initial_states, go_backwards=False, mask=None, constants=None, unroll=False, input_length=None)"
+                    },
+                    {
+                        "code": "def learning_phase():\n    return _LEARNING_PHASE",
+                        "signature": "learning_phase()"
+                    },
+                    {
+                        "code": "def set_learning_phase(value):\n    global _LEARNING_PHASE\n    _LEARNING_PHASE = value",
+                        "signature": "set_learning_phase(value)"
+                    },
+                    {
+                        "code": "def in_train_phase(x, alt, training=None):\n    if training is None:\n        training = learning_phase()\n\n    if training is 1 or training is True:\n        if callable(x):\n            return x()\n        else:\n            return x\n    else:\n        if callable(alt):\n            return alt()\n        else:\n            return alt",
+                        "signature": "in_train_phase(x, alt, training=None)"
+                    },
+                    {
+                        "code": "def in_test_phase(x, alt, training=None):\n    return in_train_phase(alt, x, training=training)",
+                        "signature": "in_test_phase(x, alt, training=None)"
+                    },
+                    {
+                        "code": "def relu(x, alpha=0., max_value=None, threshold=0.):\n    if max_value is None:\n        max_value = np.inf\n    above_threshold = x * (x >= threshold)\n    above_threshold = np.clip(above_threshold, 0.0, max_value)\n    below_threshold = alpha * (x - threshold) * (x < threshold)\n    return below_threshold + above_threshold",
+                        "signature": "relu(x, alpha=0.0, max_value=None, threshold=0.0)"
+                    },
+                    {
+                        "code": "def switch(condition, then_expression, else_expression):\n    cond_float = condition.astype(floatx())\n    while cond_float.ndim < then_expression.ndim:\n        cond_float = cond_float[..., np.newaxis]\n    return cond_float * then_expression + (1 - cond_float) * else_expression",
+                        "signature": "switch(condition, then_expression, else_expression)"
+                    },
+                    {
+                        "code": "def softplus(x):\n    return np.log(1. + np.exp(x))",
+                        "signature": "softplus(x)"
+                    },
+                    {
+                        "code": "def softsign(x):\n    return x / (1 + np.abs(x))",
+                        "signature": "softsign(x)"
+                    },
+                    {
+                        "code": "def elu(x, alpha=1.):\n    return x * (x > 0) + alpha * (np.exp(x) - 1.) * (x < 0)",
+                        "signature": "elu(x, alpha=1.0)"
+                    },
+                    {
+                        "code": "def sigmoid(x):\n    return 1. / (1. + np.exp(-x))",
+                        "signature": "sigmoid(x)"
+                    },
+                    {
+                        "code": "def hard_sigmoid(x):\n    y = 0.2 * x + 0.5\n    return np.clip(y, 0, 1)",
+                        "signature": "hard_sigmoid(x)"
+                    },
+                    {
+                        "code": "def tanh(x):\n    return np.tanh(x)",
+                        "signature": "tanh(x)"
+                    },
+                    {
+                        "code": "def softmax(x, axis=-1):\n    y = np.exp(x - np.max(x, axis, keepdims=True))\n    return y / np.sum(y, axis, keepdims=True)",
+                        "signature": "softmax(x, axis=-1)"
+                    },
+                    {
+                        "code": "def l2_normalize(x, axis=-1):\n    y = np.max(np.sum(x ** 2, axis, keepdims=True), axis, keepdims=True)\n    return x / np.sqrt(y)",
+                        "signature": "l2_normalize(x, axis=-1)"
+                    },
+                    {
+                        "code": "def binary_crossentropy(target, output, from_logits=False):\n    if not from_logits:\n        output = np.clip(output, 1e-7, 1 - 1e-7)\n        output = np.log(output / (1 - output))\n    return (target * -np.log(sigmoid(output)) +\n            (1 - target) * -np.log(1 - sigmoid(output)))",
+                        "signature": "binary_crossentropy(target, output, from_logits=False)"
+                    },
+                    {
+                        "code": "def categorical_crossentropy(target, output, from_logits=False):\n    if from_logits:\n        output = softmax(output)\n    else:\n        output /= output.sum(axis=-1, keepdims=True)\n    output = np.clip(output, 1e-7, 1 - 1e-7)\n    return np.sum(target * -np.log(output), axis=-1, keepdims=False)",
+                        "signature": "categorical_crossentropy(target, output, from_logits=False)"
+                    },
+                    {
+                        "code": "def max(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.max(x, axis=axis, keepdims=keepdims)",
+                        "signature": "max(x, axis=None, keepdims=False)"
+                    },
+                    {
+                        "code": "def min(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.min(x, axis=axis, keepdims=keepdims)",
+                        "signature": "min(x, axis=None, keepdims=False)"
+                    },
+                    {
+                        "code": "def mean(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.mean(x, axis=axis, keepdims=keepdims)",
+                        "signature": "mean(x, axis=None, keepdims=False)"
+                    },
+                    {
+                        "code": "def var(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.var(x, axis=axis, keepdims=keepdims)",
+                        "signature": "var(x, axis=None, keepdims=False)"
+                    },
+                    {
+                        "code": "def std(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.std(x, axis=axis, keepdims=keepdims)",
+                        "signature": "std(x, axis=None, keepdims=False)"
+                    },
+                    {
+                        "code": "def logsumexp(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return sp.misc.logsumexp(x, axis=axis, keepdims=keepdims)",
+                        "signature": "logsumexp(x, axis=None, keepdims=False)"
+                    },
+                    {
+                        "code": "def sum(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.sum(x, axis=axis, keepdims=keepdims)",
+                        "signature": "sum(x, axis=None, keepdims=False)"
+                    },
+                    {
+                        "code": "def prod(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.prod(x, axis=axis, keepdims=keepdims)",
+                        "signature": "prod(x, axis=None, keepdims=False)"
+                    },
+                    {
+                        "code": "def cumsum(x, axis=0):\n    return np.cumsum(x, axis=axis)",
+                        "signature": "cumsum(x, axis=0)"
+                    },
+                    {
+                        "code": "def cumprod(x, axis=0):\n    return np.cumprod(x, axis=axis)",
+                        "signature": "cumprod(x, axis=0)"
+                    },
+                    {
+                        "code": "def any(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.any(x, axis=axis, keepdims=keepdims)",
+                        "signature": "any(x, axis=None, keepdims=False)"
+                    },
+                    {
+                        "code": "def all(x, axis=None, keepdims=False):\n    if isinstance(axis, list):\n        axis = tuple(axis)\n    return np.all(x, axis=axis, keepdims=keepdims)",
+                        "signature": "all(x, axis=None, keepdims=False)"
+                    },
+                    {
+                        "code": "def argmax(x, axis=-1):\n    return np.argmax(x, axis=axis)",
+                        "signature": "argmax(x, axis=-1)"
+                    },
+                    {
+                        "code": "def argmin(x, axis=-1):\n    return np.argmin(x, axis=axis)",
+                        "signature": "argmin(x, axis=-1)"
+                    },
+                    {
+                        "code": "def sqrt(x):\n    y = np.sqrt(x)\n    y[np.isnan(y)] = 0.\n    return y",
+                        "signature": "sqrt(x)"
+                    },
+                    {
+                        "code": "def pow(x, a=1.):\n    return np.power(x, a)",
+                        "signature": "pow(x, a=1.0)"
+                    },
+                    {
+                        "code": "def clip(x, min_value, max_value):\n    return np.clip(x, min_value, max_value)",
+                        "signature": "clip(x, min_value, max_value)"
+                    },
+                    {
+                        "code": "def concatenate(tensors, axis=-1):\n    return np.concatenate(tensors, axis)",
+                        "signature": "concatenate(tensors, axis=-1)"
+                    },
+                    {
+                        "code": "def permute_dimensions(x, pattern):\n    return np.transpose(x, pattern)",
+                        "signature": "permute_dimensions(x, pattern)"
+                    },
+                    {
+                        "code": "def reshape(x, shape):\n    return np.reshape(x, shape)",
+                        "signature": "reshape(x, shape)"
+                    },
+                    {
+                        "code": "def repeat_elements(x, rep, axis):\n    return np.repeat(x, rep, axis=axis)",
+                        "signature": "repeat_elements(x, rep, axis)"
+                    },
+                    {
+                        "code": "def repeat(x, n):\n    y = np.expand_dims(x, 1)\n    y = np.repeat(y, n, axis=1)\n    return y",
+                        "signature": "repeat(x, n)"
+                    },
+                    {
+                        "code": "def temporal_padding(x, padding=(1, 1)):\n    return np.pad(x, [(0, 0), padding, (0, 0)], mode='constant')",
+                        "signature": "temporal_padding(x, padding=(1, 1))"
+                    },
+                    {
+                        "code": "def spatial_2d_padding(x, padding=((1, 1), (1, 1)), data_format=None):\n    all_dims_padding = ((0, 0),) + padding + ((0, 0),)\n    all_dims_padding = transpose_shape(all_dims_padding, data_format,\n                                       spatial_axes=(1, 2))\n    return np.pad(x, all_dims_padding, mode='constant')",
+                        "signature": "spatial_2d_padding(x, padding=((1, 1), (1, 1)), data_format=None)"
+                    },
+                    {
+                        "code": "def spatial_3d_padding(x, padding=((1, 1), (1, 1), (1, 1)), data_format=None):\n    all_dims_padding = ((0, 0),) + padding + ((0, 0),)\n    all_dims_padding = transpose_shape(all_dims_padding, data_format,\n                                       spatial_axes=(1, 2, 3))\n    return np.pad(x, all_dims_padding, mode='constant')",
+                        "signature": "spatial_3d_padding(x, padding=((1, 1), (1, 1), (1, 1)), data_format=None)"
+                    },
+                    {
+                        "code": "def tile(x, n):\n    return np.tile(x, n)",
+                        "signature": "tile(x, n)"
+                    },
+                    {
+                        "code": "def arange(start, stop=None, step=1, dtype='int32'):\n    return np.arange(start, stop, step, dtype)",
+                        "signature": "arange(start, stop=None, step=1, dtype='int32')"
+                    },
+                    {
+                        "code": "def flatten(x):\n    return np.reshape(x, (-1,))",
+                        "signature": "flatten(x)"
+                    },
+                    {
+                        "code": "def batch_flatten(x):\n    return np.reshape(x, (x.shape[0], -1))",
+                        "signature": "batch_flatten(x)"
+                    },
+                    {
+                        "code": "def gather(reference, indices):\n    return reference[indices]",
+                        "signature": "gather(reference, indices)"
+                    },
+                    {
+                        "code": "def eval(x):\n    return x",
+                        "signature": "eval(x)"
+                    },
+                    {
+                        "code": "def get_value(x):\n    return x",
+                        "signature": "get_value(x)"
+                    },
+                    {
+                        "code": "def count_params(x):\n    return x.size",
+                        "signature": "count_params(x)"
+                    },
+                    {
+                        "code": "def int_shape(x):\n    return x.shape",
+                        "signature": "int_shape(x)"
+                    },
+                    {
+                        "code": "def get_variable_shape(x):\n    return int_shape(x)",
+                        "signature": "get_variable_shape(x)"
+                    },
+                    {
+                        "code": "def dtype(x):\n    return x.dtype.name",
+                        "signature": "dtype(x)"
+                    },
+                    {
+                        "code": "def constant(value, dtype=None, shape=None, name=None):\n    if dtype is None:\n        dtype = floatx()\n    if shape is None:\n        shape = ()\n    np_value = value * np.ones(shape)\n    np_value.astype(dtype)\n    return np_value",
+                        "signature": "constant(value, dtype=None, shape=None, name=None)"
+                    },
+                    {
+                        "code": "def print_tensor(x, message=''):\n    print(x, message)\n    return x",
+                        "signature": "print_tensor(x, message='')"
+                    },
+                    {
+                        "code": "def dot(x, y):\n    return np.dot(x, y)",
+                        "signature": "dot(x, y)"
+                    },
+                    {
+                        "code": "def batch_dot(x, y, axes=None):\n    if x.ndim < 2 or y.ndim < 2:\n        raise ValueError('Batch dot requires inputs of rank 2 or more.')\n\n    if isinstance(axes, int):\n        axes = [axes, axes]\n    elif isinstance(axes, tuple):\n        axes = list(axes)\n\n    if axes is None:\n        if y.ndim == 2:\n            axes = [x.ndim - 1, y.ndim - 1]\n        else:\n            axes = [x.ndim - 1, y.ndim - 2]\n\n    if any([isinstance(a, (list, tuple)) for a in axes]):\n        raise ValueError('Multiple target dimensions are not supported. ' +\n                         'Expected: None, int, (int, int), ' +\n                         'Provided: ' + str(axes))\n\n    # Handle negative axes\n    if axes[0] < 0:\n        axes[0] += x.ndim\n    if axes[1] < 0:\n        axes[1] += y.ndim\n\n    if 0 in axes:\n        raise ValueError('Can not perform batch dot over axis 0.')\n\n    if x.shape[0] != y.shape[0]:\n        raise ValueError('Can not perform batch dot on inputs'\n                         ' with different batch sizes.')\n\n    d1 = x.shape[axes[0]]\n    d2 = y.shape[axes[1]]\n    if d1 != d2:\n        raise ValueError('Can not do batch_dot on inputs with shapes ' +\n                         str(x.shape) + ' and ' + str(y.shape) +\n                         ' with axes=' + str(axes) + '. x.shape[%d] != '\n                         'y.shape[%d] (%d != %d).' % (axes[0], axes[1], d1, d2))\n\n    result = []\n    axes = [axes[0] - 1, axes[1] - 1]  # ignore batch dimension\n    for xi, yi in zip(x, y):\n        result.append(np.tensordot(xi, yi, axes))\n    result = np.array(result)\n\n    if result.ndim == 1:\n        result = np.expand_dims(result, -1)\n\n    return result",
+                        "signature": "batch_dot(x, y, axes=None)"
+                    },
+                    {
+                        "code": "def transpose(x):\n    return np.transpose(x)",
+                        "signature": "transpose(x)"
+                    },
+                    {
+                        "code": "def reverse(x, axes):\n    if isinstance(axes, list):\n        axes = tuple(axes)\n    return np.flip(x, axes)",
+                        "signature": "reverse(x, axes)"
+                    },
+                    {
+                        "code": "def slice(x, start, size):\n    slices = [py_slice(i, i + j) for i, j in zip(start, size)]\n    return x[tuple(slices)]",
+                        "signature": "slice(x, start, size)"
+                    },
+                    {
+                        "code": "def variable(value, dtype=None, name=None, constraint=None):\n    if constraint is not None:\n        raise TypeError(\"Constraint must be None when \"\n                        \"using the NumPy backend.\")\n    return np.array(value, dtype)",
+                        "signature": "variable(value, dtype=None, name=None, constraint=None)"
+                    },
+                    {
+                        "code": "def dropout(x, level, noise_shape=None, seed=None):\n    if noise_shape is None:\n        noise_shape = x.shape\n    if learning_phase():\n        noise = np.random.choice([0, 1],\n                                 noise_shape,\n                                 replace=True,\n                                 p=[level, 1 - level])\n        return x * noise / (1 - level)\n    else:\n        return x",
+                        "signature": "dropout(x, level, noise_shape=None, seed=None)"
+                    },
+                    {
+                        "code": "def equal(x, y):\n    return x == y",
+                        "signature": "equal(x, y)"
+                    },
+                    {
+                        "code": "def not_equal(x, y):\n    return x != y",
+                        "signature": "not_equal(x, y)"
+                    },
+                    {
+                        "code": "def greater(x, y):\n    return x > y",
+                        "signature": "greater(x, y)"
+                    },
+                    {
+                        "code": "def greater_equal(x, y):\n    return x >= y",
+                        "signature": "greater_equal(x, y)"
+                    },
+                    {
+                        "code": "def less(x, y):\n    return x < y",
+                        "signature": "less(x, y)"
+                    },
+                    {
+                        "code": "def less_equal(x, y):\n    return x <= y",
+                        "signature": "less_equal(x, y)"
+                    },
+                    {
+                        "code": "def maximum(x, y):\n    return np.maximum(x, y)",
+                        "signature": "maximum(x, y)"
+                    },
+                    {
+                        "code": "def minimum(x, y):\n    return np.minimum(x, y)",
+                        "signature": "minimum(x, y)"
+                    },
+                    {
+                        "code": "def ndim(x):\n    return x.ndim",
+                        "signature": "ndim(x)"
+                    },
+                    {
+                        "code": "def random_uniform_variable(shape, low, high, dtype=None, name=None, seed=None):\n    return (high - low) * np.random.random(shape).astype(dtype) + low",
+                        "signature": "random_uniform_variable(shape, low, high, dtype=None, name=None, seed=None)"
+                    },
+                    {
+                        "code": "def random_normal_variable(shape, mean, scale, dtype=None, name=None, seed=None):\n    return scale * np.random.randn(*shape).astype(dtype) + mean",
+                        "signature": "random_normal_variable(shape, mean, scale, dtype=None, name=None, seed=None)"
+                    },
+                    {
+                        "code": "def zeros(shape, dtype=floatx(), name=None):\n    return np.zeros(shape, dtype=dtype)",
+                        "signature": "zeros(shape, dtype=floatx(), name=None)"
+                    },
+                    {
+                        "code": "def zeros_like(x, dtype=floatx(), name=None):\n    return np.zeros_like(x, dtype=dtype)",
+                        "signature": "zeros_like(x, dtype=floatx(), name=None)"
+                    },
+                    {
+                        "code": "def ones(shape, dtype=floatx(), name=None):\n    return np.ones(shape, dtype=dtype)",
+                        "signature": "ones(shape, dtype=floatx(), name=None)"
+                    },
+                    {
+                        "code": "def ones_like(x, dtype=floatx(), name=None):\n    return np.ones_like(x, dtype=dtype)",
+                        "signature": "ones_like(x, dtype=floatx(), name=None)"
+                    },
+                    {
+                        "code": "def eye(size, dtype=None, name=None):\n    return np.eye(size, dtype=dtype)",
+                        "signature": "eye(size, dtype=None, name=None)"
+                    },
+                    {
+                        "code": "def resize_images(x, height_factor, width_factor, data_format):\n    if data_format == 'channels_first':\n        x = repeat_elements(x, height_factor, axis=2)\n        x = repeat_elements(x, width_factor, axis=3)\n    elif data_format == 'channels_last':\n        x = repeat_elements(x, height_factor, axis=1)\n        x = repeat_elements(x, width_factor, axis=2)\n    return x",
+                        "signature": "resize_images(x, height_factor, width_factor, data_format)"
+                    },
+                    {
+                        "code": "def resize_volumes(x, depth_factor, height_factor, width_factor, data_format):\n    if data_format == 'channels_first':\n        x = repeat_elements(x, depth_factor, axis=2)\n        x = repeat_elements(x, height_factor, axis=3)\n        x = repeat_elements(x, width_factor, axis=4)\n    elif data_format == 'channels_last':\n        x = repeat_elements(x, depth_factor, axis=1)\n        x = repeat_elements(x, height_factor, axis=2)\n        x = repeat_elements(x, width_factor, axis=3)\n    return x",
+                        "signature": "resize_volumes(x, depth_factor, height_factor, width_factor, data_format)"
+                    },
+                    {
+                        "code": "def one_hot(indices, num_classes):\n    return to_categorical(indices, num_classes)",
+                        "signature": "one_hot(indices, num_classes)"
+                    },
+                    {
+                        "code": "def ctc_decode(y_pred, input_length, greedy=True, beam_width=100, top_paths=1,\n               merge_repeated=False):\n    num_samples = y_pred.shape[0]\n    num_classes = y_pred.shape[-1]\n    log_prob = np.zeros((num_samples, 1))\n    decoded_dense = -np.ones_like(y_pred[..., 0])\n    decoded_length = np.zeros((num_samples,), dtype=np.int)\n    if greedy:\n        for i in range(num_samples):\n            prob = y_pred[i]\n            length = input_length[i]\n            decoded = np.argmax(prob[:length], axis=-1)\n            log_prob[i] = -np.sum(np.log(prob[np.arange(length), decoded]))\n            decoded = _remove_repeats(decoded)\n            decoded = _remove_blanks(decoded, num_classes)\n            decoded_length[i] = len(decoded)\n            decoded_dense[i, :len(decoded)] = decoded\n        return decoded_dense[:, :np.max(decoded_length)], log_prob\n    else:\n        raise NotImplementedError",
+                        "signature": "ctc_decode(y_pred, input_length, greedy=True, beam_width=100, top_paths=1, merge_repeated=False)"
+                    },
+                    {
+                        "code": "def _remove_repeats(inds):\n    is_not_repeat = np.insert(np.diff(inds).astype(np.bool), 0, True)\n    return inds[is_not_repeat]",
+                        "signature": "_remove_repeats(inds)"
+                    },
+                    {
+                        "code": "def _remove_blanks(inds, num_classes):\n    return inds[inds < (num_classes - 1)]",
+                        "signature": "_remove_blanks(inds, num_classes)"
+                    },
+                    {
+                        "code": "def stack(x, axis=0):\n    return np.stack(x, axis=axis)",
+                        "signature": "stack(x, axis=0)"
+                    },
+                    {
+                        "code": "def expand_mask(mask_, x):\n    # expand mask so that `mask[:, t].ndim == x.ndim`\n    while mask_.ndim < x.ndim + 1:\n        mask_ = np.expand_dims(mask_, axis=-1)\n    return mask_",
+                        "signature": "expand_mask(mask_, x)"
+                    }
+                ],
+                "file_scope_classes": []
+            },
             "variables_in_file": {
                 "x": [
                     521,
@@ -3621,7 +3806,7 @@
                 "test_function": "test_in_top_k",
                 "test_function_code": "    @pytest.mark.skipif(K.backend() == 'cntk', reason='Bug in CNTK')\n    def test_in_top_k(self):\n        batch_size = 20\n        num_classes = 10\n\n        # Random prediction test case\n        predictions = np.random.random((batch_size, num_classes)).astype('float32')\n        targets = np.random.randint(num_classes, size=batch_size, dtype='int32')\n\n        # (k == 0 or k > num_classes) does not raise an error\n        # but just return an unmeaningful tensor.\n        for k in range(1, num_classes + 1):\n            z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                        b.variable(targets, dtype='int32'), k))\n                      for b in WITH_NP]\n            assert_list_pairwise(z_list)\n\n        # Identical prediction test case:\n        # randomly set half of the predictions to an identical value\n        num_identical = num_classes // 2\n        for i in range(batch_size):\n            idx_identical = np.random.choice(num_classes,\n                                             size=num_identical, replace=False)\n            predictions[i, idx_identical] = predictions[i, 0]\n        targets = np.zeros(batch_size, dtype='int32')\n\n        for k in range(1, num_classes + 1):\n            z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                        b.variable(targets, dtype='int32'), k))\n                      for b in WITH_NP]\n            assert_list_pairwise(z_list)",
                 "test_error": "AttributeError: module 'keras.backend.numpy_backend' has no attribute 'in_top_k'",
-                "full_test_error": "self = <backend_test.TestBackend object at 0x7f1f69cb9750>\n\n    @pytest.mark.skipif(K.backend() == 'cntk', reason='Bug in CNTK')\n    def test_in_top_k(self):\n        batch_size = 20\n        num_classes = 10\n    \n        # Random prediction test case\n        predictions = np.random.random((batch_size, num_classes)).astype('float32')\n        targets = np.random.randint(num_classes, size=batch_size, dtype='int32')\n    \n        # (k == 0 or k > num_classes) does not raise an error\n        # but just return an unmeaningful tensor.\n        for k in range(1, num_classes + 1):\n            z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                        b.variable(targets, dtype='int32'), k))\n>                     for b in WITH_NP]\n\ntests/keras/backend/backend_test.py:1173: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n.0 = <list_iterator object at 0x7f1f69cb9c50>\n\n    z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                b.variable(targets, dtype='int32'), k))\n>             for b in WITH_NP]\nE   AttributeError: module 'keras.backend.numpy_backend' has no attribute 'in_top_k'\n\ntests/keras/backend/backend_test.py:1173: AttributeError",
+                "full_test_error": "self = <backend_test.TestBackend object at 0x7ff01d8ba610>\n\n    @pytest.mark.skipif(K.backend() == 'cntk', reason='Bug in CNTK')\n    def test_in_top_k(self):\n        batch_size = 20\n        num_classes = 10\n    \n        # Random prediction test case\n        predictions = np.random.random((batch_size, num_classes)).astype('float32')\n        targets = np.random.randint(num_classes, size=batch_size, dtype='int32')\n    \n        # (k == 0 or k > num_classes) does not raise an error\n        # but just return an unmeaningful tensor.\n        for k in range(1, num_classes + 1):\n            z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                        b.variable(targets, dtype='int32'), k))\n>                     for b in WITH_NP]\n\ntests/keras/backend/backend_test.py:1173: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n.0 = <list_iterator object at 0x7ff01d8baa90>\n\n    z_list = [b.eval(b.in_top_k(b.variable(predictions, dtype='float32'),\n                                b.variable(targets, dtype='int32'), k))\n>             for b in WITH_NP]\nE   AttributeError: module 'keras.backend.numpy_backend' has no attribute 'in_top_k'\n\ntests/keras/backend/backend_test.py:1173: AttributeError",
                 "traceback": null,
                 "test_error_location": null,
                 "test_function_decorators": [
