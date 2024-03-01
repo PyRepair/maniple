@@ -1,0 +1,58 @@
+{
+    "1.1.1": "def initialize(self, make_current=None):\n    if make_current is None:\n        if IOLoop.current(instance=False) is None:\n            self.make_current()\n    elif make_current:\n        if IOLoop.current(instance=False) is None:\n            raise RuntimeError(\"current IOLoop already exists\")\n        self.make_current()\n",
+    "1.1.2": null,
+    "1.2.1": "tornado/ioloop.py",
+    "1.2.2": null,
+    "1.3.1": "class IOLoop(Configurable)",
+    "1.3.2": "A level-triggered I/O loop.\n\nWe use ``epoll`` (Linux) or ``kqueue`` (BSD and Mac OS X) if they\nare available, or else we fall back on select(). If you are\nimplementing a system that needs to handle thousands of\nsimultaneous connections, you should use a system that supports\neither ``epoll`` or ``kqueue``.\n\nExample usage for a simple TCP server:\n\n.. testcode::\n\n    import errno\n    import functools\n    import tornado.ioloop\n    import socket\n\n    def connection_ready(sock, fd, events):\n        while True:\n            try:\n                connection, address = sock.accept()\n            except socket.error as e:\n                if e.args[0] not in (errno.EWOULDBLOCK, errno.EAGAIN):\n                    raise\n                return\n            connection.setblocking(0)\n            handle_connection(connection, address)\n\n    if __name__ == '__main__':\n        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)\n        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)\n        sock.setblocking(0)\n        sock.bind((\"\", port))\n        sock.listen(128)\n\n        io_loop = tornado.ioloop.IOLoop.current()\n        callback = functools.partial(connection_ready, sock)\n        io_loop.add_handler(sock.fileno(), callback, io_loop.READ)\n        io_loop.start()\n\n.. testoutput::\n   :hide:\n\nBy default, a newly-constructed `IOLoop` becomes the thread's current\n`IOLoop`, unless there already is a current `IOLoop`. This behavior\ncan be controlled with the ``make_current`` argument to the `IOLoop`\nconstructor: if ``make_current=True``, the new `IOLoop` will always\ntry to become current and it raises an error if there is already a\ncurrent instance. If ``make_current=False``, the new `IOLoop` will\nnot try to become current.\n\n.. versionchanged:: 4.2\n   Added the ``make_current`` keyword argument to the `IOLoop`\n   constructor.",
+    "1.4.1": [
+        "current(instance=True)",
+        "make_current(self)"
+    ],
+    "1.4.2": null,
+    "1.5.1": [
+        "    def test_force_current(self):\n        self.io_loop = IOLoop(make_current=True)\n        self.assertIs(self.io_loop, IOLoop.current())\n        with self.assertRaises(RuntimeError):\n            # A second make_current=True construction cannot succeed.\n            IOLoop(make_current=True)\n        # current() was not affected by the failed construction.\n        self.assertIs(self.io_loop, IOLoop.current())"
+    ],
+    "1.5.2": [
+        "tornado/test/ioloop_test.py"
+    ],
+    "2.1.1": [
+        [
+            "E               RuntimeError: current IOLoop already exists"
+        ]
+    ],
+    "2.1.2": [
+        [
+            "self = <tornado.test.ioloop_test.TestIOLoopCurrent testMethod=test_force_current>\n\n    def test_force_current(self):\n>       self.io_loop = IOLoop(make_current=True)\n\ntornado/test/ioloop_test.py:443: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \ntornado/util.py:221: in __new__\n    instance.initialize(*args, **init_kwargs)\ntornado/platform/epoll.py:26: in initialize\n    super(EPollIOLoop, self).initialize(impl=select.epoll(), **kwargs)\ntornado/ioloop.py:664: in initialize\n    super(PollIOLoop, self).initialize(**kwargs)\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <tornado.platform.epoll.EPollIOLoop object at 0x7f20d83f7b10>\nmake_current = True\n\n    def initialize(self, make_current=None):\n        if make_current is None:\n            if IOLoop.current(instance=False) is None:\n                self.make_current()\n        elif make_current:\n            if IOLoop.current(instance=False) is None:\n>               raise RuntimeError(\"current IOLoop already exists\")",
+            "\ntornado/ioloop.py:253: RuntimeError"
+        ]
+    ],
+    "2.2.1": null,
+    "2.2.2": null,
+    "2.3.1": [
+        [
+            {
+                "make_current": {
+                    "value": "True",
+                    "shape": null,
+                    "omitted": false
+                }
+            },
+            {}
+        ]
+    ],
+    "2.3.2": [
+        [
+            {
+                "make_current": "bool"
+            },
+            {}
+        ]
+    ],
+    "3.1.1": [
+        "ioloop.py(line 252) is None or not None\n"
+    ],
+    "3.1.2": [
+        "line 252, IOLoop.current(instance=False) is None\u3002why then raise \"already exists\"?\n"
+    ]
+}
