@@ -1,0 +1,78 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 88,
+            "start_line": 25,
+            "file_name": "pandas/core/reshape/pivot.py",
+            "replace_code": "def pivot_table(\n    data,\n    values=None,\n    index=None,\n    columns=None,\n    aggfunc=\"mean\",\n    fill_value=None,\n    margins=False,\n    dropna=True,\n    margins_name=\"All\",\n    observed=False,\n) -> pd.DataFrame:\n    index = _convert_by(index)\n    columns = _convert_by(columns)\n\n    if isinstance(aggfunc, list):\n        pieces: List[pd.DataFrame] = []\n        keys = []\n        for func in aggfunc:\n            grouped = data.groupby(index + columns)\n            agged = grouped.agg(func)\n            pieces.append(agged)\n            keys.append(getattr(func, \"__name__\", func))\n\n        return pd.concat(pieces, keys=keys, axis=1)\n\n    keys = index + columns\n\n    values_passed = values is not None\n    if values_passed:\n        if not isinstance(values, list):\n            values = [values]\n\n        for i in values:\n            if i not in data:\n                raise KeyError(i)\n\n        to_filter = [x for x in keys + values if isinstance(x, str) and x in data]\n        data = data[to_filter]\n\n    else:\n        values = data.columns.difference(keys).tolist()\n\n    grouped = data.groupby(keys, observed=observed)\n    agged = grouped.agg(aggfunc)\n    \n    if dropna and isinstance(agged, pd.DataFrame) and not agged.empty:\n        agged = agged.dropna(how=\"all\")\n\n        for v in values:\n            if v in data and pd.api.types.is_integer_dtype(data[v]) and not pd.api.types.is_integer_dtype(agged[v]):\n                agged[v] = pd.to_numeric(agged[v], downcast=\"integer\")\n    \n    table = agged.unstack(level=-1)\n    \n    if not dropna:\n        table = table.reindex(cartesian_product(table.index.levels), axis=0).reindex(cartesian_product(table.columns.levels), axis=1)\n\n    if fill_value is not None:\n        table = table.fillna(fill_value)\n\n    if margins:\n        data = data.dropna(how=\"all\")\n        table = _add_margins(\n            table,\n            data,\n            values,\n            rows=index,\n            cols=columns,\n            aggfunc=aggfunc,\n            observed=dropna,\n            margins_name=margins_name,\n            fill_value=fill_value,\n        )\n\n    if values_passed and len(values) == 1 and not table.empty and table.columns.nlevels > 1:\n        table = table.xs(values[0], level=-1, axis=1)\n\n    if not index and columns:\n        table = table.T\n\n    table = table.sort_index(axis=1)\n\n    return table",
+            "import_list": [
+                "from typing import List",
+                "import pandas as pd"
+            ]
+        }
+    ]
+}

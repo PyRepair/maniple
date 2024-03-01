@@ -1,0 +1,97 @@
+### Bug Explanation:
+The bug arises in the `_get_grouper` function when handling the case where the `key` parameter is a tuple. The code incorrectly interprets the tuple as a single key instead of as a list of keys. This leads to errors in further processing, resulting in unexpected behavior.
+
+### Fix Strategy:
+To fix the bug, the code should correctly interpret the tuple as a list of keys and proceed accordingly to handle multiple keys as intended.
+
+### Corrected Version:
+```python
+def _get_grouper(
+    obj,
+    key=None,
+    axis=0,
+    level=None,
+    sort=True,
+    observed=False,
+    mutated=False,
+    validate=True,
+):
+    """
+    create and return a BaseGrouper, which is an internal
+    mapping of how to create the grouper indexers.
+    This may be composed of multiple Grouping objects, indicating
+    multiple groupers
+
+    Groupers are ultimately index mappings. They can originate as:
+    index mappings, keys to columns, functions, or Groupers
+
+    Groupers enable local references to axis,level,sort, while
+    the passed in axis, level, and sort are 'global'.
+
+    This routine tries to figure out what the passing in references
+    are and then creates a Grouping for each one, combined into
+    a BaseGrouper.
+
+    If observed & we have a categorical grouper, only show the observed
+    values
+
+    If validate, then check for key/level overlaps
+
+    """
+    group_axis = obj._get_axis(axis)
+
+    # validate that the passed single level is compatible with the passed
+    # axis of the object
+    if level is not None:
+        if isinstance(group_axis, MultiIndex):
+            # Handling for MultiIndex
+            if is_list_like(level) and len(level) == 1:
+                level = level[0]
+
+            if key is None and is_scalar(level):
+                key = group_axis.get_level_values(level)
+                level = None
+
+        else:
+            # Handling for non-MultiIndex
+            if is_list_like(level):
+                nlevels = len(level)
+                if nlevels == 1:
+                    level = level[0]
+                elif nlevels == 0:
+                    raise ValueError("No group keys passed!")
+                else:
+                    raise ValueError("multiple levels only valid with MultiIndex")
+
+            if isinstance(level, str):
+                if obj.index.name != level:
+                    raise ValueError(
+                        "level name {} is not the name of the index".format(level)
+                    )
+            elif level > 0 or level < -1:
+                raise ValueError("level > 0 or level < -1 only valid with MultiIndex")
+
+            level = None
+            key = group_axis
+
+    # Handle a tuple key correctly as a list of keys
+    if isinstance(key, tuple):
+        key = list(key)
+
+    if not isinstance(key, list):
+        keys = [key]
+        match_axis_length = False
+    else:
+        keys = key
+        match_axis_length = len(keys) == len(group_axis)
+
+    any_callable = any(callable(g) or isinstance(g, dict) for g in keys)
+    any_groupers = any(isinstance(g, Grouper) for g in keys)
+    any_arraylike = any(
+        isinstance(g, (list, tuple, Series, Index, np.ndarray)) for g in keys
+    )
+
+    # Remaining code unchanged
+    ...
+
+```

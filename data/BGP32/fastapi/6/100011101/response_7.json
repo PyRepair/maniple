@@ -1,0 +1,75 @@
+{
+    "fastapi": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 0,
+                "1.5.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 1,
+                "2.2.2": 1,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 0,
+                "1.5.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 1,
+                "2.2.2": 1,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 6,
+            "start_line": 617,
+            "file_name": "fastapi/dependencies/utils.py",
+            "replace_code": "async def request_body_to_args(\n    required_params: List[ModelField],\n    received_body: Optional[Union[Dict[str, Any], FormData]],\n) -> Tuple[Dict[str, Any], List[ErrorWrapper]]:\n    values = {}\n    errors = []\n    if required_params:\n        field = required_params[0]\n        field_info = get_field_info(field)\n        embed = getattr(field_info, \"embed\", None)\n        if len(required_params) == 1 and not embed:\n            # Extract the values correctly from the form data\n            if isinstance(received_body, FormData):\n                value = received_body.get(field.alias)  # Get the value from form data\n        else:\n            value = None  # Initialize value as None to avoid undefined behavior\n        if value is not None:\n            if field.shape in sequence_shapes:\n                value = received_body.getlist(field.alias)  # Get the list of values from the form data\n            else:\n                value = received_body.get(field.alias)\n        if value is None:\n            if field.required:\n                errors.append(ErrorWrapper(MissingError(), loc=(\"body\", field.alias)))\n            else:\n                values[field.name] = deepcopy(field.default)\n        else:\n            # Handle file uploads and other cases\n            if isinstance(field_info, params.File) and lenient_issubclass(field.type_, bytes) and isinstance(value, UploadFile):\n                value = await value.read()\n            v_, errors_ = field.validate(value, values, loc=(\"body\", field.alias))\n            if isinstance(errors_, ErrorWrapper):\n                errors.append(errors_)\n            elif isinstance(errors_, list):\n                errors.extend(errors_)\n            else:\n                values[field.name] = v_\n    return values, errors",
+            "import_list": []
+        }
+    ]
+}

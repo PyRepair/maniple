@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        nanosecond = getattr(other, \"nanosecond\", 0)\n        other = datetime(other.year, other.month, other.day, other.hour, other.minute, other.second, other.microsecond)\n        n = self.n\n        \n        start_minute = self.start[0].hour * 60 + self.start[0].minute\n        end_minute = self.end[0].hour * 60 + self.end[0].minute\n        businesshours = (end_minute - start_minute) * 60\n        \n        bd, r = divmod(abs(n) * 60, businesshours)\n        if n < 0:\n            bd, r = -bd, -r\n        \n        if bd != 0:\n            skip_bd = BusinessDay(n=bd)\n            if not self.next_bday.onOffset(other):\n                other = self.next_bday.rollback(other)\n            other = other + skip_bd\n          \n        delta = timedelta(minutes=r) if r != 0 else None\n        \n        if n >= 0:\n            while delta:\n                next_open = self.next_bday.closing(next_open, non_business=False)\n                bhour = min((next_open - other) if next_open > other else timedelta(days=0), delta)\n                other = other + bhour if bhour else other\n                delta = delta - bhour if bhour else delta\n        else:\n            while delta:\n                bhour = self.next_bday.next_close(other) - other\n                if bhour < delta or (bhour == delta and nanosecond != 0):\n                    other = other + delta\n                    delta = None\n                else:\n                    other = self.next_bday.closing(self.next_bday.opening(other), non_business=False)\n                \n        return other\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

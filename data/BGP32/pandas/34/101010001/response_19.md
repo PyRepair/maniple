@@ -1,0 +1,69 @@
+#### Analysis:
+- The buggy function `_get_time_bins` is part of the `TimeGrouper` class, which is a subclass of `Grouper`.
+- It calls the function `_get_timestamp_range_edges` from the same file, which returns the first and last timestamp of the input `DatetimeIndex`.
+- The error message indicates an issue with ambiguous time due to Daylight Saving Time (DST) during the DST transition.
+- The error occurs in the `date_range` function call inside the `_get_time_bins` function, specifically due to `ambiguous` parameter set to "infer".
+
+#### Bug Cause:
+- The bug likely happens when the `date_range` function tries to localize timestamps with ambiguous time due to DST switch.
+- The error message explicitly says that DST time cannot be inferred, indicating an ambiguous time issue.
+- The `ambiguous="infer"` parameter setting in the `date_range` function leads to this error during DST transitions.
+- This issue causes the failing test due to DST ambiguity around midnight.
+
+#### Bug Fix Strategy:
+- To fix this bug, we need to address the DST ambiguity issue when creating the date range.
+- Since the error is triggered by ambiguous time, we need to handle DST transition cases explicitly.
+- We can adjust the timezone conversion approach or handle the ambiguous time error explicitly.
+
+#### Corrected Version:
+```python
+def _get_time_bins(self, ax):
+    if not isinstance(ax, DatetimeIndex):
+        raise TypeError(
+            "axis must be a DatetimeIndex, but got "
+            f"an instance of {type(ax).__name__}"
+        )
+
+    if len(ax) == 0:
+        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
+        return binner, [], labels
+
+    first, last = _get_timestamp_range_edges(
+        ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
+    )
+
+    binner = labels = date_range(
+        freq=self.freq,
+        start=first,
+        end=last,
+        tz=ax.tz,
+        name=ax.name,
+        ambiguous="NaT",  # Update to handle ambiguous time
+        nonexistent="shift_forward",
+    )
+
+    ax_values = ax.asi8
+    binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
+
+    bins = lib.generate_bins_dt64(
+        ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+    )
+
+    if self.closed == "right":
+        labels = binner
+        if self.label == "right":
+            labels = labels[1:]
+    elif self.label == "right":
+        labels = labels[1:]
+
+    if ax.hasnans:
+        binner = binner.insert(0, NaT)
+        labels = labels.insert(0, NaT)
+
+    if len(bins) < len(labels):
+        labels = labels[: len(bins)]
+
+    return binner, bins, labels
+```
+
+In the corrected version, the `ambiguous` parameter in the `date_range` function is set to "NaT" instead of "infer" to avoid DST ambiguity issues. This change should prevent the ambiguous time error during DST transitions and resolve the failing test case.

@@ -1,0 +1,75 @@
+{
+    "keras": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 0,
+                "1.5.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 0,
+                "1.5.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 3,
+            "start_line": 26,
+            "file_name": "keras/models.py",
+            "replace_code": "def _clone_functional_model(model, input_tensors=None):\n    if not isinstance(model, Model):\n        raise ValueError('Expected `model` argument to be a `Model` instance, got ', model)\n    if isinstance(model, Sequential):\n        raise ValueError('Expected `model` argument to be a functional `Model` instance, got a `Sequential` instance instead:', model)\n\n    layer_map = {}  \n    tensor_map = {}\n    \n    if input_tensors is None:\n        input_layers = []\n        input_tensors = []\n        for layer in model._input_layers:\n            name = layer.name\n            input_tensor = Input(batch_shape=layer.batch_input_shape,\n                                 dtype=layer.dtype,\n                                 sparse=layer.sparse,\n                                 name='input_wrapper_for_' + name)\n            input_tensors.append(input_tensor)\n            input_layers.append(layer)\n            layer_map[layer] = input_tensor\n    else:\n        input_tensors = to_list(input_tensors)\n        for i, x in enumerate(input_tensors):\n            if not K.is_keras_tensor(x):\n                name = model._input_layers[i].name\n                input_tensor = Input(tensor=x, name='input_wrapper_for_' + name)\n                input_layers.append(model._input_layers[i])\n                layer_map[model._input_layers[i]] = input_tensor\n                tensor_map[x] = (input_tensor, None)\n            else:\n                input_layers.append(x._keras_history.layer)\n                layer_map[x._keras_history.layer] = x\n                tensor_map[x] = (x, None)\n\n    for x, y in zip(model.inputs, input_tensors):\n        tensor_map[x] = (y, None)\n\n    for layer in model.layers:\n        if layer not in layer_map:\n            new_layer = layer.__class__.from_config(layer.get_config())\n            layer_map[layer] = new_layer\n\n    for node in model._nodes_by_depth:\n        for layer in node.outbound_layer:\n            layer = layer_map[layer]\n            if isinstance(layer, InputLayer):\n                continue\n            reference_input_tensors = node.input_tensors\n            reference_output_tensors = node.output_tensors\n            \n            computed_data = []\n            for x in reference_input_tensors:\n                if x in tensor_map:\n                    computed_data.append(tensor_map[x])\n\n            if len(computed_data) == len(reference_input_tensors):\n                kwargs = node.arguments if node.arguments else {}\n                computed_tensors, computed_masks = zip(*computed_data)\n\n                if not isinstance(layer, Sequential):\n                    if has_arg(layer.call, 'mask') and 'mask' not in kwargs:\n                        kwargs['mask'] = [None] * len(computed_tensors)\n                    output_tensors = to_list(layer(computed_tensors, **kwargs))\n                    output_masks = to_list(layer.compute_mask(computed_tensors, computed_masks))\n\n                    for x, y, mask in zip(reference_output_tensors, output_tensors, output_masks):\n                        tensor_map[x] = (y, mask)\n\n    output_tensors = [tensor_map[x][0] for x in model.outputs]\n    return Model(input_tensors, output_tensors, name=model.name)",
+            "import_list": []
+        }
+    ]
+}

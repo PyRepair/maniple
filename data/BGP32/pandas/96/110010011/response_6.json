@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 0,
+                "1.5.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 0,
+                "1.5.2": 0,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n        if isinstance(other, datetime):\n            n = self.n\n            businesshours = sum(self._get_business_hours_by_sec(st, en) for st, en in zip(self.start, self.end))\n\n            weekdays_only = any(isinstance(b, BaseCBHour) for b in self)\n            bds, r = divmod(abs(n * 60), businesshours // 60)\n            if n < 0:\n                bds, r = -bds, -r\n            \n            skip_bdays = BusinessDay(n=bds, normalize=True)\n            result = other\n\n            while r and (n >= 0 or not self._is_on_offset(result)):\n                remaining_time = timedelta(minutes=r)\n                offset = result - self._next_closing_time(result)\n                remaining_time -= offset if n >= 0 else -offset\n\n                if weekdays_only:\n                    while remaining_time > timedelta(0):\n                        closing_delta = self._get_closing_time(result) - result\n                        if closing_delta > remaining_time:\n                            result += remaining_time\n                            remaining_time = timedelta(0)\n                        else:\n                            result = self._next_opening_time(result + closing_delta)\n                            remaining_time -= closing_delta\n\n                else:\n                    if n >= 0:\n                        if self._is_on_offset(result) or (result.time() == time(0) and (result - timedelta(1)).time() in self.end):\n                            result = self._next_opening_time(result)\n                        next_closing = self._get_closing_time(result)\n\n                        if result.time() in self.end:\n                            next_closing = self._next_opening_time(next_closing)\n                    else:\n                        if result.time() in self.start:\n                            result = result.replace(hour=0, minute=0, second=0)\n                        else:\n                            result = self._next_opening_time(result)\n                    \n                    while r:\n                        while result < next_closing and r > 0:\n                            result += timedelta(0, 60*60*r)\n                            r = 0\n                        if r:\n                            next_closing = self._get_closing_time(result)\n                    if n < 0:\n                        result = next_closing + BusinessHour(n=-1).apply(next_closing)\n            return result\n        else:\n            raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

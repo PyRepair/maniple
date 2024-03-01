@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        # Validate if other is a datetime object\n        if not hasattr(other, \"date\"):\n            raise ApplyTypeError(\"Only know how to combine business hour with datetime\")\n\n        n = self.n\n\n        # Adjust for holidays\n        if self.calendar and getattr(other, \"date\", None) in self.holidays:\n            delta = timedelta(0 if n >= 0 else -1)\n            other = self._next_opening_time(other + delta)\n\n        businesshours = sum(\n            self._get_business_hours_by_sec(st, en)\n            for st, en in zip(self.start, self.end)\n        )\n\n        bd, r = divmod(abs(n * self._minutes_per_hour), businesshours // 60)\n        if n < 0:\n            bd, r = -bd, -r\n\n        # Adjust by business days first\n        if bd != 0:\n            add_days = bd * self.days_values  # Handle positive or negative business days\n            other = self._adjust_on_days(other, add_days)\n\n        # Adjust remaining business hours\n        bhour_remain = timedelta(minutes=r)\n\n        while bhour_remain != timedelta(0):\n            curr_opening = self._prev_opening_time(other) if n >= 0 else other\n            curr_closing = self._get_closing_time(curr_opening)\n            next_open = self._next_opening_time(curr_opening)\n\n            # Determine how many business hours can be adjusted within the current interval\n            bhour = curr_closing - other if n >= 0 else next_open - other\n\n            if bhour_remain >= bhour:\n                # Move to the next business interval\n                other = next_open\n                bhour_remain -= bhour\n            else:\n                # Finish adjusting within the current interval\n                other += bhour_remain\n                bhour_remain = timedelta(0)\n\n        return other\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

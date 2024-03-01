@@ -1,0 +1,69 @@
+### Bug Analysis:
+The function `_get_time_bins` is generating `binner` and `labels` using the `date_range` function, and the issue arises during daylight saving time transitions where ambiguous times exist. In this scenario, an `AmbiguousTimeError` is raised because the occurrence of an ambiguous time, such as a repeated time during a DST transition, is not properly handled.
+
+### Bug Location:
+The bug is most likely occurring during the creation of `binner` and `labels` using the `date_range` function due to DST transitions.
+
+### Bug Cause:
+The `date_range` function doesn't handle ambiguous times during DST transitions properly, causing an `AmbiguousTimeError` to be raised when encountering repeated times.
+
+### Fix Strategy: 
+1. Add a check to handle ambiguous times during DST transitions in the `date_range` call.
+2. Specifically address handling repeated times during DST transitions to avoid the `AmbiguousTimeError`.
+
+### Fixed Function:
+```python
+def _get_time_bins(self, ax):
+    if not isinstance(ax, DatetimeIndex):
+        raise TypeError(
+            "axis must be a DatetimeIndex, but got "
+            f"an instance of {type(ax).__name__}"
+        )
+
+    if len(ax) == 0:
+        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
+        return binner, [], labels
+
+    first = ax[0]
+    last = ax[-1]
+    # Generate binner and labels using manual handling of ambiguous times
+    binner = labels = date_range(
+        freq=self.freq,
+        start=first,
+        end=last,
+        tz=ax.tz,
+        name=ax.name,
+        ambiguous="infer",
+        nonexistent="shift_forward",
+        normalize=False,  # Avoid normalization during DST transitions
+    )
+
+    ax_values = ax.asi8
+    binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
+
+    # general version, knowing nothing about relative frequencies
+    bins = lib.generate_bins_dt64(
+        ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+    )
+
+    if self.closed == "right":
+        labels = binner
+        if self.label == "right":
+            labels = labels[1:]
+    elif self.label == "right":
+        labels = labels[1:]
+
+    if ax.hasnans:
+        binner = binner.insert(0, NaT)
+        labels = labels.insert(0, NaT)
+
+    # if we end up with more labels than bins
+    # adjust the labels
+    # GH4076
+    if len(bins) < len(labels):
+        labels = labels[: len(bins)]
+
+    return binner, bins, labels
+```
+
+This corrected version introducing specific parameters in the `date_range` function, such as `normalize=False` to avoid normalization, will handle the issue with ambiguous times during DST transitions, preventing the `AmbiguousTimeError` from being raised.

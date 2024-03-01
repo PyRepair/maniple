@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 1,
+                "2.2.2": 1,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 1,
+                "2.2.2": 1,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 84,
+            "start_line": 312,
+            "file_name": "pandas/core/reshape/reshape.py",
+            "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n    if len(clocs) == 0:\n        return data\n\n    # Extract the index from the DataFrame\n    index = data.index\n\n    # Convert hierarchical clocs to level numbers\n    levels = [index._get_level_number(c[0]) for c in clocs]\n    clevels = [index.levels[l] for l in levels]\n    ccodes = [index.codes[l] for l in levels]\n    cnames = [index.names[l] for l in levels]\n\n    rlocs = [i for i in range(index.nlevels) if i not in levels]\n\n    # Handle multi-level columns appropriately\n    if len(levels) > 1:\n        dummy_index = MultiIndex.from_tuples(list(zip(*clocs)), names=cnames)\n    else:\n        dummy_index = Index(ccodes[0], name='__placeholder__')\n\n    # Create a new DataFrame with proper index and unstacked columns\n    dummy = data.copy()\n    dummy.index = dummy_index\n    unstacked = dummy.unstack(level=-1, fill_value=fill_value)\n\n    new_levels = [unstacked.columns.levels[0]] + clevels\n    new_names = [None] + cnames\n    new_codes = [unstacked.columns.codes[0]]\n    for code in ccodes:\n        new_codes.append(code.take(unstacked.columns.codes[-1]))\n\n    new_columns = MultiIndex(levels=new_levels, codes=new_codes, names=new_names)\n\n    if isinstance(unstacked, Series):\n        unstacked.index = new_columns\n    else:\n        unstacked.columns = new_columns\n\n    return unstacked",
+            "import_list": []
+        }
+    ]
+}

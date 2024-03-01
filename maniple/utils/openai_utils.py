@@ -4,7 +4,6 @@ import os
 import pickle
 import time
 import traceback
-from pathlib import Path
 
 import openai
 import tiktoken
@@ -24,21 +23,21 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, actual_grou
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # require_generation = False
-    # for index in range(trial):
-    #     file_index = index + 1
-    #     response_md_file_name = actual_group_bitvector + "_response_" + str(file_index) + ".md"
-    #     response_md_file_path = os.path.join(output_dir, response_md_file_name)
-    #     if not os.path.exists(response_md_file_path):
-    #         require_generation = True
-    #         break
-    #
-    # if not require_generation:
-    #     return {
-    #         "prompt_tokens": 0,
-    #         "completion_tokens": 0,
-    #         "total_tokens": 0
-    #     }
+    require_generation = False
+    for index in range(trial):
+        file_index = index + 1
+        response_md_file_name = "response_" + str(file_index) + ".md"
+        response_md_file_path = os.path.join(output_dir, response_md_file_name)
+        if not os.path.exists(response_md_file_path):
+            require_generation = True
+            break
+
+    if not require_generation:
+        return {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+        }
 
     with open(os.path.join(bug_dir, "static-dynamic-facts.json"), "r") as bug_data_file:
         bug_data: dict = next(iter(json.load(bug_data_file).values()))

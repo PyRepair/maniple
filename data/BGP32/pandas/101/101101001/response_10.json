@@ -1,0 +1,77 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 1,
+                "2.2.2": 1,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 1,
+                "2.2.2": 1,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 101,
+            "start_line": 792,
+            "file_name": "pandas/core/dtypes/cast.py",
+            "replace_code": "def astype_nansafe(arr, dtype, copy=True, skipna=False):\n    if isinstance(dtype, np.dtype):\n        target_dtype = dtype\n    else:\n        target_dtype = pandas_dtype(dtype)\n\n    if is_datetime64_dtype(arr):\n        if is_object_dtype(target_dtype):\n            return tslib.ints_to_pydatetime(arr.view(np.int64))\n        elif target_dtype == np.int64:\n            return arr.view(target_dtype)\n        elif target_dtype.kind == \"M\":\n            return arr.astype(target_dtype)\n        else:\n            raise TypeError(f\"cannot astype a datetimelike from [{arr.dtype}] to [{target_dtype}]\")\n\n    elif is_timedelta64_dtype(arr):\n        if is_object_dtype(target_dtype):\n            return tslibs.ints_to_pytimedelta(arr.view(np.int64))\n        elif target_dtype == np.int64:\n            return arr.view(target_dtype)\n        elif target_dtype in [_INT64_DTYPE, _TD_DTYPE]:\n            if target_dtype.kind == \"m\":\n                mask = isna(arr)\n                result = arr.astype(target_dtype).astype(np.float64)\n                result[mask] = np.nan\n                return result\n        elif target_dtype == _TD_DTYPE:\n            return arr.astype(_TD_DTYPE, copy=copy)\n        else:\n            raise TypeError(f\"cannot astype a timedelta from [{arr.dtype}] to [{target_dtype}]\")\n\n    if np.issubdtype(arr.dtype, np.floating) and np.issubdtype(target_dtype, np.integer):\n        if not np.isfinite(arr).all():\n            raise ValueError(\"Cannot convert non-finite values (NA or inf) to integer\")\n\n    if is_object_dtype(arr) and (is_datetime64_dtype(target_dtype) or is_timedelta64_dtype(target_dtype)):\n        from pandas import to_datetime, to_timedelta\n        converted_arr = to_datetime(arr) if is_datetime64_dtype(target_dtype) else to_timedelta(arr)\n        return astype_nansafe(converted_arr.values, target_dtype, copy=copy)\n\n    if arr.dtype.kind in (\"M\", \"m\") and target_dtype.kind in (\"M\", \"m\") and arr.dtype == target_dtype:\n        return arr.view(target_dtype)\n\n    if copy or is_object_dtype(arr) or is_object_dtype(target_dtype):\n        return arr.astype(target_dtype, copy=True)\n\n    return arr.view(target_dtype)",
+            "import_list": [
+                "from pandas import to_datetime, to_timedelta"
+            ]
+        }
+    ]
+}

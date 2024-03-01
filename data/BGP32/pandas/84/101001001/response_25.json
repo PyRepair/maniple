@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 0,
+                "1.5.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 1,
+                "2.2.2": 1,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 0,
+                "1.5.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 1,
+                "2.2.2": 1,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 84,
+            "start_line": 312,
+            "file_name": "pandas/core/reshape/reshape.py",
+            "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n    if len(clocs) == 0:\n        return data\n\n    index = data.index\n\n    cloc_nums = [index._get_level_number(i) for i in clocs]\n    rlocs = [i for i in range(index.nlevels) if i not in cloc_nums]\n\n    clevels = [index.levels[i] for i in cloc_nums]\n    ccodes = [index.codes[i] for i in cloc_nums]\n    cnames = [index.names[i] for i in cloc_nums]\n    rlevels = [index.levels[i] for i in rlocs]\n    rcodes = [index.codes[i] for i in rlocs]\n    rnames = [index.names[i] for i in rlocs]\n\n    group_index = get_group_index(ccodes, [len(x) for x in clevels], sort=False, xnull=False)\n    comp_ids, obs_ids = compress_group_index(group_index, sort=False)\n    recons_codes = decons_obs_group_ids(comp_ids, obs_ids, [len(x) for x in clevels], ccodes, xnull=False)\n\n    if isinstance(data, Series) or not isinstance(data.columns, MultiIndex):\n        dummy_index = MultiIndex(levels=rlevels + [obs_ids], codes=rcodes + [comp_ids], names=rnames + [\"__placeholder__\"], verify_integrity=False)\n        dummy = data.copy()\n        dummy.index = dummy_index\n\n        unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n        new_levels = rlevels + clevels\n        new_names = rnames + cnames\n        new_codes = rcodes + recons_codes\n    else:\n        result = data\n        for i in range(len(cloc_nums)):\n            val = cloc_nums[i]\n            result = result.unstack(val, fill_value=fill_value)\n            cloc_nums = [v if i > v else v - 1 for v in cloc_nums]\n        \n        return result\n\n    new_columns = MultiIndex(levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False)\n\n    if isinstance(unstacked, Series):\n        unstacked.index = new_columns\n    else:\n        unstacked.columns = new_columns\n\n    return unstacked",
+            "import_list": []
+        }
+    ]
+}

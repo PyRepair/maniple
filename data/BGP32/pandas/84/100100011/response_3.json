@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 84,
+            "start_line": 312,
+            "file_name": "pandas/core/reshape/reshape.py",
+            "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n    if len(clocs) == 0:\n        return data\n\n    # Initializations\n    index = data.index\n    if isinstance(index, MultiIndex):\n        rlocs = [i for i in range(index.nlevels) if i not in clocs]\n\n        clevels = [index.levels[i] for i in clocs]\n        ccodes = index.codes\n        cnames = index.names\n        rlevels = [index.levels[i] for i in rlocs]\n        rcodes = [index.codes[i] for i in rlocs]\n        rnames = [index.names[i] for i in rlocs]\n\n        # Handle MultiIndex\n        if clocs:\n            group_index = get_group_index(ccodes, sort=False)\n            comp_ids, obs_ids = compress_group_index(group_index, sort=False)\n        else:\n            # No need for grouping\n            obs_ids = np.arange(len(data))\n\n        # Create a dummy index\n        if not rlocs:\n            dummy_index = Index(obs_ids, name=\"__placeholder__\")\n        else:\n            dummy_index = MultiIndex(\n                levels=rlevels + [obs_ids],\n                codes=rcodes + [np.zeros_like(obs_ids)],\n                names=rnames + [\"__placeholder__\"],\n                verify_integrity=False,\n            )\n\n        # Handle Series and DataFrames separately\n        if isinstance(data, Series):\n            dummy = data.copy()\n            dummy.index = dummy_index\n            unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n            new_columns = MultiIndex.from_arrays([clevels[0], cnames], names=[\"__placeholder__\", clocs[0]])\n            unstacked.columns = new_columns\n        else:\n            dummy = data.copy()\n            dummy.index = dummy_index\n            unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n            new_columns = MultiIndex.from_tuples(\n                [(col,) + level for col in unstacked.columns.levels[0] for level in clevels],\n                names=[\"__placeholder__\"] + cnames\n            )\n            unstacked.columns = new_columns\n\n        return unstacked\n    else:\n        # If not MultiIndex, return the data as is\n        return data",
+            "import_list": []
+        }
+    ]
+}

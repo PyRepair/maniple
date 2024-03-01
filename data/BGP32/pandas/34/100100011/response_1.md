@@ -1,0 +1,61 @@
+### Analysis:
+1. The buggy function `_get_time_bins` in the `pandas/core/resample.py` file is used to determine time bins for resampling data.
+2. The bug occurs in handling ambiguous time in time zones like Cuba during the daylight saving time changes.
+3. The `test_downsample_dst_at_midnight` test function fails when trying to group data by day in a specific time zone due to an `AmbiguousTimeError`.
+4. The GitHub issue describes the problem in detail, emphasizing the error in handling ambiguous time on clock change days in Cuba.
+
+### Bug Cause:
+The bug arises from the incorrect handling of time bin edges on days where daylight saving time changes occur. Specifically, the function does not properly adjust the time bins around ambiguous times, leading to the `AmbiguousTimeError`.
+
+### Bug Fix Strategy:
+To fix the bug, we need to ensure that the time bins are adjusted correctly on days with ambiguous time, especially during daylight saving time changes. Proper handling of timezone conversions and adjustments is essential to avoid the `AmbiguousTimeError` when grouping data by day.
+
+### Corrected Function:
+Here is the corrected version of the `_get_time_bins` function:
+
+```python
+def _get_time_bins(self, ax):
+    if not isinstance(ax, DatetimeIndex):
+        raise TypeError(
+            "axis must be a DatetimeIndex, but got "
+            f"an instance of {type(ax).__name__}"
+        )
+
+    if len(ax) == 0:
+        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name, tz=ax.tz)
+        return binner, [], labels
+
+    first, last = _get_timestamp_range_edges(
+        ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
+    )
+    
+    binner = labels = date_range(
+        freq=self.freq,
+        start=first,
+        end=last,
+        tz=ax.tz,
+        name=ax.name,
+        ambiguous='infer',
+        nonexistent='shift_forward',
+    )
+
+    ax_values = ax.asi8
+    binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
+
+    bins = lib.generate_bins_dt64(
+        ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+    )
+
+    labels = binner[1:] if self.label == 'right' else binner
+
+    if ax.hasnans:
+        binner = binner.insert(0, NaT)
+        labels = labels.insert(0, NaT)
+
+    if len(bins) < len(labels):
+        labels = labels[:len(bins)]
+
+    return binner, bins, labels
+```
+
+By ensuring proper adjustment of time bins and handling ambiguous times correctly, the corrected function should now pass the failing test case and resolve the issue described on GitHub.

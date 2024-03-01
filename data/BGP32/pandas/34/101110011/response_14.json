@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 34,
+            "start_line": 1406,
+            "file_name": "pandas/core/resample.py",
+            "replace_code": "def _get_time_bins(self, ax):\n    if not isinstance(ax, DatetimeIndex):\n        raise TypeError(\n            \"axis must be a DatetimeIndex, but got \"\n            f\"an instance of {type(ax).__name__}\"\n        )\n\n    if len(ax) == 0:\n        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)\n        return binner, [], labels\n\n    loc_index = ax.tz_localize(None).tz_convert(self.freq.tz)\n    local = loc_index.map(lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))\n    grouped = local.unique()\n    group_offset = grouped.hour * 3600 + grouped.minute * 60 + grouped.second + grouped.microsecond/1e6\n\n    bins = np.zeros(len(ax))\n    for i, value in enumerate(ax.values):\n        time = value.hour * 3600 + value.minute * 60 + value.second + value.microsecond/1e6\n        bins[i] = np.searchsorted(group_offset, time)\n\n    bin_edges = np.concatenate((grouped, np.array([grouped[-1] + self.freq])))\n    binner = bins.astype(np.int64)\n    \n    labels = grouped[binner]\n    \n    if self.closed == \"right\":\n        labels = labels[:-1]\n\n    if ax.hasnans:\n        binner = binner.insert(0, -1)\n        labels = labels.insert(0, NaT)\n    \n    # If we end up with more labels than bins\n    # Adjust the labels\n    if len(binner) < len(labels):\n        labels = labels[:len(binner)]\n\n    return binner, bins, labels",
+            "import_list": []
+        }
+    ]
+}

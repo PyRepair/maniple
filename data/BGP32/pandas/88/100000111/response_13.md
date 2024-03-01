@@ -1,0 +1,162 @@
+### Analysis:
+The buggy function `pivot_table` is experiencing an issue when handling multi-index columns due to accessing the `columns` attribute of a `Series` object, which results in an `AttributeError`. The problem lies in how the function is attempting to handle the case of multi-index columns and a single-value `values`.
+
+### Error Cause:
+The specific issue arises when filtering the results based on the conditions `values_passed and not values_multi and not table.empty and (table.columns.nlevels > 1)`. In this case, if `values_multi` is `False` and `table` is not empty but has more than one column level, the function tries to access `table[values[0]]`, which is invalid for a `DataFrame`.
+
+### Fix Strategy:
+To resolve this bug, it is necessary to modify the logic when filtering the table based on the multi-column condition. Instead of directly filtering the table using `table[values[0]]`, an alternative approach could be to handle the multi-index case in a more appropriate manner.
+
+### Updated Code:
+Here is the corrected version of the `pivot_table` function to address the bug:
+
+```python
+from pandas.core.reshape.pivot import pivot_table
+
+@Substitution("\ndata : DataFrame")
+@Appender(_shared_docs["pivot_table"], indents=1)
+def pivot_table_fixed(
+    data,
+    values=None,
+    index=None,
+    columns=None,
+    aggfunc="mean",
+    fill_value=None,
+    margins=False,
+    dropna=True,
+    margins_name="All",
+    observed=False,
+) -> "DataFrame":
+    index = _convert_by(index)
+    columns = _convert_by(columns)
+
+    if isinstance(aggfunc, list):
+        pieces: List[DataFrame] = []
+        keys = []
+        for func in aggfunc:
+            table = pivot_table_fixed(
+                data,
+                values=values,
+                index=index,
+                columns=columns,
+                fill_value=fill_value,
+                aggfunc=func,
+                margins=margins,
+                dropna=dropna,
+                margins_name=margins_name,
+                observed=observed,
+            )
+            pieces.append(table)
+            keys.append(getattr(func, "__name__", func))
+
+        return concat(pieces, keys=keys, axis=1)
+
+    keys = index + columns
+
+    values_passed = values is not None
+    if values_passed:
+        if is_list_like(values):
+            values_multi = True
+            values = list(values)
+        else:
+            values_multi = False
+            values = [values]
+
+        # GH14938 Make sure value labels are in data
+        for i in values:
+            if i not in data:
+                raise KeyError(i)
+
+        to_filter = []
+        for x in keys + values:
+            if isinstance(x, Grouper):
+                x = x.key
+            try:
+                if x in data:
+                    to_filter.append(x)
+            except TypeError:
+                pass
+        if len(to_filter) < len(data.columns):
+            data = data[to_filter]
+
+    else:
+        values = data.columns
+        for key in keys:
+            try:
+                values = values.drop(key)
+            except (TypeError, ValueError, KeyError):
+                pass
+        values = list(values)
+
+    grouped = data.groupby(keys, observed=observed)
+    agged = grouped.agg(aggfunc)
+    if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
+        agged = agged.dropna(how="all")
+
+        # gh-21133
+        # we want to down cast if
+        # the original values are ints
+        # as we grouped with a NaN value
+        # and then dropped, coercing to floats
+        for v in values:
+            if (
+                v in data
+                and is_integer_dtype(data[v])
+                and v in agged
+                and not is_integer_dtype(agged[v])
+            ):
+                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
+
+    table = agged
+    if table.index.nlevels > 1:
+        # Related GH #17123
+        # If index_names are integers, determine whether the integers refer
+        # to the level position or name.
+        index_names = agged.index.names[: len(index)]
+        to_unstack = []
+        for i in range(len(index), len(keys)):
+            name = agged.index.names[i]
+            if name is None or name in index_names:
+                to_unstack.append(i)
+            else:
+                to_unstack.append(name)
+        table = agged.unstack(to_unstack)
+
+    if not dropna:
+        if table.index.nlevels > 1:
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.index.levels), names=table.index.names
+            )
+            table = table.reindex(m, axis=0)
+
+        if table.columns.nlevels > 1:
+            m = MultiIndex.from_arrays(
+                cartesian_product(table.columns.levels), names=table.columns.names
+            )
+            table = table.reindex(m, axis=1)
+
+    if isinstance(table, ABCDataFrame):
+        table = table.sort_index(axis=1)
+
+    if fill_value is not None:
+        table = table._ensure_type(table.fillna(fill_value, downcast="infer"))
+
+    if margins:
+        if dropna:
+            data = data[data.notna().all(axis=1)]
+        table = _add_margins(
+            table,
+            data,
+            values,
+            rows=index,
+            cols=columns,
+            aggfunc=aggfunc,
+            observed=dropna,
+            margins_name=margins_name,
+            fill_value=fill_value,
+        )
+
+    return table
+```
+
+This corrected version of the `pivot_table_fixed` function should handle the multi-index columns and single-value `values` scenario without raising the `AttributeError`.

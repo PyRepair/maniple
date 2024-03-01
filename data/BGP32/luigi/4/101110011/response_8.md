@@ -1,0 +1,31 @@
+The bug in the `copy` function is triggered when `self.columns` is `None`, causing a `TypeError` when trying to call `len()` on a `NoneType` object. The issue was reported on GitHub and a suggested solution is to modify the conditional check to avoid calling `len()` on a `NoneType` object.
+
+To fix the bug, we need to update the `if` condition to first check if `self.columns` is not `None` before comparing its length. Here is the corrected version of the `copy` function:
+
+```python
+def copy(self, cursor, f):
+    """
+    Defines copying from s3 into redshift.
+
+    If both key-based and role-based credentials are provided, role-based will be used.
+    """
+    logger.info("Inserting file: %s", f)
+    colnames = ''
+    if self.columns is not None and len(self.columns) > 0:  # Check for None before getting length
+        colnames = ",".join([x[0] for x in self.columns])
+        colnames = '({})'.format(colnames)
+
+    cursor.execute("""
+     COPY {table} {colnames} from '{source}'
+     CREDENTIALS '{creds}'
+     {options}
+     ;""".format(
+        table=self.table,
+        colnames=colnames,
+        source=f,
+        creds=self._credentials(),
+        options=self.copy_options)
+    )
+```
+
+This updated version of the `copy` function includes the necessary check for `self.columns` being `None` before attempting to access its length. This change will prevent the `TypeError` that was occurring when `self.columns` was `None`.

@@ -1,0 +1,21 @@
+Based on the information provided, the bug in the `table_exists` function is that it is case-sensitive when checking for table existence in Hive. To fix this bug, we need to modify the comparison to be case-insensitive.
+
+Here is the corrected version of the `table_exists` function:
+
+```python
+def table_exists(self, table, database='default', partition=None):
+    if partition is None:
+        stdout = run_hive_cmd('use {0}; show tables like "{1}";'.format(database, table))
+    
+        return stdout and table.lower() in stdout.lower()
+    else:
+        stdout = run_hive_cmd("""use %s; show partitions %s partition
+                            (%s)""" % (database, table, self.partition_spec(partition)))
+    
+        if stdout:
+            return True
+        else:
+            return False
+```
+
+By converting both the table name and the output to lowercase before comparing, we ensure that the comparison is case-insensitive, addressing the issue raised in the GitHub reports. This updated version of the function should now pass the failing tests and resolve the bug.

@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 1,
+                "2.2.2": 1,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 1,
+                "2.2.2": 1,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 84,
+            "start_line": 312,
+            "file_name": "pandas/core/reshape/reshape.py",
+            "replace_code": "def _unstack_multiple(data, clocs, fill_value=None):\n    if len(clocs) == 0:\n        return data\n\n    # Identify the levels and codes for each index\n    index = data.index\n    levels = [index.levels[i] for i in range(index.nlevels)]\n    codes = [index.codes[i] for i in range(index.nlevels)]\n    names = [index.names[i] for i in range(index.nlevels)]\n\n    for cloc in clocs:\n        # Extract information specific to the current level in iteration\n        clevel = levels[cloc]\n        ccode = codes[cloc]\n        cname = names[cloc]\n        \n        cshape = len(clevel)\n        \n        # Get the group index for the current level\n        group_index = get_group_index(ccode, [cshape], sort=False, xnull=False)\n\n        comp_ids, obs_ids = compress_group_index(group_index, sort=False)\n        recons_codes = decons_obs_group_ids(comp_ids, obs_ids, [cshape], ccode, xnull=False)\n\n        # Generate a dummy index for unstacking\n        dummy_index = MultiIndex(\n            levels=levels[:cloc] + [obs_ids] + levels[cloc+1:],\n            codes=codes[:cloc] + [comp_ids] + codes[cloc+1:],\n            names=names[:cloc] + [\"__placeholder__\"] + names[cloc+1:],\n            verify_integrity=False,\n        )\n\n        if cloc == 0:\n            # Unstack the data and update levels, names, and codes\n            if isinstance(data, Series):\n                dummy = data.copy()\n                dummy.index = dummy_index\n\n                unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n                new_levels = [clevel] + levels[1:]\n                new_names = [cname] + names[1:]\n                new_codes = recons_codes\n            else:\n                dummy = data.copy()\n                dummy.index = dummy_index\n\n                unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n                if isinstance(unstacked, Series):\n                    unstcols = unstacked.index\n                else:\n                    unstcols = unstacked.columns\n                new_levels = [unstcols.levels[0]] + levels[1:]\n                new_names = [data.columns.name] + names[1:]\n\n                new_codes = [unstcols.codes[0]]\n                for rec in recons_codes:\n                    new_codes.append(rec.take(unstcols.codes[-1]))\n        else:\n            # Unstack the data further and update levels, names, and codes accordingly\n            result = data\n            for i in range(cloc):\n                val = clocs[i]\n                result = result.unstack(val, fill_value=fill_value)\n                clocs = [v if i > v else v - 1 for v in clocs]\n\n            dummy = result.copy()\n            dummy.index = dummy_index\n\n            unstacked = dummy.unstack(\"__placeholder__\", fill_value=fill_value)\n            if isinstance(unstacked, Series):\n                unstcols = unstacked.index\n            else:\n                unstcols = unstacked.columns\n            new_levels = [unstcols.levels[0]] + levels[cloc+1:]\n            new_names = [data.columns.name] + names[cloc+1:]\n\n            new_codes = [unstcols.codes[0]]\n            for rec in recons_codes:\n                new_codes.append(rec.take(unstcols.codes[-1]))\n\n        new_columns = MultiIndex(\n            levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False\n        )\n\n        if isinstance(unstacked, Series):\n            unstacked.index = new_columns\n        else:\n            unstacked.columns = new_columns\n\n    return unstacked",
+            "import_list": []
+        }
+    ]
+}

@@ -1,0 +1,67 @@
+There is a potential bug in the `_get_time_bins` function. The bug arises when adjusting the labels and bins based on the frequency, closed end, and label boundary. Specifically, the bug occurs when the length of `labels` is greater than the length of `bins`, potentially causing an index out of range error.
+
+To fix this bug, we need to ensure that the length of `labels` is always equal to or less than the length of `bins` by truncating `labels` if necessary.
+
+Here is the corrected version of the `_get_time_bins` function:
+
+```python
+def _get_time_bins(self, ax):
+    if not isinstance(ax, DatetimeIndex):
+        raise TypeError(
+            "axis must be a DatetimeIndex, but got "
+            f"an instance of {type(ax).__name__}"
+        )
+
+    if len(ax) == 0:
+        binner = labels = DatetimeIndex(data=[], freq=self.freq, name=ax.name)
+        return binner, [], labels
+
+    first, last = _get_timestamp_range_edges(
+        ax.min(), ax.max(), self.freq, closed=self.closed, base=self.base
+    )
+    # GH #12037
+    # use first/last directly instead of call replace() on them
+    # because replace() will swallow the nanosecond part
+    # thus last bin maybe slightly before the end if the end contains
+    # nanosecond part and lead to `Values falls after last bin` error
+    binner = labels = date_range(
+        freq=self.freq,
+        start=first,
+        end=last,
+        tz=ax.tz,
+        name=ax.name,
+        ambiguous="infer",
+        nonexistent="shift_forward",
+    )
+
+    ax_values = ax.asi8
+    binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
+
+    # general version, knowing nothing about relative frequencies
+    bins = lib.generate_bins_dt64(
+        ax_values, bin_edges, self.closed, hasnans=ax.hasnans
+    )
+
+    if self.closed == "right":
+        labels = binner
+        if self.label == "right":
+            labels = labels[1:]
+    elif self.label == "right":
+        labels = labels[1:]
+
+    if ax.hasnans:
+        binner = binner.insert(0, NaT)
+        labels = labels.insert(0, NaT)
+
+    # if we end up with more labels than bins
+    # adjust the labels
+    # GH4076
+    if len(bins) < len(labels):
+        labels = labels[:len(bins)]
+    elif len(bins) > len(labels):
+        bins = bins[:len(labels)]
+
+    return binner, bins, labels
+```
+
+In the corrected version, we ensure that if the length of `bins` is less than the length of `labels`, we truncate `labels` to match the length of `bins` to prevent any index out of range errors.

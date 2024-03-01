@@ -1,0 +1,79 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def adjust_for_holidays(self, other):\n        total_business_hours = sum(self._get_business_hours_by_sec(st, en) for st, en in zip(self.start, self.end))\n        num_business_days, remains = divmod(abs(self.n * 60), total_business_hours // 60)\n\n        if self.n < 0:\n            num_business_days, remains = -num_business_days, -remains\n\n        # Apply adjustments by business days first\n        if num_business_days != 0:\n            skip_days = BusinessDay(n=num_business_days)\n            if not self.next_bday.is_on_offset(other):\n                prev_opening = self._prev_opening_time(other)\n                remainder = other - prev_opening\n                other = prev_opening + skip_days + remainder\n            else:\n                other = other + skip_days\n\n        # Remaining business hours to adjust\n        hours_remainder = timedelta(minutes=remains)\n\n        while hours_remainder != timedelta(0):\n            if self.n >= 0:\n                closing_time = self._get_closing_time(self._prev_opening_time(other))\n                business_hour_remaining = closing_time - other\n                if hours_remainder < business_hour_remaining:\n                    # Finish adjusting if possible\n                    other += hours_remainder\n                    hours_remainder = timedelta(0)\n                else:\n                    # Go to the next business time interval\n                    hours_remainder -= business_hour_remaining\n                    other = self._next_opening_time(other + business_hour_remaining)\n            else:\n                next_opening_time = self._next_opening_time(other)\n                business_hour_remaining = next_opening_time - other\n                if hours_remainder > business_hour_remaining or (hours_remainder == business_hour_remaining and other.nanosecond != 0):\n                    # Finish adjusting if possible\n                    other += hours_remainder\n                    hours_remainder = timedelta(0)\n                else:\n                    # Go to the next business time interval\n                    hours_remainder -= business_hour_remaining\n                    other = self._get_closing_time(self._next_opening_time(other + business_hour_remaining - timedelta(seconds=1)))\n        \n        return other",
+            "import_list": [
+                "from datetime import datetime, timedelta",
+                "from pandas._libs.tslibs.offsets import ApplyTypeError",
+                "import pandas as pd"
+            ]
+        }
+    ]
+}

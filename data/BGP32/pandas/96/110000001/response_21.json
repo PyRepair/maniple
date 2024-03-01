@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 0,
+                "1.5.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 0,
+                "1.5.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 0,
+                "7": 0,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n    if isinstance(other, datetime):\n        n = self.n\n        \n        # adjust business days\n        business_day_offset, remain = divmod(abs(n), len(self.start))\n        if n < 0:\n            business_day_offset = -business_day_offset\n        \n        other_dt = other.replace(hour=0, minute=0, second=0, microsecond=0)\n\n        if n >= 0:\n            while business_day_offset > 0:\n                other_dt = self._next_opening_time(other_dt)\n                business_day_offset -= 1\n            business_hour_offset = timedelta(minutes=remain)\n        else:\n            while business_day_offset < 0:\n                other_dt = self._get_closing_time(self._prev_opening_time(other_dt))\n                business_day_offset += 1\n            business_hour_offset = timedelta(minutes=-remain)\n        \n        # adjust remaining business hours\n        while business_hour_offset.total_seconds() != 0:\n            opening_time = self._next_opening_time(other_dt)\n            if n >= 0:\n                delta = min(business_hour_offset, self._get_closing_time(opening_time) - other_dt)\n            else:\n                delta = -min(-business_hour_offset, other_dt - opening_time)\n            \n            other_dt += delta\n            business_hour_offset -= delta\n\n        return other_dt\n    else:\n        raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}

@@ -1,0 +1,78 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 0,
+                "3.1.2": 0,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 1,
+                "4": 1,
+                "5": 0,
+                "6": 0,
+                "7": 1,
+                "8": 0,
+                "9": 1
+            },
+            "bugID": 88,
+            "start_line": 25,
+            "file_name": "pandas/core/reshape/pivot.py",
+            "replace_code": "def pivot_table(\n    data,\n    values=None,\n    index=None,\n    columns=None,\n    aggfunc=\"mean\",\n    fill_value=None,\n    margins=False,\n    dropna=True,\n    margins_name=\"All\",\n    observed=False,\n) -> 'DataFrame':\n    index = _convert_by(index)\n    columns = _convert_by(columns)\n\n    if isinstance(aggfunc, list):\n        pieces = []\n        keys = []\n        for func in aggfunc:\n            grouped = data.groupby(keys, observed=observed)\n            agg_results = grouped.agg(func)\n            pieces.append(agg_results)\n            keys.append(getattr(func, \"__name__\", func))\n\n        return concat(pieces, keys=keys, axis=1)\n\n    keys = index + columns\n\n    values_passed = values is not None\n    if values_passed:\n        if not isinstance(values, list):\n            values = [values]\n\n        # GH14938 Make sure value labels are in data\n        missing_values = set(values) - set(data.columns)\n        if missing_values:\n            raise KeyError(list(missing_values))\n\n        to_filter = [x for x in keys + values if x in data]\n        data = data[to_filter]\n\n    else:\n        values = data.columns\n        for key in keys:\n            values = values.drop(key, errors='ignore')\n        values = values.tolist()\n\n    grouped = data.groupby(keys, observed=observed)\n    agged = grouped.agg(aggfunc)\n\n    if dropna and isinstance(agged, DataFrame) and len(agged.columns):\n        agged = agged.dropna(how=\"all\")\n\n        for v in values:\n            if v in data and is_integer_dtype(data[v]) and not is_integer_dtype(agged[v]):\n                agged[v] = agged[v].astype(data[v].dtype)\n\n    table = agged\n    if table.index.nlevels > 1:\n        table = table.unstack(range(-1, -len(index) - 1, -1))\n\n    if not dropna:\n        table = _add_margins(\n            table,\n            data,\n            values,\n            rows=index,\n            cols=columns,\n            aggfunc=aggfunc,\n            observed=dropna,\n            margins_name=margins_name,\n            fill_value=fill_value,\n        )\n\n    if values_passed and len(values) == 1 and table.columns.nlevels > 1:\n        table = table[values[0]]\n\n    if len(index) == 0 and len(columns) > 0:\n        table = table.T\n\n    if isinstance(table, DataFrame):\n        table = table.sort_index(axis=1)\n\n    if fill_value is not None:\n        table.fillna(fill_value, inplace=True)\n\n    if margins:\n        missing_values = data.isna().any(axis=1)\n        table.loc[margins_name, :] = _add_margins(\n            table, data[~missing_values], values, rows=index, cols=columns,\n            aggfunc=aggfunc, observed=False,\n            margins_name=margins_name, fill_value=fill_value\n        )\n\n    if isinstance(table.columns, DataFrameGroupBy):\n        columns = table.columns\n        table.columns = columns.labels[0]\n        table.columns.names = columns.names\n\n    return table",
+            "import_list": [
+                "from pandas import DataFrame, concat",
+                "from pandas.core.groupby.generic import DataFrameGroupBy"
+            ]
+        }
+    ]
+}

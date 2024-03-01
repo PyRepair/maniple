@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 0,
+                "1.5.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 1,
+                "2.2.2": 1,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 0,
+                "1.3.2": 0,
+                "1.4.1": 0,
+                "1.2.1": 1,
+                "1.4.2": 0,
+                "1.2.2": 1,
+                "1.5.1": 0,
+                "1.5.2": 0,
+                "2.1.1": 0,
+                "2.1.2": 0,
+                "2.2.1": 1,
+                "2.2.2": 1,
+                "2.3.1": 0,
+                "2.3.2": 0,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 0,
+                "3": 0,
+                "4": 0,
+                "5": 0,
+                "6": 1,
+                "7": 0,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 168,
+            "start_line": 425,
+            "file_name": "pandas/core/groupby/grouper.py",
+            "replace_code": "def _get_grouper(\n    obj,\n    key=None,\n    axis=0,\n    level=None,\n    sort=True,\n    observed=False,\n    mutated=False,\n    validate=True,\n):\n    group_axis = obj._get_axis(axis)\n\n    # Process the key for grouping by column names\n    if key is not None and not isinstance(key, (list, tuple)):\n        key = [key]\n\n    # a passed-in Grouper, directly convert\n    if isinstance(key, Grouper):\n        binner, grouper, obj = key._get_grouper(obj, validate=False)\n        if key.key is None:\n            return grouper, [], obj\n        else:\n            return grouper, {key.key}, obj\n\n    # already have a BaseGrouper, just return it\n    elif isinstance(key, BaseGrouper):\n        return key, [], obj\n\n    # Check if key is a tuple and adjust accordingly\n    is_tuple_key = isinstance(key, tuple)\n    if is_tuple_key:\n        key = list(key)\n\n    # Process the keys for grouping\n    if not isinstance(key, list):\n        keys = [key]\n        match_axis_length = False\n    else:\n        keys = key\n        match_axis_length = len(keys) == len(group_axis)\n\n    # Additional logic for handling grouping by columns\n    any_groupers = any(isinstance(g, Grouper) for g in keys)\n    any_arraylike = any(isinstance(g, (list, tuple, Series, Index, np.ndarray)) for g in keys)\n\n    if not any_groupers and not any_arraylike and match_axis_length and level is None:\n        all_in_columns_index = all(g in obj.columns for g in keys)\n        if not all_in_columns_index:\n            keys = [com.asarray_tuplesafe(keys)]\n\n    # Process levels and groupings\n    if isinstance(level, (tuple, list)):\n        if key is None:\n            keys = [None] * len(level)\n        levels = level\n    else:\n        levels = [level] * len(keys)\n\n    groupings = []\n    exclusions = []\n\n    # Loop over keys and create Grouping objects\n    for i, (gpr, level) in enumerate(zip(keys, levels)):\n        if gpr in obj.columns:\n            in_axis, name, gpr = True, gpr, obj[gpr]\n            exclusions.append(name)\n        else:\n            in_axis, name = False, None\n\n        # Create the Grouping object\n        ping = Grouping(\n            group_axis,\n            gpr,\n            obj=obj,\n            name=name,\n            level=level,\n            sort=sort,\n            observed=observed,\n            in_axis=in_axis,\n        )\n\n        groupings.append(ping)\n\n    if len(groupings) == 0 and len(obj):\n        raise ValueError(\"No group keys passed!\")\n    elif len(groupings) == 0:\n        groupings.append(Grouping(Index([], dtype=\"int\"), np.array([], dtype=np.intp)))\n\n    # Create the internals grouper\n    grouper = BaseGrouper(group_axis, groupings, sort=sort, mutated=mutated)\n    return grouper, exclusions, obj",
+            "import_list": []
+        }
+    ]
+}

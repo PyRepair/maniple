@@ -1,0 +1,75 @@
+{
+    "pandas": [
+        {
+            "bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 1,
+                "1.3.1": 1,
+                "1.3.2": 1,
+                "1.4.1": 1,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1,
+                "8": 1,
+                "9": 1
+            },
+            "available_bitvector": {
+                "1.1.1": 1,
+                "1.1.2": 0,
+                "1.3.1": 1,
+                "1.3.2": 0,
+                "1.4.1": 1,
+                "1.2.1": 1,
+                "1.4.2": 1,
+                "1.2.2": 1,
+                "1.5.1": 1,
+                "1.5.2": 1,
+                "2.1.1": 1,
+                "2.1.2": 1,
+                "2.2.1": 0,
+                "2.2.2": 0,
+                "2.3.1": 1,
+                "2.3.2": 1,
+                "3.1.1": 1,
+                "3.1.2": 1,
+                "cot": 1
+            },
+            "available_strata": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 0,
+                "7": 1,
+                "8": 1,
+                "9": 1
+            },
+            "bugID": 96,
+            "start_line": 857,
+            "file_name": "pandas/tseries/offsets.py",
+            "replace_code": "def apply(self, other):\n        if isinstance(other, datetime):\n            businesshours = sum(self._get_business_hours_by_sec(st, en) for st, en in zip(self.start, self.end))\n            n = self.n\n            bd, r = divmod(abs(n), businesshours // 60)\n            \n            if n < 0:\n                bd, r = -bd, -r\n            \n            current_date = other.replace(minute=0, second=0, microsecond=0)\n            is_holiday = self._is_on_offset(current_date) or current_date.date() in self.holidays\n            \n            while bd != 0 or is_holiday:\n                if n >= 0 or (n < 0 and is_holiday):\n                    current_date = self._next_opening_time(current_date)\n                    is_holiday = self._is_on_offset(current_date)\n                else:\n                    current_date = self._prev_opening_time(current_date)\n                \n                if is_holiday:\n                    bd -= 1\n            \n            if n > 0:\n                current_hour = current_date.hour\n                while r > 0:\n                    next_hour = current_hour + 1\n                    if next_hour == self.end[0].hour:\n                        current_date += timedelta(days=1)\n                        current_date = current_date.replace(hour=self.start[0].hour, minute=0, second=0)\n                        current_hour = current_date.hour\n                    else:\n                        current_date = current_date.replace(hour=next_hour)\n                        r -= 1\n            elif n < 0:\n                current_hour = current_date.hour\n                while r > 0:\n                    prev_hour = current_hour - 1\n                    if prev_hour == self.start[0].hour - 1:\n                        current_date -= timedelta(days=1)\n                        current_date = current_date.replace(hour=self.end[0].hour - 1, minute=59, second=59)\n                        current_hour = current_date.hour\n                    else:\n                        current_date = current_date.replace(hour=prev_hour)\n                        r -= 1\n            \n            return current_date\n        else:\n            raise ApplyTypeError(\"Only know how to combine business hour with datetime\")",
+            "import_list": []
+        }
+    ]
+}
