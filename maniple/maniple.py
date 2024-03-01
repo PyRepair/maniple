@@ -165,15 +165,18 @@ def run_single_partition_bugids(args, bugids: List[str]):
                 )
 
             elif args.command == "validate":
-                validate_patches(
-                    bugid,
-                    bwd,
-                    args.envs_dir,
-                    args.use_docker,
-                    args.overwrite,
-                    args.timeout,
-                    args.verbose_logging,
-                )
+                for bitvector_folder in os.listdir(bwd):
+                    if not os.path.isdir(bitvector_folder):
+                        continue
+                    validate_patches(
+                        bugid,
+                        os.path.join(bwd, bitvector_folder),
+                        args.envs_dir,
+                        args.use_docker,
+                        args.overwrite,
+                        args.timeout,
+                        args.verbose_logging,
+                    )
 
             elif args.command == "clean_feature_files":
                 clear_features(bwd)
