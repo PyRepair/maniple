@@ -166,11 +166,12 @@ def run_single_partition_bugids(args, bugids: List[str]):
 
             elif args.command == "validate":
                 for bitvector_folder in os.listdir(bwd):
-                    if not os.path.isdir(bitvector_folder):
+                    bitvector_path = os.path.join(bwd, bitvector_folder)
+                    if not os.path.isdir(bitvector_path):
                         continue
                     validate_patches(
                         bugid,
-                        os.path.join(bwd, bitvector_folder),
+                        bitvector_path,
                         args.envs_dir,
                         args.use_docker,
                         args.overwrite,
