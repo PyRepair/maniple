@@ -3,7 +3,10 @@ from collections import OrderedDict, defaultdict
 from dataclasses import dataclass, field, fields
 import os
 import json
+from pathlib import Path
 from typing import Dict, List, Set
+
+from maniple.utils.misc import iter_bugid_folders
 
 
 @dataclass
@@ -122,45 +125,44 @@ def check(path: str, top=None, verbose=None):
     bugs_error_stats = defaultdict[str, ErrorStats](ErrorStats)
 
     fixed_bugids = set()
+    processed_bugids = set()
     postive_labels = set()
     total_bugs = 0
 
-    for root, _, files in os.walk(path):
+    for bugid, project_folder, bugid_folder in iter_bugid_folders(Path(path)):
         bug_fixed_in_folder = False
-        parts = root.strip(os.sep).split(os.sep)
-        bugid = ":".join(parts[-2:])
+        total_bugs += 1
 
-        for file in files:
-            if "processed-facts.json" == file:
-                total_bugs += 1
+        for bitvector_folder in bugid_folder.iterdir():
+            if not bitvector_folder.is_dir():
+                continue
 
-            if "response" in file and file.endswith(".json"):
-                just_filename_parts = file[:-5].split("_")
-                pass_index = int(just_filename_parts[-1])
+            bitvector = bitvector_folder.name
+
+            for response_file in bitvector_folder.glob("*response*.json"):
+                pass_index = int(response_file.stem.split("_")[-1])
                 if top is not None and pass_index > top:
                     continue
 
-                bitvector = just_filename_parts[0]
                 result_label = f"{bugid}_{bitvector}"
 
                 allPassStats[pass_index].total_responses_set.add(result_label)
                 allPassStats[pass_index].total_responses += 1
 
-            if "result" in file and file.endswith(".json"):
-                just_filename_parts = file[:-5].split("_")
-                pass_index = int(just_filename_parts[-1])
+            for result_file in bitvector_folder.glob("*result*.json"):
+                pass_index = int(result_file.stem.split("_")[-1])
                 if top is not None and pass_index > top:
                     continue
 
-                bitvector = just_filename_parts[0]
                 result_label = f"{bugid}_{bitvector}"
 
                 allPassStats[pass_index].total_results_set.add(result_label)
                 allPassStats[pass_index].total_results += 1
 
-                result_file_path = os.path.join(root, file)
-                with open(result_file_path, "r") as json_file:
+                with open(result_file, "r") as json_file:
                     result_data = json.load(json_file)
+                
+                processed_bugids.add(bugid)
 
                 first_key = list(result_data.keys())[0]
                 first_value = result_data[first_key]
@@ -185,11 +187,11 @@ def check(path: str, top=None, verbose=None):
 
                 elif first_value == 2:
                     allPassStats[pass_index].count_2 += 1
-                    bugs_error_stats[bugid].flag_2.append(result_file_path)
+                    bugs_error_stats[bugid].flag_2.append(str(result_file))
 
                 elif first_value == 4:
                     allPassStats[pass_index].count_4 += 1
-                    bugs_error_stats[bugid].flag_4.append(result_file_path)
+                    bugs_error_stats[bugid].flag_4.append(str(result_file))
 
                 elif first_value == 6 or first_value == 7:
                     allPassStats[pass_index].count_6_7 += 1
@@ -206,6 +208,9 @@ def check(path: str, top=None, verbose=None):
     print(
         f"Progress: {int((aggregated_stats.total_results / aggregated_stats.total_responses) * 100)}% Files: {aggregated_stats.total_results}/{aggregated_stats.total_responses}"
     )
+    print(f"processed bugs: {len(processed_bugids)}")
+    print(f"failed to fixed bugs: {processed_bugids - fixed_bugids}")
+
     print(
         f"Number of bugs fixed: {len(fixed_bugids)} out of {total_bugs}, percentage: {int((len(fixed_bugids) / total_bugs) * 100)}%"
     )
