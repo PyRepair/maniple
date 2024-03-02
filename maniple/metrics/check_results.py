@@ -226,6 +226,7 @@ def check(path: str, top=None, verbose=None):
     
     accumulated_fixed_bugids = set()
     accumulated_postive_labels = set()
+    accumulated_total_positive_labels = 0
 
     for idx, pass_stat in allPassStats.items():
         print()
@@ -241,9 +242,11 @@ def check(path: str, top=None, verbose=None):
         print(
             f"Number of postive labels (flag 0): {pass_stat.count_0}, percentage: {int((pass_stat.count_0 / pass_stat.total_results) * 100)}%"
         )
+        accumulated_total_positive_labels += pass_stat.count_0
+        print(f"Number of accumulated positive labels: {accumulated_total_positive_labels}")
         accumulated_postive_labels |= pass_stat.count_0_result_labels
         print(
-            f"Number of postive labels (accumulated): {len(accumulated_postive_labels)} out of {pass_stat.total_results}, percentage: {int((len(accumulated_postive_labels) / pass_stat.total_results) * 100)}%"
+            f"Number of accumulated postive labels (deduplicated): {len(accumulated_postive_labels)} out of {pass_stat.total_results}, percentage: {int((len(accumulated_postive_labels) / pass_stat.total_results) * 100)}%"
         )
 
         print(

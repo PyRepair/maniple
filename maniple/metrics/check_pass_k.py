@@ -20,6 +20,20 @@ def pass_at_k(n, c, k):
     return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
 
 
+def find_string_with_most_ones(strings):
+    max_ones = 0
+    string_with_most_ones = ""
+    
+    for string in strings:
+        current_count = string.count('1')
+        if current_count > max_ones:
+            max_ones = current_count
+            string_with_most_ones = string
+            
+    return string_with_most_ones
+
+
+
 def analyze(folder: List[Path]):
     fixes_per_bug = defaultdict[str, int](lambda: 0) # all 1 bitvector
     trials_per_bug = defaultdict[str, int](lambda: 0) # all 1 bitvector
@@ -33,35 +47,14 @@ def analyze(folder: List[Path]):
         lst.extend(_lst)
     
     for bugid, project_folder, bugid_folder in lst:
-        max_len = 0
-        max_bitvector = ""
-        for file in bugid_folder.iterdir():
-            if "response" in file.name and file.name.endswith(".json"):
-                bitvector = file.name.split("_")[0]
-                i = 0
-                for bit in bitvector:
-                    if bit == "1":
-                        i += 1
-                if i > max_len:
-                    max_len = i
-                    max_bitvector = bitvector
+        max_bitvector: str = find_string_with_most_ones([str(p) for p in bugid_folder.iterdir() if p.is_dir()])
+        
+        for bitvector_folder in bugid_folder.iterdir():
+            if not bitvector_folder.is_dir():
+                continue
 
-        for file in bugid_folder.iterdir():
-            if "result" in file.name and max_bitvector in file.name and file.name.endswith(".json"):
-                with open(file, "r") as json_file:
-                    result_data = json.load(json_file)
-
-                first_key = list(result_data.keys())[0]
-                first_value = result_data[first_key]
-
-                if first_value == 0:
-                    fixes_per_bug[bugid] += 1
-                
-                if first_value == 0 or first_value == 1:
-                    trials_per_bug[bugid] += 1
-            
-            if "result" in file.name and file.name.endswith(".json"):
-                with open(file, "r") as json_file:
+            for result_file in bitvector_folder.glob("*result*.json"):
+                with open(result_file, "r") as json_file:
                     result_data = json.load(json_file)
 
                 first_key = list(result_data.keys())[0]
@@ -72,6 +65,13 @@ def analyze(folder: List[Path]):
                 
                 if first_value == 0 or first_value == 1:
                     total_trials_per_bug[bugid] += 1
+                
+                if max_bitvector == bitvector_folder.stem:
+                    if first_value == 0:
+                        fixes_per_bug[bugid] += 1
+                    
+                    if first_value == 0 or first_value == 1:
+                        trials_per_bug[bugid] += 1
 
     return fixes_per_bug, trials_per_bug, total_fixes_per_bug, total_trials_per_bug
 
