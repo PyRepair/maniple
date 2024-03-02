@@ -468,8 +468,12 @@ class PromptGenerator:
             if selected == 0:
                 return
 
-        source_code_pattern = r"# The source code of the buggy function\n```python\n(.*?)```"
-        match = re.search(source_code_pattern, self.prompt, re.DOTALL)
+        # update 2024.3.2 summarization is no longer supported hence we remove it
+        # source_code_pattern = r"# The source code of the buggy function\n```python\n(.*?)```"
+        # match = re.search(source_code_pattern, self.prompt, re.DOTALL)
+        # "1.2.2": self.generate_imports_body(),
+        # "source_code_body": self.generate_source_code_body()
+
         facts_content_strata = {
             "1": self.strata_1_content,
             "2": self.strata_2_content,
@@ -479,9 +483,7 @@ class PromptGenerator:
             "6": self.strata_6_content,
             "7": self.strata_7_content,
             "8": self.strata_8_content,
-            "9": self.strata_9_content,
-            "1.2.2": self.generate_imports_body(),
-            "source_code_body": self.generate_source_code_body()
+            "9": self.strata_9_content
         }
 
         return facts_content_strata

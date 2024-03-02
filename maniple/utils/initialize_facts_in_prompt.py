@@ -1,32 +1,41 @@
+import argparse
 import json
-import os
+from pathlib import Path
 
-from ..strata_based.prompt_generator import PromptGenerator
+from maniple.strata_based.prompt_generator import PromptGenerator
+from maniple.utils.misc import iter_bugid_folders
 
-database_path = os.path.join("..", "experiment-initialization-resources", "bug-data")
-bitvector_path = os.path.join("..", "experiment-initialization-resources", "strata-bitvectors")
+experiment_folder_path = Path.cwd() / "experiment-initialization-resources"
 
-for file in os.listdir(bitvector_path):
-    if "0" not in file:
-        with open(os.path.join(bitvector_path, file), "r") as input_bitvector_file:
-            bitvector_strata = json.load(input_bitvector_file)
+with open(experiment_folder_path / "strata-bitvectors" / "1111111_bitvector.json", "r") as f:
+    bitvector_strata = json.load(f)
 
-projects = os.listdir(database_path)
-for project in projects:
-    project_folder_path = os.path.join(database_path, project)
-    if not os.path.isdir(project_folder_path):
-        continue
 
-    for bid in os.listdir(project_folder_path):
-        bug_dir_path = os.path.join(project_folder_path, bid)
-        if not os.path.isdir(bug_dir_path):
-            continue
-
+def gen_facts_in_prompts(output_dir: str):
+    for bugid, project_folder, bugid_folder in iter_bugid_folders(Path(output_dir)):
         try:
-            prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
-            prompt_generator.collect_fact_content_in_prompt()
+            prompt_generator = PromptGenerator(
+                database_dir=output_dir,
+                project_name=project_folder.name,
+                bug_id=bugid_folder.name,
+                strata_bitvector=bitvector_strata,
+            )
+
+            fact_in_prompts = prompt_generator.collect_fact_content_in_prompt()
+
+            if fact_in_prompts:
+                with open(bugid_folder / "facts_in_prompt.json", "w") as f:
+                    json.dump(fact_in_prompts, f, indent=4)
 
         except Exception as e:
-            print(f"{project}:{bid} fail to extract facts in prompt")
+            print(f"{bugid} fail to extract facts in prompt")
             print(e)
             print()
+
+
+if __name__ == "__main__":
+    args_parser = argparse.ArgumentParser()
+    args_parser.add_argument("output_dir", type=Path, help="Path to the output directory")
+    args = args_parser.parse_args()
+
+    gen_facts_in_prompts(args.output_dir)
