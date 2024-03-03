@@ -33,6 +33,7 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, actual_grou
             break
 
     if not require_generation:
+        print_in_yellow(f"Skip {project_name}:{bug_id}:{actual_group_bitvector}: all responses already generated")
         return {
             "prompt_tokens": 0,
             "completion_tokens": 0,

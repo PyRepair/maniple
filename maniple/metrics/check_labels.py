@@ -2,7 +2,7 @@ import json
 import os.path
 import numpy as np
 
-dataset = ["16-100-dataset-new-group", "16-215-dataset-new-group"]
+dataset = ["BGP32"]
 dataset_path = []
 for dataset in dataset:
     dataset_path.append(os.path.join("..", "..", "data", dataset))
@@ -17,39 +17,45 @@ def collect_result_table(target_trial: int):
             project_path = os.path.join(path, project)
             for bid in os.listdir(project_path):
                 bug_path = os.path.join(project_path, bid)
-                for file in os.listdir(bug_path):
-                    file_path = os.path.join(bug_path, file)
-                    if not ("response" in file_path and "json" in file_path):
+                for bitvector in os.listdir(bug_path):
+                    bitvector_path = os.path.join(bug_path, bitvector)
+
+                    if not os.path.isdir(bitvector_path):
                         continue
 
-                    with open(file_path, "r") as response_file:
-                        response_data = json.load(response_file)
-                        bitvector = ""
+                    for file in os.listdir(bitvector_path):
+                        file_path = os.path.join(bitvector_path, file)
+                        if not ("response" in file_path and "json" in file_path):
+                            continue
 
-                        for bit in response_data[project][0]["available_strata"].values():
-                            bitvector += str(bit)
+                        with open(file_path, "r") as response_file:
+                            response_data = json.load(response_file)
+                            bitvector = ""
 
-                    if int(file[file.rfind("_") + 1: file.rfind(".")]) != target_trial:
-                        continue
+                            for bit in response_data[project][0]["available_strata"].values():
+                                bitvector += str(bit)
 
-                    total_fix_patch += 1
+                        if int(file[file.rfind("_") + 1: file.rfind(".")]) != target_trial:
+                            continue
 
-                    if bitvector not in result_table:
-                        result_table[bitvector] = {}
+                        total_fix_patch += 1
 
-                    if project not in result_table[bitvector]:
-                        result_table[bitvector][project] = []
+                        if bitvector not in result_table:
+                            result_table[bitvector] = {}
 
-                    result_file_path = file_path.replace("response", "result")
+                        if project not in result_table[bitvector]:
+                            result_table[bitvector][project] = []
 
-                    with open(result_file_path, "r") as result_file:
-                        result_data = json.load(result_file)
-                        label = next(iter(result_data.values()))
+                        result_file_path = file_path.replace("response", "result")
 
-                        if label == 0:
-                            result_table[bitvector][project].append(int(bid))
+                        with open(result_file_path, "r") as result_file:
+                            result_data = json.load(result_file)
+                            label = next(iter(result_data.values()))
 
-    return result_table, total_fix_patch, calculate_result_table_size(result_table)
+                            if label == 0:
+                                result_table[bitvector][project].append(int(bid))
+
+        return result_table, total_fix_patch, calculate_result_table_size(result_table)
 
 
 def merge_result_table(result_table_1: dict, result_table_2: dict):
@@ -84,7 +90,7 @@ def pass_at_k(n, c, k):
     return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
 
 
-for trial in range(1, 11):
+for trial in range(1, 31):
     if trial == 1:
         aggregate_result, fix_patch_count, correct_fix_patch_count = collect_result_table(1)
         total_correct_fix_patch_count = correct_fix_patch_count
@@ -109,5 +115,5 @@ for trial in range(1, 11):
 print(f"total fix patch count in 20 trials: {fix_patch_count}")
 print(f"total correct fix patch count in 10 trials: {total_correct_fix_patch_count}")
 
-for k in range(1, 11):
-    print(f"pass_at_{k}: {pass_at_k(fix_patch_count, total_correct_fix_patch_count, k)}")
+# for k in range(1, 11):
+#     print(f"pass_at_{k}: {pass_at_k(fix_patch_count, total_correct_fix_patch_count, k)}")
