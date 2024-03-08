@@ -9,7 +9,7 @@ import openai
 import tiktoken
 from openai import OpenAI
 
-from maniple.utils.misc import estimate_function_code_length, print_in_red, print_in_yellow, \
+from maniple.utils.misc import print_in_red, print_in_yellow, \
     extract_function_and_imports_from_code_block, find_patch_from_response
 
 client = OpenAI(api_key="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")
@@ -28,7 +28,16 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, actual_grou
         file_index = index + 1
         response_md_file_name = "response_" + str(file_index) + ".md"
         response_md_file_path = os.path.join(output_dir, response_md_file_name)
+
         if not os.path.exists(response_md_file_path):
+            require_generation = True
+            break
+
+        with open(response_md_file_path, "r", encoding="utf-8") as response_md_file:
+            previous_response = response_md_file.read()
+
+        if previous_response == "":
+            print_in_red(f"Detect empty previous response {project_name}:{bug_id}:{actual_group_bitvector}:{file_index}. Regenerate")
             require_generation = True
             break
 

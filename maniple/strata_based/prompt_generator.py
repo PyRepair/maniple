@@ -4,11 +4,10 @@ import glob
 import json
 import os.path
 import threading
-import re
 
 from openai import OpenAI
 from typing import List
-from maniple.utils.misc import print_in_red, print_in_yellow, divide_list
+from maniple.utils.misc import divide_list
 from maniple.utils.openai_utils import get_and_save_response_with_fix_path, combine_token_usage
 from maniple.strata_based.prompt_template import generate_variable_angelic_info, generate_variable_runtime_info
 from maniple.strata_based.fact_bitvector_generator import bitvector_map, strata_bitvector_map
