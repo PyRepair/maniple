@@ -30,7 +30,7 @@ data/               # Training and testing datasets
           response_1.patch  # The response in patch format
           result_1.json     # Testing result
     ...
-  full_dataset.txt  # Contains download link for full BGP314 dataset
+  BGP314/           # 314 bugs from the BugsInPy dataset
 
 maniple/            # Scripts for getting facts and generate prompts
   strata_based/     # Scripts for generating prompts
@@ -54,44 +54,50 @@ experiment-initialization-resources/  # Contains raw facts for each bug
   strata-bitvector/ # Debugging information for bitvectors
 ```
 
-## Fact Extraction
+## Steps to Reproduce the Experiments
 
-The CLI scripts under the `maniple` directory provide useful commands to prepare environments for each bug and extract facts from the bug data.
+Please follow the steps below sequentially to reproduce the experiments
 
-In order to prepare the environments for each bug, you can use the `prep` command as follows:
+### Prepare the Dataset
+
+The CLI scripts under the `maniple` directory provide useful commands to download and prepare environments for each bug.
+
+To download and prepare environments for each bugs, you can use the `prep` command.
 
 ```sh
-maniple prep --bugids black:10
+maniple prep --dataset 314-dataset
 ```
 
-This script will automatically download black repository from GitHub, create a virtual environment for the bug with id 10 and install the necessary dependencies. Replace `black:10` with the bug id you want to prepare.
+This script will automatically download all 314 bugs from GitHub, create a virtual environment for the bug and install the necessary dependencies.
+
+### Fact Extraction
 
 Then you can extract facts from the bug data using the `extract` command as follows:
 
 ```sh
-maniple extract --bugids black:10 --output-dir /path/to/output
+maniple extract --dataset 314-dataset --output-dir data/BGP314
 ```
 
 This script will extract facts from the bug data and save them in the specified output directory.
 
 You can find all extracted facts under the `experiment-initialization-resources/bug-data` directory.
 
-## Generate Bitvector Specific Prompts and Responses
+### Generate Bitvector Specific Prompts and Responses
 
 Please use following command:
 
 ```sh
-python3 -m maniple.strata_based.prompt_generator --database 314-dataset --partition 10 --start_index 1 --trial 15
+python3 -m maniple.strata_based.prompt_generator --database BGP314 --partition 10 --start_index 1 --trial 15
 ```
 
 This script will generate prompts and responses for all 314 bugs in the dataset by enumerating all possible bitvectors according to current strata design specified in `maniple/strata_based/fact_strata_table.json`. By specifying `--trial 15`, the script will generate 15 responses for each prompt. And by specifying `--partition 10` the script will start 10 threads to speed up the process.
 
-## Testing Generated Patches
+### Testing Generated Patches
 
 Please use following command:
 
 ```sh
-maniple validate --bugids black:10 --output-dir /path/to/output
+maniple validate --output-dir data/BGP314
 ```
 
 This script will validate the generated patches for the specified bug and save the results in the specified output directory.
