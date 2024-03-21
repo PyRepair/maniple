@@ -1,6 +1,6 @@
 # Maniple
 
-This repository contains several experiments assessing the performance of Large Language Models (LLMs) when combining different sets of features into prompts. It focuses on understanding how different combinations of features can impact the effectiveness of prompts in eliciting accurate and relevant responses from LLMs.
+This repository contains code, scripts and data necessary to reproduce the paper "The Fact Selection Problem in LLM-Based Program Repair".
 
 ## Installation
 
