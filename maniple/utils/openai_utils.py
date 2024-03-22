@@ -12,7 +12,12 @@ from openai import OpenAI
 from maniple.utils.misc import print_in_red, print_in_yellow, \
     extract_function_and_imports_from_code_block, find_patch_from_response
 
-client = OpenAI(api_key="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")
+
+api_key = os.getenv("OPENAI_API_KEY")
+if api_key is None:
+    raise ValueError("API key not found. Please set the OPENAI_API_KEY environment variable.")
+
+client = OpenAI(api_key=api_key)
 
 
 def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, actual_group_bitvector: str, database_dir: str,

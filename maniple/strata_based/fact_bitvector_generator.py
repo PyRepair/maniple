@@ -80,7 +80,7 @@ strata_bitvector_map = {
 }
 
 if __name__ == "__main__":
-    database_path = os.path.join("..", "..", "experiment-initialization-resources", "strata-bitvectors")
+    database_path = os.path.join("experiment-initialization-resources", "strata-bitvectors")
 
     if not os.path.exists(database_path):
         os.makedirs(database_path)
@@ -122,6 +122,6 @@ if __name__ == "__main__":
                 for fact in strata.keys():
                     strata[fact] = code[index]
 
-            code_str = ''.join(map(str, code))
+            code_str = "1" + ''.join(map(str, code)) + "1"
             print(code_str)
             save_bitvector(os.path.join(database_path, f"{code_str}_bitvector.json"), strata_bitvector)

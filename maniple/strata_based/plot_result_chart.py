@@ -184,7 +184,7 @@ for dataset_name in dataset:
     else:
         k = 5
 
-    top_10_bitvector = keep_top_k_highest_fix_rate_bitvector(result_dict, k)
+    top_10_bitvector: dict = keep_top_k_highest_fix_rate_bitvector(result_dict, k)
 
     if "1111111" not in top_10_bitvector:
         top_10_bitvector["1111111"] = result_dict["1111111"]
