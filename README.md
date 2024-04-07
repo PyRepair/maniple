@@ -55,6 +55,8 @@ experiment-initialization-resources/  # Contains raw facts for each bug
   strata-bitvector/ # Debugging information for bitvectors
 ```
 
+Due to the large size of `BGP314`, it is not stored in this repository, but in Zenodo website: https://zenodo.org/records/10853003.
+
 ## Steps to Reproduce the Experiments
 
 Please follow the steps below sequentially to reproduce the experiments on 314 bugs in BugsInPy with our bitvector based prompt
