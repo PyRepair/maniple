@@ -1,6 +1,5 @@
 import json
 import pickle
-from re import S
 import threading
 from pathlib import Path
 from typing import Any, List, Callable
@@ -8,7 +7,7 @@ import os
 
 import tiktoken
 
-from maniple.utils.openai_utils import (
+from maniple.maniple.utils.llm_utils import (
     get_responses_from_prompt,
     QueryException,
     get_and_save_response_with_fix_path,

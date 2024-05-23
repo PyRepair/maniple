@@ -9,16 +9,36 @@ import openai
 import tiktoken
 from openai import OpenAI
 
+import ollama
+
 from maniple.utils.misc import print_in_red, print_in_yellow, \
     extract_function_and_imports_from_code_block, find_patch_from_response
 
 
-api_key = os.getenv("OPENAI_API_KEY")
-if api_key is None:
-    raise ValueError("API key not found. Please set the OPENAI_API_KEY environment variable.")
+use_ollama_flag = os.getenv("USE_OLLAMA", "False").lower() == "true"
+if use_ollama_flag:
+    openai_client = None
+    print('Using ollama backend')
+else:
+    print('Using default openai backend')
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key is None:
+        raise ValueError("API key not found. Please set the OPENAI_API_KEY environment variable.")
+    openai_client = OpenAI(api_key=api_key)
 
-client = OpenAI(api_key=api_key)
 
+def query_LLM(model: str, messages: list, trials: int, temperature=1, seed=42):
+    # TODO: extend this function
+    if use_ollama_flag:
+        return ollama.chat(model=model, messages=messages, keep_alive=True)
+    else:
+        return openai_client.chat.completions.create(
+            model=model,
+            messages=messages,
+            n=trials,
+            temperature=temperature,
+            seed=seed
+        )
 
 def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, actual_group_bitvector: str, database_dir: str,
                                         project_name: str, bug_id: str, trial: int, data_to_store: dict = None) -> dict:
@@ -156,46 +176,9 @@ class GPTConnection:
         self.max_generation_count = 3
         self.buggy_function_name = buggy_function_name
 
-        # buggy_function_length = estimate_function_code_length(source_buggy_function)
         messages = [{"role": "user", "content": prompt}]
 
         responses = self.get_response_with_valid_patch(messages, gpt_model, trial)
-
-        # for index in range(len(responses["responses"])):
-        #     response: dict = responses["responses"][index]
-        #
-        #     conversation_response = response
-        #     messages = [
-        #         {"role": "user", "content": prompt},
-        #         {"role": "assistant", "content": response["response"]},
-        #         {"role": "user", "content": "Print the full code of the fixed function"},
-        #     ]
-        #
-        #     self.max_conversation_count = 3
-        #     self.max_generation_count = 6
-        #
-        #     start_time = time.time()
-        #
-        #     while True:
-        #         if estimate_function_code_length(conversation_response["fix_patch"]) > 0.6 * buggy_function_length:
-        #             responses["responses"][index] = conversation_response
-        #             break
-        #
-        #         conversation_responses = self.get_response_with_valid_patch(messages, gpt_model, trial=1)
-        #         responses["total_token_usage"] = combine_token_usage(responses["total_token_usage"], conversation_responses["total_token_usage"])
-        #
-        #         if len(conversation_responses["responses"]) > 0:
-        #             conversation_response = conversation_responses["responses"][0]
-        #
-        #         self.max_conversation_count -= 1
-        #         if self.max_conversation_count == 0:
-        #             print_in_yellow("Exceed max conversation count")
-        #             break
-        #
-        #     end_time = time.time()
-        #     if end_time - start_time > 120:
-        #         print_in_red(f"long time for conversation")
-        #         print(end_time - start_time)
 
         if len(responses["responses"]) < trial:
             for _ in range(trial - len(responses["responses"])):
@@ -332,13 +315,9 @@ def _get_responses_from_messages(messages: list, model: str, trial: int, tempera
     while retry_count > 0:
         try:
             time.sleep(0.1)
-            chat_completion = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                n=trial,
-                temperature=temperature,
-                seed=42
-            )
+
+            # TODO replace this with ollama, make the function more generic
+            chat_completion = query_LLM(model, messages, trial, temperature=temperature)
 
             for choice in chat_completion.choices:
                 finish_reason = choice.finish_reason
@@ -361,9 +340,6 @@ def _get_responses_from_messages(messages: list, model: str, trial: int, tempera
             print_in_yellow("Meet ratelimit error, wait for 5 seconds")
             time.sleep(10)
             retry_count -= 1
-
-    # print(f"finish {str(trial)} response generation")
-    # print(len(responses["responses"]))
 
     return responses
 
