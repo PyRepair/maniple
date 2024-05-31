@@ -99,18 +99,19 @@ To reproduce our experiment prompt and response, please use the command below, a
 
 ```sh
 On Linux/macOS:
+# if you want to use OpenAI backend
 export OPENAI_API_KEY=<YOUR_OPENAI_KEY>
 
-On windows:
-setx OPENAI_API_KEY <YOUR_OPENAI_KEY>
+# if you want to use Ollama backend
+export USE_OLLAMA=true
 
-
-python3 -m maniple.strata_based.prompt_generator --database BGP314 --partition 10 --start_index 1 --trial 15
+# run LLM query
+python3 -m maniple.strata_based.prompt_generator --database BGP314 --partition 10 --trial 15 --model "gpt-3.5-turbo-0125"
 ```
 
 Again, you can build your own customize prompt with customize bitvector using our extracted facts. Above is only for reproducing our prompt and response.
 
-This script will generate prompts and responses for all 314 bugs in the dataset by enumerating all possible bitvectors according to current strata design specified in `maniple/strata_based/fact_strata_table.json`. By specifying `--trial 15`, the script will generate 15 responses for each prompt. And by specifying `--partition 10` the script will start 10 threads to speed up the process.
+This script will generate prompts and responses for all 314 bugs in the dataset by enumerating all possible bitvectors according to current strata design specified in `maniple/strata_based/fact_strata_table.json`. By specifying `--trial 15`, the script will generate 15 responses for each prompt. And by specifying `--partition 10` the script will start 10 threads to speed up the process. And by specifying `--model`, you can select which LLM model to use by their name.
 
 ### Testing Generated Patches
 
