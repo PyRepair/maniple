@@ -27,20 +27,20 @@ else:
     openai_client = OpenAI(api_key=api_key)
 
 
-def query_LLM(model: str, messages: list, trials: int, temperature=1, seed=42):
+def query_LLM(llm_model: str, messages: list, trials: int, temperature=1, seed=42):
     # TODO: extend this function
     if use_ollama_flag:
-        return ollama.chat(model=model, messages=messages, keep_alive=True)
+        return ollama.chat(model=llm_model, messages=messages, keep_alive=True)
     else:
         return openai_client.chat.completions.create(
-            model=model,
+            model=llm_model,
             messages=messages,
             n=trials,
             temperature=temperature,
             seed=seed
         )
 
-def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, actual_group_bitvector: str, database_dir: str,
+def get_and_save_response_with_fix_path(prompt: str, llm_model: str, actual_group_bitvector: str, database_dir: str,
                                         project_name: str, bug_id: str, trial: int, data_to_store: dict = None) -> dict:
     bug_dir = os.path.join(database_dir, project_name, bug_id)
     output_dir: str = os.path.join(database_dir, project_name, bug_id, actual_group_bitvector)
@@ -87,7 +87,7 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, actual_grou
 
     responses = None
     try:
-        responses = GPTConnection().get_response_with_fix_path(prompt, gpt_model, trial, buggy_function_name)
+        responses = LLMConnection().get_response_with_fix_path(prompt, llm_model, trial, buggy_function_name)
     except QueryException as error:
         error_str = str(error)
         print_in_yellow(error_str)
@@ -166,19 +166,19 @@ def get_and_save_response_with_fix_path(prompt: str, gpt_model: str, actual_grou
         }
 
 
-class GPTConnection:
+class LLMConnection:
     def __init__(self):
         self.max_generation_count = 3
         # self.max_conversation_count = 3
         self.buggy_function_name = ""
 
-    def get_response_with_fix_path(self, prompt: str, gpt_model: str, trial: int, buggy_function_name: str) -> dict:
+    def get_response_with_fix_path(self, prompt: str, llm_model: str, trial: int, buggy_function_name: str) -> dict:
         self.max_generation_count = 3
         self.buggy_function_name = buggy_function_name
 
         messages = [{"role": "user", "content": prompt}]
 
-        responses = self.get_response_with_valid_patch(messages, gpt_model, trial)
+        responses = self.get_response_with_valid_patch(messages, llm_model, trial)
 
         if len(responses["responses"]) < trial:
             for _ in range(trial - len(responses["responses"])):
@@ -193,10 +193,10 @@ class GPTConnection:
 
         return responses
 
-    def get_response_with_valid_patch(self, messages: list, gpt_model: str, trial: int) -> dict:
+    def get_response_with_valid_patch(self, messages: list, llm_model: str, trial: int) -> dict:
         start_time = time.time()
 
-        responses = _get_responses_from_messages(messages, gpt_model, math.ceil(trial * 1.5))
+        responses = _get_responses_from_messages(messages, llm_model, math.ceil(trial * 1.5))
         responses["prompt_messages"] = messages
         responses["responses"] = [{"response": value} for value in responses["responses"] if find_patch_from_response(value, self.buggy_function_name) is not None]
 
@@ -220,7 +220,7 @@ class GPTConnection:
 
             self.max_generation_count -= 1
 
-            next_query_responses = _get_responses_from_messages(messages, gpt_model, trial)
+            next_query_responses = _get_responses_from_messages(messages, llm_model, trial)
             next_query_responses["responses"] = [{"response": value} for value in next_query_responses["responses"] if find_patch_from_response(value, self.buggy_function_name) is not None]
             responses["total_token_usage"] = combine_token_usage(responses["total_token_usage"], next_query_responses["total_token_usage"])
 
@@ -271,8 +271,8 @@ def combine_token_usage(usage_1, usage_2) -> dict:
     }
 
 
-def get_responses_from_messages(messages: list, model: str, trial: int, retry_max_count: int = 4, default_safe: bool = False, temperature: float = 1.0) -> dict:
-    responses = _get_responses_from_messages(messages, model, math.ceil(trial * 1.5), temperature=temperature)
+def get_responses_from_messages(messages: list, llm_model: str, trial: int, retry_max_count: int = 4, default_safe: bool = False, temperature: float = 1.0) -> dict:
+    responses = _get_responses_from_messages(messages, llm_model, math.ceil(trial * 1.5), temperature=temperature)
     responses["prompt_messages"] = messages
 
     while retry_max_count > 0:
@@ -282,7 +282,7 @@ def get_responses_from_messages(messages: list, model: str, trial: int, retry_ma
             responses["responses"] = responses["responses"][:trial]
             return responses
 
-        next_query_responses = _get_responses_from_messages(messages, model, trial, temperature=temperature)
+        next_query_responses = _get_responses_from_messages(messages, llm_model, trial, temperature=temperature)
         responses["responses"] = responses["responses"] + next_query_responses["responses"]
         responses["response_completions"] = responses["response_completions"] + next_query_responses["response_completions"]
         responses["total_token_usage"] = combine_token_usage(responses["total_token_usage"], next_query_responses["total_token_usage"])
@@ -294,7 +294,7 @@ def get_responses_from_messages(messages: list, model: str, trial: int, retry_ma
         raise QueryException(f"Tried {str(retry_max_count)} times still fail to get enough responses")
 
 
-def _get_responses_from_messages(messages: list, model: str, trial: int, temperature: float = 1.0) -> dict:
+def _get_responses_from_messages(messages: list, llm_model: str, trial: int, temperature: float = 1.0) -> dict:
     for message in messages:
         num_tokens = num_tokens_from_string(message["content"], "cl100k_base")
         if num_tokens > 16385:
@@ -317,7 +317,7 @@ def _get_responses_from_messages(messages: list, model: str, trial: int, tempera
             time.sleep(0.1)
 
             # TODO replace this with ollama, make the function more generic
-            chat_completion = query_LLM(model, messages, trial, temperature=temperature)
+            chat_completion = query_LLM(llm_model, messages, trial, temperature=temperature)
 
             for choice in chat_completion.choices:
                 finish_reason = choice.finish_reason

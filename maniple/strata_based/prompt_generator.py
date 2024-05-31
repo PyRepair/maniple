@@ -7,7 +7,7 @@ import threading
 
 from typing import List
 from maniple.utils.misc import divide_list
-from maniple.maniple.utils.llm_utils import get_and_save_response_with_fix_path, combine_token_usage
+from maniple.utils.llm_utils import get_and_save_response_with_fix_path, combine_token_usage
 from maniple.strata_based.prompt_template import generate_variable_angelic_info, generate_variable_runtime_info
 from maniple.strata_based.fact_bitvector_generator import bitvector_map, strata_bitvector_map
 
@@ -484,7 +484,7 @@ class PromptGenerator:
 
         return facts_content_strata
 
-    def generate_response(self, trial_number: int, gpt_model: str):
+    def generate_response(self, trial_number: int, llm_model: str):
         bitvector_flatten = ""
 
         for value in self.actual_strata_bitvector.values():
@@ -497,11 +497,11 @@ class PromptGenerator:
             "available_strata": self.actual_strata_bitvector
         }
 
-        return get_and_save_response_with_fix_path(self.prompt, gpt_model, bitvector_flatten, self.database_dir,
+        return get_and_save_response_with_fix_path(self.prompt, llm_model, bitvector_flatten, self.database_dir,
                                                    self.project_name, self.bug_id, trial_number, data_to_store)
 
 
-def run_single_bitvector_partition(partition_bitvectors, trial_number):
+def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int, llm_model: str):
     global total_token_usage
 
     for bitvector_strata in partition_bitvectors:
@@ -519,7 +519,7 @@ def run_single_bitvector_partition(partition_bitvectors, trial_number):
                 if not prompt_generator.exist_null_strata():
                     prompt_generator.write_prompt()
                     print(f"\ngenerate response for {project}:{bid}")
-                    token_usage = prompt_generator.generate_response(trial_number, "gpt-3.5-turbo-0125")
+                    token_usage = prompt_generator.generate_response(trial_number, llm_model)
 
                     with lock:
                         total_token_usage = combine_token_usage(total_token_usage, token_usage)
@@ -546,6 +546,13 @@ if __name__ == "__main__":
         required=True
     )
 
+    args_parser.add_argument(
+        "--model",
+        type=str,
+        help="name of llm model",
+        required=True
+    )
+
     args = args_parser.parse_args()
 
     database_path = os.path.join("data", args.database)
@@ -569,7 +576,7 @@ if __name__ == "__main__":
     }
 
     for bitvector in strata_bitvectors:
-        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, args.trial))
+        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, args.trial, args.model))
         thread.start()
         threads.append(thread)
 
