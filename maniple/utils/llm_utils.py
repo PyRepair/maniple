@@ -40,6 +40,7 @@ def query_LLM(llm_model: str, messages: list, trials: int, temperature=1, seed=4
             seed=seed
         )
 
+
 def get_and_save_response_with_fix_path(prompt: str, llm_model: str, actual_group_bitvector: str, database_dir: str,
                                         project_name: str, bug_id: str, trial: int, data_to_store: dict = None) -> dict:
     bug_dir = os.path.join(database_dir, project_name, bug_id)
@@ -332,7 +333,15 @@ def _get_responses_from_messages(messages: list, llm_model: str, trial: int, tem
                     responses["responses"].append(choice.message.content)
 
             responses["response_completions"].append(chat_completion)
-            responses["total_token_usage"] = chat_completion.usage
+
+            if openai_client is not None:
+                responses["total_token_usage"] = chat_completion.usage
+            else:
+                responses["total_token_usage"] = {
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0
+                }
 
             break
 
