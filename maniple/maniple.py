@@ -7,7 +7,6 @@ from typing import List
 
 from maniple.utils.misc import (
     divide_list,
-    iter_bugid_folders, 
     print_in_red, 
     print_in_yellow,
     clear_features,
@@ -48,9 +47,9 @@ def resolve_cli_args():
         default=[],
     )
     group_resource.add_argument(
-        "--dataset",
+        "--dataset-config",
         type=str,
-        help="Which dataset to prepare",
+        help="path to dataset configuration file which contains a list of bugids",
         default=None,
     )
 
@@ -69,9 +68,9 @@ def resolve_cli_args():
     )
 
     args_parser.add_argument(
-        "--output-dir",
+        "--bugdata-dir",
         type=str,
-        help="configure the output directory to save prompt and result files. This setup is useful for redirecting outputs from validation processes or fact extraction results. Additionally, it allows for specifying target locations when using the copy command.",
+        help="configure the bugdata directory to save prompt and result files. This setup is useful for redirecting outputs from validation processes or fact extraction results. Additionally, it allows for specifying target locations when using the copy command.",
         required=False,
         default=None,
     )
@@ -140,7 +139,7 @@ def resolve_cli_args():
 def run_single_partition_bugids(args, bugids: List[str]):
     for bugid in bugids:
         # make sure the output directory exists
-        bwd = os.path.join(args.output_dir, *bugid.split(":"))
+        bwd = os.path.join(args.bugdata_dir, *bugid.split(":"))
         if not os.path.exists(bwd):
             os.makedirs(bwd)
 
@@ -218,19 +217,17 @@ def start_batch_task(args):
     if len(args.bugids) > 0:
         bugids = args.bugids
 
-    elif args.output_dir is not None:
-        bugids = [bid for bid, _, _ in iter_bugid_folders(Path(args.output_dir))]
-
-    elif args.dataset is not None:
-        _p = Path(__file__).parent.parent / "experiment-initialization-resources" / "datasets-list" / args.dataset
+    elif args.dataset_config is not None:
+        _p = Path(args.dataset_config)
         if not _p.exists():
-            print_in_red(f"ERROR: dataset {args.dataset} not found")
+            print_in_red(f"ERROR: dataset {args.dataset_config} not found")
             return
         
         with open(_p) as f:
             _j = json.load(f)
             for key, value in _j.items():
-                bugids.append(f"{key}:{value}")
+                for id in value:
+                    bugids.append(f"{key}:{id}")
     
     else:
         print_in_red("ERROR: no bugids specified")

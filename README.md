@@ -63,12 +63,31 @@ Please follow the steps below sequentially to reproduce the experiments on 314 b
 
 ### Prepare the Dataset
 
+First, you need to ensure python3.7 command is available globally in your system. If not install manually with commands.
+
+```sh
+cd /tmp/
+wget https://www.python.org/ftp/python/3.7.17/Python-3.7.17.tgz
+tar xzf Python-3.7.17.tgz
+cd Python-3.7.17
+
+sudo ./configure --prefix=/opt/python/3.7.17/ --enable-optimizations --with-lto --with-computed-gotos --with-system-ffi
+sudo make -j "$(nproc)"
+sudo make altinstall
+sudo rm /tmp/Python-3.7.17.tgz
+```
+
+Then, you can install the required dependencies by running the following command:
+
+```sh
+
 The CLI scripts under the `maniple` directory provide useful commands to download and prepare environments for each bug.
 
 To download and prepare environments for each bugs, you can use the `prep` command.
 
 ```sh
-maniple prep --dataset 314-dataset
+bgp update_bug_records
+maniple prep --dataset experiment-initialization-resources/datasets-list/314-dataset.json --envs-dir ~/Documents/maniple-env --bugdata-dir ~/Documents/maniple-bugsdata
 ```
 
 This script will automatically download all 314 bugs from GitHub, create a virtual environment for the bug and install the necessary dependencies.
