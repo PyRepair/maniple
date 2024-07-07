@@ -1,11 +1,8 @@
 from abc import abstractmethod
-import time
-from typing import Literal, Callable, Optional
+from typing import Literal, Optional, List, Tuple
+from maniple.utils.misc import print_in_red
 import json, hashlib, datetime
 import concurrent.futures
-
-import openai
-
 
 class LLMConnection:
     def __init__(self, 
@@ -43,8 +40,7 @@ class LLMConnection:
         self.__thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=max_concurrent_requests)
         self.__log_file = open(log_file, 'a')
 
-    def __chat__ollama(self, prompt: str, label: str) -> str:
-        print('start generating ollama')
+    def __chat__ollama(self, prompt: str, label: str) -> Tuple[str, str]:
         request = {
             'model': self.__model,
             'messages': [{'role': 'user', 'content': prompt}],
@@ -54,6 +50,7 @@ class LLMConnection:
             }
         }
 
+        message = ''
         for i in range(self.__max_generation_count):
             try:
                 response = self.__client.chat(
@@ -65,6 +62,7 @@ class LLMConnection:
                 self.__log(request, response, f"{label},trial={i+1}")
 
             except Exception as e:
+                print_in_red('error: ', e)
                 self.__log(request, dict(), f"{label},trial={i+1},exception={e}")
                 continue
                 # if isinstance(e, openai.RateLimitError):
@@ -72,12 +70,10 @@ class LLMConnection:
                 #     time.sleep(10)
 
             result = self.process_response(message) 
-            print('generation done')
             if result is not None:
-                print('return result')
-                return result
-        
-        return ''
+                return (message, result)
+            
+        return (message, '')
     
     def __chat__openai(self, prompt: str):
         return None
@@ -89,7 +85,7 @@ class LLMConnection:
     def process_response(self, response: str) -> Optional[str]:
         pass
     
-    def chat(self, prompt: str, label=''):
+    def chat(self, prompt: str, label='') -> List[str]:
         results = []
         futures = []
 
