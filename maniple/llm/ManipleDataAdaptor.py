@@ -18,6 +18,8 @@ class ManipleDataAdaptor(LLMConnection):
             log_file='llm_connection.log'
         )
 
+        self.__dataset = dataset
+
         self.__data_dir_path = Path(data_dir)
         self.__patch_dir_path = Path(patch_dir)
 
@@ -67,6 +69,24 @@ class ManipleDataAdaptor(LLMConnection):
 
         return prompt
     
+    def generate_and_write_all_prompt(self):
+        if self.__dataset == 'BGP32':
+            with open(self.__data_dir_path / 'datasets-list/BGP32.json') as f:
+                bugids = json.load(f)
+        elif self.__dataset == 'BGP314':
+            with open(self.__data_dir_path / 'datasets-list/BGP314.json') as f:
+                bugids = json.load(f)
+        
+        for project_name, ids in bugids.items():
+            for id in ids:
+                print(f'generate prompt for {project_name}:{id}')
+                for bitvector in self.__bitvectors.keys():
+                    folder_path: Path = self.__patch_dir_path / project_name / str(id) / bitvector
+                    folder_path.mkdir(parents=True, exist_ok=True)
+                    prompt = self.__generate_prompt(project_name, str(id), bitvector)
+                    prompt_file_path: Path = folder_path / 'prompt.md'
+                    prompt_file_path.write_text(prompt)
+    
     def process_response(self, response: str) -> str | None:
         return find_patch_from_response(response, self.__buggy_function_name)
 
@@ -77,5 +97,5 @@ if __name__ == "__main__":
         patch_dir='test_patches',
         dataset='BGP32'
     )
-    print(connection.generate_patch('pandas', '64'))
+    connection.generate_and_write_all_prompt()
     connection.close()
