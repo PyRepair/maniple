@@ -16,9 +16,20 @@ from maniple.utils.misc import print_in_red, print_in_yellow, \
 
 
 use_ollama_flag = os.getenv("USE_OLLAMA", "False").lower() == "true"
+use_llama3_flag = os.getenv("USE_LLAMA3", "False").lower() == "true"
 if use_ollama_flag:
     openai_client = None
     print('Using ollama backend')
+
+elif use_llama3_flag:
+    print('Using llama3 backend')
+    base_url = os.getenv("LLAMA3_BASE_URL")
+    api_key = os.getenv("LLAMA3_API_KEY")
+    openai_client = OpenAI(
+        base_url=base_url,
+        api_key=api_key
+    )
+
 else:
     print('Using default openai backend')
     api_key = os.getenv("OPENAI_API_KEY")
@@ -42,7 +53,7 @@ def query_LLM(llm_model: str, messages: list, trials: int, temperature=1, seed=4
 
 
 def get_and_save_response_with_fix_path(prompt: str, llm_model: str, actual_group_bitvector: str, database_dir: str,
-                                        project_name: str, bug_id: str, trial: int, data_to_store: dict = None) -> dict:
+                                        project_name: str, bug_id: str, trial: int, data_to_store: dict, start_index: int) -> dict:
     bug_dir = os.path.join(database_dir, project_name, bug_id)
     output_dir: str = os.path.join(database_dir, project_name, bug_id, actual_group_bitvector)
 
@@ -51,7 +62,7 @@ def get_and_save_response_with_fix_path(prompt: str, llm_model: str, actual_grou
 
     require_generation = False
     for index in range(trial):
-        file_index = index + 1
+        file_index = index + start_index
         response_md_file_name = "response_" + str(file_index) + ".md"
         response_md_file_path = os.path.join(output_dir, response_md_file_name)
 
@@ -98,7 +109,7 @@ def get_and_save_response_with_fix_path(prompt: str, llm_model: str, actual_grou
         traceback.print_exc()
 
     for index in range(trial):
-        file_index = index + 1
+        file_index = index + start_index
         response_md_file_name = "response_" + str(file_index) + ".md"
         response_json_file_name = "response_" + str(file_index) + ".json"
 
@@ -298,7 +309,11 @@ def get_responses_from_messages(messages: list, llm_model: str, trial: int, retr
 def _get_responses_from_messages(messages: list, llm_model: str, trial: int, temperature: float = 1.0) -> dict:
     for message in messages:
         num_tokens = num_tokens_from_string(message["content"], "cl100k_base")
-        if num_tokens > 16385:
+
+        if use_llama3_flag and num_tokens > 8192:
+            raise QueryException(f"{num_tokens} exceed maximum 8192 token size")
+
+        elif num_tokens > 16385:
             raise QueryException(f"{num_tokens} exceed maximum 16385 token size")
 
     responses = {
@@ -323,7 +338,7 @@ def _get_responses_from_messages(messages: list, llm_model: str, trial: int, tem
             for choice in chat_completion.choices:
                 finish_reason = choice.finish_reason
                 if finish_reason == "length":
-                    raise QueryException("Exceed maximum 16385 token size")
+                    raise QueryException("Exceed model maximum token size")
 
                 if finish_reason != "stop":
                     print_in_yellow(f"drop 1 response due to not stop, finish reason: {finish_reason}")

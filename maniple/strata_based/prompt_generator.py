@@ -484,7 +484,7 @@ class PromptGenerator:
 
         return facts_content_strata
 
-    def generate_response(self, trial_number: int, llm_model: str):
+    def generate_response(self, trial_number: int, llm_model: str, start_index: int):
         bitvector_flatten = ""
 
         for value in self.actual_strata_bitvector.values():
@@ -498,10 +498,10 @@ class PromptGenerator:
         }
 
         return get_and_save_response_with_fix_path(self.prompt, llm_model, bitvector_flatten, self.database_dir,
-                                                   self.project_name, self.bug_id, trial_number, data_to_store)
+                                                   self.project_name, self.bug_id, trial_number, data_to_store, start_index)
 
 
-def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int, llm_model: str):
+def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int, llm_model: str, start_index: int):
     global total_token_usage
 
     for bitvector_strata in partition_bitvectors:
@@ -519,7 +519,7 @@ def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int
                 if not prompt_generator.exist_null_strata():
                     prompt_generator.write_prompt()
                     print(f"\ngenerate response for {project}:{bid}")
-                    token_usage = prompt_generator.generate_response(trial_number, llm_model)
+                    token_usage = prompt_generator.generate_response(trial_number, llm_model, start_index)
 
                     with lock:
                         total_token_usage = combine_token_usage(total_token_usage, token_usage)
@@ -553,6 +553,13 @@ if __name__ == "__main__":
         required=True
     )
 
+    args_parser.add_argument(
+        "--start_index",
+        type=int,
+        help="the start index of your response patch, should be larger or equal to 1",
+        required=True
+    )
+
     args = args_parser.parse_args()
 
     database_path = os.path.join("data", args.database)
@@ -576,7 +583,7 @@ if __name__ == "__main__":
     }
 
     for bitvector in strata_bitvectors:
-        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, args.trial, args.model))
+        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, args.trial, args.model, args.start_index))
         thread.start()
         threads.append(thread)
 
