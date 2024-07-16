@@ -1,18 +1,28 @@
 from typing import Literal
 from pathlib import Path
-from maniple.llm.LLMConnection import LLMConnection
+from maniple.llm.LLMConnection import LLMConnection, ModelType, PlatformType
 from maniple.llm.PromptGenerator import PromptGenerator
 from maniple.utils.misc import find_patch_from_response
-import json
+import json, os
 
 class ManipleDataAdaptor(LLMConnection):
-    def __init__(self, data_dir: str, patch_dir: str, dataset: Literal['BGP314', 'BGP32']):
+    def __init__(self, 
+                 data_dir: str, 
+                 patch_dir: str, 
+                 dataset: Literal['BGP314', 'BGP32'],
+                 platform: PlatformType,
+                 model: ModelType,
+                 endpoint_url: str = '',
+                 trial=1):
+        
+        api_key = os.getenv('api-key', '')
+        
         super().__init__(
-            platform='Ollama',
-            model='llama3:8b',
-            api_key=None,
-            endpoint_url=None,
-            trial=1,
+            platform=platform,
+            model=model,
+            api_key=api_key,
+            endpoint_url=endpoint_url,
+            trial=trial,
             max_concurrent_requests=10,
             max_generation_count=3,
             log_file='llm_connection.log'
@@ -29,7 +39,7 @@ class ManipleDataAdaptor(LLMConnection):
         bitvectors_file = Path(data_dir) / 'stratas.json'
         self.__bitvectors = json.loads(bitvectors_file.read_text())
 
-    def generate_patch(self, project_name: str, bug_id: str):
+    def generate_patch(self, project_name: str, bug_id: str, use_prompt_file=False):
         print(f'processing {project_name}:{bug_id}')
         patch_path = self.__patch_dir_path / project_name / bug_id
 
@@ -38,8 +48,11 @@ class ManipleDataAdaptor(LLMConnection):
             bitvector_path.mkdir(parents=True, exist_ok=True)
 
             prompt_file = bitvector_path / 'prompt.md'
-            prompt = self.__generate_prompt(project_name, bug_id, bitvector)
-            prompt_file.write_text(prompt)
+            if use_prompt_file:
+                prompt = prompt_file.read_text()
+            else:
+                prompt = self.__generate_prompt(project_name, bug_id, bitvector)
+                prompt_file.write_text(prompt)
 
             responses = self.chat(prompt, f'bugid={project_name}:{bug_id},bitvector={bitvector}')
             for idx, res in enumerate(responses):
@@ -92,10 +105,15 @@ class ManipleDataAdaptor(LLMConnection):
 
 
 if __name__ == "__main__":
+    
     connection = ManipleDataAdaptor(
         data_dir='experiment-data',
         patch_dir='test_patches',
-        dataset='BGP32'
+        dataset='BGP32',
+        platform='DeepInfra',
+        model='meta-llama/Meta-Llama-3-8B-Instruct',
+        endpoint_url='https://api.deepinfra.com/v1/openai',
+        trial=1
     )
     connection.generate_and_write_all_prompt()
     connection.close()

@@ -1,13 +1,23 @@
 from abc import abstractmethod
+from dataclasses import dataclass
 from typing import Literal, Optional, List, Tuple
 from maniple.utils.misc import print_in_red
 import json, hashlib, datetime
 import concurrent.futures
 
+PlatformType = Literal["OpenAI", "DeepInfra", "Ollama"]
+ModelType = Literal["llama3:8b", "llama:70b", "gpt-3.5-turbo-0125", "meta-llama/Meta-Llama-3-8B-Instruct"]
+
+class LLMResponse:
+    original_response = ''
+    fix_patch = ''
+
+
+
 class LLMConnection:
     def __init__(self, 
-                 platform: Literal["OpenAI", "DeepInfra", "Ollama"],
-                 model: Literal["llama3:8b", "llama:70b", "gpt-3.5-turbo-0125"],
+                 platform: PlatformType,
+                 model: ModelType,
                  api_key: str = None,
                  endpoint_url: str = None,
                  trial = 1,
@@ -20,6 +30,7 @@ class LLMConnection:
         if platform == "OpenAI":
             from openai import OpenAI
             self.__client = OpenAI(api_key=api_key)
+            self.__client.chat.completions.create()
         elif platform == "DeepInfra":
             from openai import OpenAI
             self.__client = OpenAI(base_url=endpoint_url, api_key=api_key)
@@ -29,9 +40,9 @@ class LLMConnection:
         else:
             raise ValueError(f"Invalid platform: {platform}")
         
-        self.__platform = platform
+        self.__platform: PlatformType = platform
 
-        self.__model = model
+        self.__model: ModelType = model
         self.__trial = trial
         self.__temperature = temperature
         self.__seed = seed
@@ -78,8 +89,40 @@ class LLMConnection:
     def __chat__openai(self, prompt: str):
         return None
     
-    def __chat_huggingface(self, prompt: str):
-        return None
+    def __chat_huggingface(self, prompt: str, label: str) -> Tuple[str, str]:
+        request = {
+            'model': self.__model,
+            'messages': [{'role': 'user', 'content': prompt}],
+            'options': {
+                'seed': self.__seed,
+                'temperature': self.__temperature,
+            }
+        }
+
+        message = ''
+        for i in range(self.__max_generation_count):
+            try:
+                chat_completion = self.__client.chat.completions.create(
+                    model=request['model'],
+                    messages=request['messages'],
+                    seed=request['options']['seed'],
+                    temperature=request['options']['temperature'],
+                    stream=False
+                )
+
+                response = chat_completion.to_dict()
+                message = chat_completion.choices[0].message.content
+                self.__log(request, response, f"{label},trial={i+1}")
+            
+            except Exception as e:
+                print_in_red('error: ', e)
+                self.__log(request, dict(), f"{label},trial={i+1},exception={e}")
+
+            result = self.process_response(message) 
+            if result is not None:
+                return (message, result)
+            
+        return (message, '')
     
     @abstractmethod
     def process_response(self, response: str) -> Optional[str]:
