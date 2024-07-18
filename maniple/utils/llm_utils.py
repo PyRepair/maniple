@@ -253,6 +253,10 @@ class LLMConnection:
 
             return responses
 
+        elif len(responses["responses"]) == 0:
+            responses["responses"] = []
+            return responses
+
 
 def num_tokens_from_string(string: str, encoding_name: str) -> int:
     """Returns the number of tokens in a text string."""
