@@ -184,52 +184,71 @@ class PromptGenerator:
 
     def generate_cot(self, permutation):
         if self.actual_bitvector["cot"] == 1:
-            optional_1 = (f"{'buggy class, ' if self.actual_strata_bitvector['2'] == 1 else ''}"
-                          f"{'related functions, ' if self.actual_strata_bitvector['3'] == 1 else ''}"
-                          f"{'test code, ' if self.actual_strata_bitvector['4'] == 1 else ''}"
-                          f"{'corresponding error message, ' if self.actual_strata_bitvector['5'] == 1 else ''}"
-                          f"{'the runtime input/output values, ' if self.actual_strata_bitvector['6'] == 1 else ''}"
-                          f"{'the expected input/output values, ' if self.actual_strata_bitvector['7'] == 1 else ''}"
-                          f"{'the GitHub issue' if self.actual_strata_bitvector['8'] == 1 else ''}")
+
+            optional_1 = ""
+            for fact_group in permutation:
+                if fact_group == "1":
+                    optional_1 += (f"{'buggy class, ' if self.actual_strata_bitvector['2'] == 1 else ''}"
+                                   f"{'related functions, ' if self.actual_strata_bitvector['3'] == 1 else ''}")
+
+                elif fact_group == "2":
+                    optional_1 += (f"{'test code, ' if self.actual_strata_bitvector['4'] == 1 else ''}"
+                                   f"{'corresponding error message, ' if self.actual_strata_bitvector['5'] == 1 else ''}")
+
+                elif fact_group == "3":
+                    optional_1 += f"{'the runtime input/output values, ' if self.actual_strata_bitvector['6'] == 1 else ''}"
+
+                elif fact_group == "4":
+                    optional_1 += f"{'the expected input/output values, ' if self.actual_strata_bitvector['7'] == 1 else ''}"
+
+                elif fact_group == "5":
+                    optional_1 += f"{'the GitHub issue' if self.actual_strata_bitvector['8'] == 1 else ''}"
+
             if optional_1[-2:] == ", ":
                 optional_1 = optional_1[:-2]
 
-            new_line_str = "\n"
-
             optional_2 = "the buggy function, "
-            if self.actual_strata_bitvector['2'] == 1 and self.actual_bitvector["1.3.2"] == 1:
-                optional_2 += "the buggy class docs, "
+            for fact_group in permutation:
+                if fact_group == "1":
+                    if self.actual_strata_bitvector['2'] == 1 and self.actual_bitvector["1.3.2"] == 1:
+                        optional_2 += "the buggy class docs, "
+                    if self.actual_strata_bitvector['3'] == 1:
+                        optional_2 += "the related functions, "
 
-            if self.actual_strata_bitvector['3'] == 1:
-                optional_2 += "the related functions, "
+                elif fact_group == "2":
+                    if self.actual_strata_bitvector['4'] == 1:
+                        optional_2 += "the failing test, "
+                    if self.actual_strata_bitvector['5'] == 1:
+                        optional_2 += "the corresponding error message, "
 
-            if self.actual_strata_bitvector['4'] == 1:
-                optional_2 += "the failing test, "
+                elif fact_group == "3":
+                    if self.actual_strata_bitvector['6'] == 1:
+                        optional_2 += "the runtime input/output variable values, "
 
-            if self.actual_strata_bitvector['5'] == 1:
-                optional_2 += "the corresponding error message, "
+                elif fact_group == "4":
+                    if self.actual_strata_bitvector['7'] == 1:
+                        optional_2 += "the expected input/output variable values, "
 
-            if self.actual_strata_bitvector['6'] == 1:
-                optional_2 += "the runtime input/output variable values, "
-
-            if self.actual_strata_bitvector['7'] == 1:
-                optional_2 += "the expected input/output variable values, "
-
-            if self.actual_strata_bitvector['8'] == 1:
-                optional_2 += "the GitHub Issue information"
+                elif fact_group == "5":
+                    if self.actual_strata_bitvector['8'] == 1:
+                        optional_2 += "the GitHub Issue information"
 
             if optional_2[-2:] == ", ":
                 optional_2 = optional_2[:-2]
 
             optional_3 = ""
-            if self.actual_strata_bitvector['4'] == 1 or self.actual_strata_bitvector['5'] == 1:
-                optional_3 += "pass the failing test, "
+            for fact_group in permutation:
+                if fact_group == "2":
+                    if self.actual_strata_bitvector['4'] == 1 or self.actual_strata_bitvector['5'] == 1:
+                        optional_3 += "pass the failing test, "
 
-            if self.actual_strata_bitvector['7'] == 1:
-                optional_3 += "satisfy the expected input/output values, "
+                elif fact_group == "4":
+                    if self.actual_strata_bitvector['7'] == 1:
+                        optional_3 += "satisfy the expected input/output values, "
 
-            if self.actual_strata_bitvector['8'] == 1:
-                optional_3 += "resolve the issue posted in GitHub"
+                elif fact_group == "5":
+                    if self.actual_strata_bitvector['8'] == 1:
+                        optional_3 += "resolve the issue posted in GitHub"
 
             if optional_3[-2:] == ", ":
                 optional_3 = optional_3[:-2]
