@@ -120,6 +120,3 @@ class BusinessHourMixin(BusinessMixin):
     
 ```
 
-
-
-

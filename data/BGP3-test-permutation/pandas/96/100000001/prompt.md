@@ -113,6 +113,3 @@ def apply(self, other):
 
 ```
 
-
-
-

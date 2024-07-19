@@ -149,9 +149,6 @@ class BusinessHourMixin(BusinessMixin):
     
 ```
 
-
-
-
 ## A GitHub issue for this bug
 
 The issue's title:

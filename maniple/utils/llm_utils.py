@@ -53,9 +53,13 @@ def query_LLM(llm_model: str, messages: list, trials: int, temperature=1, seed=4
 
 
 def get_and_save_response_with_fix_path(prompt: str, llm_model: str, actual_group_bitvector: str, database_dir: str,
-                                        project_name: str, bug_id: str, trial: int, data_to_store: dict, start_index: int) -> dict:
+                                        project_name: str, bug_id: str, trial: int, data_to_store: dict,
+                                        start_index: int, permutation: str = None) -> dict:
     bug_dir = os.path.join(database_dir, project_name, bug_id)
     output_dir: str = os.path.join(database_dir, project_name, bug_id, actual_group_bitvector)
+
+    if permutation is not None:
+        output_dir = os.path.join(output_dir, permutation)
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)

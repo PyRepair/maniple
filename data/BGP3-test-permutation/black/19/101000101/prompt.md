@@ -76,9 +76,6 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
 
 ```
 
-
-
-
 ## Expected values and types of variables during the failing test execution
 Each case below includes input parameter values and types, and the expected values and types of relevant variables at the function's return. If an input parameter is not reflected in the output, it is assumed to remain unchanged. A corrected function must satisfy all these cases.
 

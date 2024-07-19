@@ -24,9 +24,6 @@ def match(command):
 
 ```
 
-
-
-
 ## A GitHub issue for this bug
 
 The issue's title:

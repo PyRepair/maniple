@@ -72,6 +72,3 @@ def _maybe_empty_lines(self, current_line: Line) -> Tuple[int, int]:
 
 ```
 
-
-
-

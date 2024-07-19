@@ -152,6 +152,3 @@ class BusinessHourMixin(BusinessMixin):
     
 ```
 
-
-
-

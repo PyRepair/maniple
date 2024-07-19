@@ -38,7 +38,7 @@ def parse_strata_from_strata_bitvector(strata_bitvector: dict) -> dict:
 
 
 class PromptGenerator:
-    def __init__(self, database_dir: str, project_name: str, bug_id: str, strata_bitvector: dict) -> None:
+    def __init__(self, database_dir: str, project_name: str, bug_id: str, strata_bitvector: dict, permutation_amount: int) -> None:
         self.database_dir = database_dir
         self.project_name = project_name
         self.bug_id = bug_id
@@ -99,27 +99,25 @@ class PromptGenerator:
         self.strata_8_content = ""
         self.strata_9_content = ""
 
-        if False:
-            actual_fact_group = ["1"]
+        actual_fact_group = ["1"]
 
-            if self.actual_strata_bitvector['4'] == 1 or self.actual_strata_bitvector['5'] == 1:
-                actual_fact_group.append("2")
+        if self.actual_strata_bitvector['4'] == 1 or self.actual_strata_bitvector['5'] == 1:
+            actual_fact_group.append("2")
 
-            if self.actual_bitvector["2.2.1"] != 0 and self.actual_bitvector["2.2.2"] != 0:
-                actual_fact_group.append("3")
+        if self.actual_bitvector["2.2.1"] != 0 and self.actual_bitvector["2.2.2"] != 0:
+            actual_fact_group.append("3")
 
-            if self.actual_bitvector["2.3.1"] != 0 and self.actual_bitvector["2.3.2"] != 0:
-                actual_fact_group.append("4")
+        if self.actual_bitvector["2.3.1"] != 0 and self.actual_bitvector["2.3.2"] != 0:
+            actual_fact_group.append("4")
 
-            if self.actual_bitvector["3.1.1"] != 0 and self.actual_bitvector["3.1.2"] != 0:
-                actual_fact_group.append("5")
+        if self.actual_bitvector["3.1.1"] != 0 and self.actual_bitvector["3.1.2"] != 0:
+            actual_fact_group.append("5")
 
+        if permutation_amount != -1:
             self.fact_group_permutations = list(itertools.permutations(actual_fact_group))
 
         else:
-            self.fact_group_permutations = [('1', '2', '3', '4', '5')]
-
-        self.generate_prompt()
+            self.fact_group_permutations = [tuple(actual_fact_group)]
 
     def exist_null_strata(self):
         return self.strata_bitvector != self.actual_strata_bitvector
@@ -158,35 +156,33 @@ class PromptGenerator:
         elif strata == 9:
             self.strata_9_content += content
 
-    def generate_prompt(self):
+    def generate_prompt(self, permutation):
         self.prompt += self.template["preface"]
         if self.actual_bitvector["cot"] == 1:
-            self.generate_cot()
+            self.generate_cot(permutation)
         self.prompt += "\n\n"
 
-        for permutation in self.fact_group_permutations:
+        # generate prompt based on template for one fact group permutation
+        for fact_group in permutation:
+            if fact_group == "1":
+                # source code section contains fix strata 1, optional strata 2, optional strata 3
+                self.generate_buggy_code_section()
 
-            # generate prompt based on template for one fact group permutation
-            for fact_group in permutation:
-                if fact_group == "1":
-                    # source code section contains fix strata 1, optional strata 2, optional strata 3
-                    self.generate_buggy_code_section()
+            elif fact_group == "2":
+                self.generate_test_related_section()
 
-                elif fact_group == "2":
-                    self.generate_test_related_section()
+            elif fact_group == "3":
+                self.append_template(generate_variable_runtime_info(self.facts, self.actual_bitvector), 6)
 
-                elif fact_group == "3":
-                    self.append_template(generate_variable_runtime_info(self.facts, self.actual_bitvector), 6)
+            elif fact_group == "4":
+                self.append_template(generate_variable_angelic_info(self.facts, self.actual_bitvector), 7)
 
-                elif fact_group == "4":
-                    self.append_template(generate_variable_angelic_info(self.facts, self.actual_bitvector), 7)
+            elif fact_group == "5":
+                self.generate_issue_section()
 
-                elif fact_group == "5":
-                    self.generate_issue_section()
+            self.prompt += "\n\n"
 
-                self.prompt += "\n\n"
-
-    def generate_cot(self):
+    def generate_cot(self, permutation):
         if self.actual_bitvector["cot"] == 1:
             optional_1 = (f"{'buggy class, ' if self.actual_strata_bitvector['2'] == 1 else ''}"
                           f"{'related functions, ' if self.actual_strata_bitvector['3'] == 1 else ''}"
@@ -471,12 +467,16 @@ class PromptGenerator:
 
         return text
 
-    def write_prompt(self):
+    def write_prompt(self, permutation: str = None):
         bitvector_flatten = ""
         for value in self.actual_strata_bitvector.values():
             bitvector_flatten = bitvector_flatten + str(value)
 
         bitvector_path = os.path.join(self.output_dir, bitvector_flatten)
+
+        if permutation is not None:
+            bitvector_path = os.path.join(bitvector_path, permutation)
+
         if not os.path.exists(bitvector_path):
             os.makedirs(bitvector_path)
 
@@ -508,7 +508,7 @@ class PromptGenerator:
 
         return facts_content_strata
 
-    def generate_response(self, trial_number: int, llm_model: str, start_index: int):
+    def generate_response(self, trial_number: int, llm_model: str, start_index: int, permutation: str = None):
         bitvector_flatten = ""
 
         for value in self.actual_strata_bitvector.values():
@@ -518,14 +518,16 @@ class PromptGenerator:
             "bitvector": self.bitvector,
             "strata": self.strata_bitvector,
             "available_bitvector": self.actual_bitvector,
-            "available_strata": self.actual_strata_bitvector
+            "available_strata": self.actual_strata_bitvector,
+            "permutation": permutation
         }
 
         return get_and_save_response_with_fix_path(self.prompt, llm_model, bitvector_flatten, self.database_dir,
-                                                   self.project_name, self.bug_id, trial_number, data_to_store, start_index)
+                                                   self.project_name, self.bug_id, trial_number, data_to_store,
+                                                   start_index, permutation)
 
 
-def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int, llm_model: str, start_index: int):
+def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int, llm_model: str, start_index: int, permutation_amount: int):
     global total_token_usage
 
     for bitvector_strata in partition_bitvectors:
@@ -539,14 +541,25 @@ def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int
                 if not os.path.isdir(bug_dir_path):
                     continue
 
-                prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
+                prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata, permutation_amount)
                 if not prompt_generator.exist_null_strata():
-                    prompt_generator.write_prompt()
-                    # print(f"\ngenerate response for {project}:{bid}")
-                    # token_usage = prompt_generator.generate_response(trial_number, llm_model, start_index)
-                    #
-                    # with lock:
-                    #     total_token_usage = combine_token_usage(total_token_usage, token_usage)
+                    for permutation in prompt_generator.fact_group_permutations:
+                        permutation_prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata, permutation_amount)
+                        permutation_prompt_generator.generate_prompt(permutation)
+
+                        if permutation_amount != -1:
+                            permutation_prompt_generator.write_prompt(permutation=''.join(permutation))
+                        else:
+                            permutation_prompt_generator.write_prompt()
+
+                        # print(f"generate response for {project}:{bid}\n")
+                        # if permutation_amount != -1:
+                        #     token_usage = permutation_prompt_generator.generate_response(trial_number, llm_model, start_index, permutation=''.join(permutation))
+                        # else:
+                        #     token_usage = permutation_prompt_generator.generate_response(trial_number, llm_model, start_index)
+                        #
+                        # with lock:
+                        #     total_token_usage = combine_token_usage(total_token_usage, token_usage)
 
 
 if __name__ == "__main__":
@@ -584,6 +597,13 @@ if __name__ == "__main__":
         required=True
     )
 
+    args_parser.add_argument(
+        "--permutation",
+        type=int,
+        help="Optionally choose how many fact group permutation in prompt you want to sample (choose number from 1-120). Use default permutation if sample amount is not given",
+        default=-1
+    )
+
     args = args_parser.parse_args()
 
     database_path = os.path.join("data", args.database)
@@ -607,7 +627,7 @@ if __name__ == "__main__":
     }
 
     for bitvector in strata_bitvectors:
-        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, args.trial, args.model, args.start_index))
+        thread = threading.Thread(target=run_single_bitvector_partition, args=(bitvector, args.trial, args.model, args.start_index, args.permutation))
         thread.start()
         threads.append(thread)
 
