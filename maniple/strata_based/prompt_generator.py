@@ -3,6 +3,7 @@ import copy
 import glob
 import json
 import os.path
+import random
 import threading
 import itertools
 
@@ -38,7 +39,7 @@ def parse_strata_from_strata_bitvector(strata_bitvector: dict) -> dict:
 
 
 class PromptGenerator:
-    def __init__(self, database_dir: str, project_name: str, bug_id: str, strata_bitvector: dict, permutation_amount: int) -> None:
+    def __init__(self, database_dir: str, project_name: str, bug_id: str, strata_bitvector: dict, permutation_required: bool) -> None:
         self.database_dir = database_dir
         self.project_name = project_name
         self.bug_id = bug_id
@@ -113,7 +114,7 @@ class PromptGenerator:
         if self.actual_bitvector["3.1.1"] != 0 and self.actual_bitvector["3.1.2"] != 0:
             actual_fact_group.append("5")
 
-        if permutation_amount != -1:
+        if permutation_required and all(value == 1 for value in self.actual_strata_bitvector.values()):
             self.fact_group_permutations = list(itertools.permutations(actual_fact_group))
 
         else:
@@ -207,9 +208,10 @@ class PromptGenerator:
             if optional_1[-2:] == ", ":
                 optional_1 = optional_1[:-2]
 
-            optional_2 = "the buggy function, "
+            optional_2 = ""
             for fact_group in permutation:
                 if fact_group == "1":
+                    optional_2 += "the buggy function, "
                     if self.actual_strata_bitvector['2'] == 1 and self.actual_bitvector["1.3.2"] == 1:
                         optional_2 += "the buggy class docs, "
                     if self.actual_strata_bitvector['3'] == 1:
@@ -546,9 +548,7 @@ class PromptGenerator:
                                                    start_index, permutation)
 
 
-def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int, llm_model: str, start_index: int, permutation_amount: int):
-    global total_token_usage
-
+def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int, llm_model: str, start_index: int, permutation_required: bool):
     for bitvector_strata in partition_bitvectors:
         for project in projects:
             project_folder_path = os.path.join(database_path, project)
@@ -560,25 +560,65 @@ def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int
                 if not os.path.isdir(bug_dir_path):
                     continue
 
-                prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata, permutation_amount)
+                prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata, permutation_required)
+
+                if permutation_required and not all(value == 1 for value in prompt_generator.actual_strata_bitvector.values()):
+                    continue
+                
                 if not prompt_generator.exist_null_strata():
-                    for permutation in prompt_generator.fact_group_permutations:
-                        permutation_prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata, permutation_amount)
-                        permutation_prompt_generator.generate_prompt(permutation)
+                    permutations = [prompt_generator.fact_group_permutations]
 
-                        if permutation_amount != -1:
-                            permutation_prompt_generator.write_prompt(permutation=''.join(permutation))
-                        else:
-                            permutation_prompt_generator.write_prompt()
+                    if permutation_required:
+                        permutations = []
+                        for permutation_chunks in split_list_into_chunks(prompt_generator.fact_group_permutations, 4):
+                            permutations.append(permutation_chunks)
 
-                        # print(f"generate response for {project}:{bid}\n")
-                        # if permutation_amount != -1:
-                        #     token_usage = permutation_prompt_generator.generate_response(trial_number, llm_model, start_index, permutation=''.join(permutation))
-                        # else:
-                        #     token_usage = permutation_prompt_generator.generate_response(trial_number, llm_model, start_index)
-                        #
-                        # with lock:
-                        #     total_token_usage = combine_token_usage(total_token_usage, token_usage)
+                    permutation_threads = []
+
+                    for permutation_chunks in permutations:
+                        permutation_thread = threading.Thread(target=run_permutation_partition, args=(project, bid, bitvector_strata, permutation_required, permutation_chunks, trial_number, llm_model, start_index))
+                        permutation_threads.append(permutation_thread)
+                        permutation_thread.start()
+
+                    # Wait for all threads to complete
+                    for permutation_thread in permutation_threads:
+                        permutation_thread.join()
+
+
+def split_list_into_chunks(full_permutations, num_chunks):
+    # Ensure the list can be evenly divided into num_chunks
+    assert len(full_permutations) % num_chunks == 0
+    chunk_size = len(full_permutations) // num_chunks
+
+    # Shuffle the list in place
+    random.shuffle(full_permutations)
+
+    # Split the list into chunks
+    return [full_permutations[i * chunk_size:(i + 1) * chunk_size] for i in range(num_chunks)]
+
+
+def run_permutation_partition(project, bid, bitvector_strata, permutation_required,
+                              permutation_chunks, trial_number, llm_model, start_index):
+    global total_token_usage
+
+    for permutation in permutation_chunks:
+        permutation_prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata, permutation_required)
+        permutation_prompt_generator.generate_prompt(permutation)
+
+        if permutation_required:
+            permutation_prompt_generator.write_prompt(permutation=''.join(permutation))
+        else:
+            permutation_prompt_generator.write_prompt()
+
+        print(f"generate response for {project}:{bid}\n")
+        if permutation_required:
+            token_usage = permutation_prompt_generator.generate_response(trial_number, llm_model, start_index,
+                                                                         permutation=''.join(permutation))
+        else:
+            token_usage = permutation_prompt_generator.generate_response(trial_number, llm_model, start_index)
+
+        with lock:
+            total_token_usage = combine_token_usage(total_token_usage, token_usage)
 
 
 if __name__ == "__main__":
@@ -618,9 +658,9 @@ if __name__ == "__main__":
 
     args_parser.add_argument(
         "--permutation",
-        type=int,
-        help="Optionally choose how many fact group permutation in prompt you want to sample (choose number from 1-120). Use default permutation if sample amount is not given",
-        default=-1
+        type=bool,
+        help="Optionally choose if fact group permutation in prompt is queried",
+        default=False
     )
 
     args = args_parser.parse_args()
