@@ -4,6 +4,7 @@ import glob
 import json
 import os.path
 import threading
+import itertools
 
 from typing import List
 from maniple.utils.misc import divide_list
@@ -98,6 +99,26 @@ class PromptGenerator:
         self.strata_8_content = ""
         self.strata_9_content = ""
 
+        if False:
+            actual_fact_group = ["1"]
+
+            if self.actual_strata_bitvector['4'] == 1 or self.actual_strata_bitvector['5'] == 1:
+                actual_fact_group.append("2")
+
+            if self.actual_bitvector["2.2.1"] != 0 and self.actual_bitvector["2.2.2"] != 0:
+                actual_fact_group.append("3")
+
+            if self.actual_bitvector["2.3.1"] != 0 and self.actual_bitvector["2.3.2"] != 0:
+                actual_fact_group.append("4")
+
+            if self.actual_bitvector["3.1.1"] != 0 and self.actual_bitvector["3.1.2"] != 0:
+                actual_fact_group.append("5")
+
+            self.fact_group_permutations = list(itertools.permutations(actual_fact_group))
+
+        else:
+            self.fact_group_permutations = [('1', '2', '3', '4', '5')]
+
         self.generate_prompt()
 
     def exist_null_strata(self):
@@ -143,24 +164,27 @@ class PromptGenerator:
             self.generate_cot()
         self.prompt += "\n\n"
 
-        # source code section contains fix strata 1, optional strata 2, optional strata 3
-        self.generate_buggy_code_section()
-        self.prompt += "\n\n"
+        for permutation in self.fact_group_permutations:
 
-        self.generate_test_related_section()
-        self.prompt += "\n\n"
+            # generate prompt based on template for one fact group permutation
+            for fact_group in permutation:
+                if fact_group == "1":
+                    # source code section contains fix strata 1, optional strata 2, optional strata 3
+                    self.generate_buggy_code_section()
 
-        if self.actual_bitvector["2.2.1"] != 0 and self.actual_bitvector["2.2.2"] != 0:
-            self.append_template(generate_variable_runtime_info(self.facts, self.actual_bitvector), 6)
-            self.prompt += "\n\n"
+                elif fact_group == "2":
+                    self.generate_test_related_section()
 
-        if self.actual_bitvector["2.3.1"] != 0 and self.actual_bitvector["2.3.2"] != 0:
-            self.append_template(generate_variable_angelic_info(self.facts, self.actual_bitvector), 7)
-            self.prompt += "\n\n"
+                elif fact_group == "3":
+                    self.append_template(generate_variable_runtime_info(self.facts, self.actual_bitvector), 6)
 
-        if self.actual_bitvector["3.1.1"] != 0 and self.actual_bitvector["3.1.2"] != 0:
-            self.generate_issue_section()
-            self.prompt += "\n\n"
+                elif fact_group == "4":
+                    self.append_template(generate_variable_angelic_info(self.facts, self.actual_bitvector), 7)
+
+                elif fact_group == "5":
+                    self.generate_issue_section()
+
+                self.prompt += "\n\n"
 
     def generate_cot(self):
         if self.actual_bitvector["cot"] == 1:
@@ -518,11 +542,11 @@ def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int
                 prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata)
                 if not prompt_generator.exist_null_strata():
                     prompt_generator.write_prompt()
-                    print(f"\ngenerate response for {project}:{bid}")
-                    token_usage = prompt_generator.generate_response(trial_number, llm_model, start_index)
-
-                    with lock:
-                        total_token_usage = combine_token_usage(total_token_usage, token_usage)
+                    # print(f"\ngenerate response for {project}:{bid}")
+                    # token_usage = prompt_generator.generate_response(trial_number, llm_model, start_index)
+                    #
+                    # with lock:
+                    #     total_token_usage = combine_token_usage(total_token_usage, token_usage)
 
 
 if __name__ == "__main__":
