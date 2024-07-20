@@ -114,11 +114,18 @@ class PromptGenerator:
         if self.actual_bitvector["3.1.1"] != 0 and self.actual_bitvector["3.1.2"] != 0:
             actual_fact_group.append("5")
 
-        if permutation_required and all(value == 1 for value in self.actual_strata_bitvector.values()):
+        if permutation_required and self.is_max_available_facts():
             self.fact_group_permutations = list(itertools.permutations(actual_fact_group))
 
         else:
             self.fact_group_permutations = [tuple(actual_fact_group)]
+
+    def is_max_available_facts(self):
+        for key, value in self.facts.items():
+            if value is not None and self.actual_bitvector[key] == 0:
+                return False
+
+        return True
 
     def exist_null_strata(self):
         return self.strata_bitvector != self.actual_strata_bitvector
@@ -562,15 +569,16 @@ def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int
 
                 prompt_generator = PromptGenerator(database_path, project, bid, bitvector_strata, permutation_required)
 
-                if permutation_required and not all(value == 1 for value in prompt_generator.actual_strata_bitvector.values()):
+                if permutation_required and not prompt_generator.is_max_available_facts():
                     continue
                 
                 if not prompt_generator.exist_null_strata():
                     permutations = [prompt_generator.fact_group_permutations]
 
                     if permutation_required:
+                        print(f"find max facts group for {project}:{bid} with bitvector {''.join(map(str, prompt_generator.strata_bitvector.values()))}")
                         permutations = []
-                        for permutation_chunks in split_list_into_chunks(prompt_generator.fact_group_permutations, 4):
+                        for permutation_chunks in split_permutations_into_chunks(prompt_generator.fact_group_permutations, 4):
                             permutations.append(permutation_chunks)
 
                     permutation_threads = []
@@ -585,16 +593,25 @@ def run_single_bitvector_partition(partition_bitvectors: dict, trial_number: int
                         permutation_thread.join()
 
 
-def split_list_into_chunks(full_permutations, num_chunks):
-    # Ensure the list can be evenly divided into num_chunks
-    assert len(full_permutations) % num_chunks == 0
+def split_permutations_into_chunks(full_permutations, num_chunks):
+    # Calculate the size of each chunk
     chunk_size = len(full_permutations) // num_chunks
+    remainder = len(full_permutations) % num_chunks
 
     # Shuffle the list in place
     random.shuffle(full_permutations)
 
-    # Split the list into chunks
-    return [full_permutations[i * chunk_size:(i + 1) * chunk_size] for i in range(num_chunks)]
+    chunks = []
+    start_index = 0
+
+    # Split the list into chunks, distributing the remainder elements
+    for i in range(num_chunks):
+        # First 'remainder' chunks get an extra element
+        end_index = start_index + chunk_size + (1 if i < remainder else 0)
+        chunks.append(full_permutations[start_index:end_index])
+        start_index = end_index
+
+    return chunks
 
 
 def run_permutation_partition(project, bid, bitvector_strata, permutation_required,
