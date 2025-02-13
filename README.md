@@ -79,8 +79,6 @@ sudo rm /tmp/Python-3.7.17.tgz
 
 Then, you can install the required dependencies by running the following command:
 
-```sh
-
 The CLI scripts under the `maniple` directory provide useful commands to download and prepare environments for each bug.
 
 To download and prepare environments for each bugs, you can use the `prep` command.
